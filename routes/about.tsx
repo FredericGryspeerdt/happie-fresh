@@ -1,22 +1,22 @@
-import { Handlers, PageProps } from "$fresh/server.ts";
+import { PageProps } from "fresh";
+import { Handlers } from "fresh/compat";
 
 interface AboutPageData {
-    name: string;
+  name: string;
 }
 
-
 export const handler: Handlers = {
-    async GET(_req, ctx) {
-        const resp = await ctx.render();
-        return resp;
-    },
+  async GET(ctx) {
+    const resp = await ctx.render();
+    return resp;
+  },
 };
 
-export default function AboutPage({data}:PageProps<AboutPageData>) {
-    return (
-        <main>
-            <h1>About</h1>
-            <p>This is the about page.</p>
-        </main>
-    );
+export default function AboutPage({ data }: PageProps<AboutPageData>) {
+  return (
+    <main>
+      <h1>About</h1>
+      <p>This is the about page.</p>
+    </main>
+  );
 }
