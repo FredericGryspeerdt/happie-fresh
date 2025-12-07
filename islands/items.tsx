@@ -6,11 +6,11 @@ interface ItemsProps {
 }
 
 export default function Items({ data }: ItemsProps) {
-  const [items, setItems] = useState<ItemInterface[]>(data);
+  const [items, setItems] = useState<ItemInterface[]>(data || []);
   const [search, setSearch] = useState("");
 
   const filteredItems = items.filter((item) =>
-    item.name?.toLowerCase().includes(search.toLowerCase())
+    item?.name?.toLowerCase().includes(search.toLowerCase())
   );
 
   const addItem = async () => {
@@ -33,7 +33,6 @@ export default function Items({ data }: ItemsProps) {
       />
       {filteredItems.map((item: ItemInterface) => {
         const handleChange = (values: Partial<ItemInterface>) => {
-          console.log("🚀 ~ handleChange ~ values:", values);
           setItems(
             items.map((i: ItemInterface) =>
               i.id === item.id ? { ...item, ...values } : i

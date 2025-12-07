@@ -1,9 +1,10 @@
 {
+  "nodeModulesDir": "manual",
   "tasks": {
     "check": "deno fmt --check && deno lint && deno check",
     "dev": "deno run --unstable-kv -A vite",
     "build": "vite build",
-    "preview": "deno serve -A _fresh/server.js",
+    "preview": "deno serve --unstable-kv -A _fresh/server.js",
     "update": "deno run -A -r jsr:@fresh/update ."
   },
   "lint": {
@@ -18,24 +19,44 @@
     "**/_fresh/*"
   ],
   "imports": {
-    "@fresh/plugin-vite": "jsr:@fresh/plugin-vite@^1.0.8",
-    "@tailwindcss/vite": "npm:@tailwindcss/vite@^4.1.17",
-    "preact": "npm:preact@^10.27.2",
-    "preact/": "https://esm.sh/preact@10.27.2/",
-    "@preact/signals": "npm:@preact/signals@^2.5.0",
-    "tailwindcss": "npm:tailwindcss@3.4.1",
-    "tailwindcss/": "npm:/tailwindcss@3.4.1/",
-    "tailwindcss/plugin": "npm:/tailwindcss@3.4.1/plugin.js",
-    "$std/": "https://deno.land/std@0.216.0/",
+    "@/": "./",
     "fresh": "jsr:@fresh/core@^2.2.0",
-    "vite": "npm:vite@^7.2.6"
+    "preact": "npm:preact@^10.27.2",
+    "@preact/signals": "npm:@preact/signals@^2.5.0",
+    "@fresh/plugin-vite": "jsr:@fresh/plugin-vite@^1.0.8",
+    "vite": "npm:vite@^7.1.3",
+    "tailwindcss": "npm:tailwindcss@^4.1.10",
+    "@tailwindcss/vite": "npm:@tailwindcss/vite@^4.1.12",
+    "$std/": "https://deno.land/std@0.216.0/"
   },
   "compilerOptions": {
-    "jsx": "react-jsx",
-    "jsxImportSource": "preact",
     "lib": [
+      "dom",
+      "dom.asynciterable",
+      "dom.iterable",
+      "deno.ns",
       "deno.unstable-kv"
+    ],
+    "jsx": "precompile",
+    "jsxImportSource": "preact",
+    "jsxPrecompileSkipElements": [
+      "a",
+      "img",
+      "source",
+      "body",
+      "html",
+      "head",
+      "title",
+      "meta",
+      "script",
+      "link",
+      "style",
+      "base",
+      "noscript",
+      "template"
+    ],
+    "types": [
+      "vite/client"
     ]
-  },
-  "nodeModulesDir": "auto"
+  }
 }
