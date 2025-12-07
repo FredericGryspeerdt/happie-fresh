@@ -1,5 +1,5 @@
 import { Handlers, PageProps } from "$fresh/server.ts";
-import { kv } from "../../database/db.ts";
+import { getKv } from "../../database/db.ts";
 import { Item, type ItemInterface } from "../../models/item/index.ts";
 
 interface Data {}
@@ -17,6 +17,7 @@ export const handler: Handlers<Data> = {
 
     const id = 111;
     const item: ItemInterface = new Item(name || "unknown");
+    const kv = await getKv();
     const _result = await kv.set(["items", id], item);
 
     // Redirect user to item detail page.

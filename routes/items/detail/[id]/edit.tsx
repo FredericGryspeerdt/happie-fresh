@@ -1,5 +1,5 @@
 import { Handlers, PageProps } from "$fresh/server.ts";
-import { kv } from "../../../../database/db.ts";
+import { getKv } from "../../../../database/db.ts";
 import { Item, type ItemInterface } from "../../../../models/item/index.ts";
 import { ItemRepo } from "../../../../database/item.repo.ts";
 interface Data {
@@ -10,6 +10,7 @@ export const handler: Handlers<Data> = {
   async GET(_req, ctx) {
     const id = +ctx.params.id;
     // get the item from the db
+    const kv = await getKv();
     const dbItem = await kv.get<ItemInterface>(["items", id]);
     return await ctx.render({ item: dbItem.value });
   },

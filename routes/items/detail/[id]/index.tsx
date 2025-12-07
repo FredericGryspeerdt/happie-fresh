@@ -1,5 +1,5 @@
 import { Handlers, type FreshContext } from "$fresh/server.ts";
-import { kv } from "../../../../database/db.ts";
+import { getKv } from "../../../../database/db.ts";
 import { Button } from "../../../../components/Button.tsx";
 import type { ItemInterface } from "../../../../models/item/index.ts";
 interface Data {
@@ -10,6 +10,7 @@ export const handler: Handlers<Data> = {
   async GET(_req, ctx) {
     const id = +ctx.params.id;
     // get the item from the db
+    const kv = await getKv();
     const dbItem = await kv.get<ItemInterface>(["items", id]);
     return await ctx.render({ item: dbItem.value });
   },
@@ -21,6 +22,7 @@ export default async function ItemDetailPage(
 ) {
   const id = +ctx.params.id;
   // get the item from the db
+  const kv = await getKv();
   const dbItem = await kv.get<ItemInterface>(["items", id]);
   const { value: item } = dbItem || {};
   const deleteItem = async () => {

@@ -1,5 +1,5 @@
 import { Handlers, PageProps } from "$fresh/server.ts";
-import { kv } from "../../database/db.ts";
+import { getKv } from "../../database/db.ts";
 import type { ItemInterface } from "../../models/item/index.ts";
 interface Data {
   items: ItemInterface[] | null;
@@ -8,6 +8,7 @@ interface Data {
 export const handler: Handlers<Data> = {
   async GET(_req, ctx) {
     // get data from the database
+    const kv = await getKv();
 
     const dbItems: Deno.KvListIterator<ItemInterface> = kv.list<ItemInterface>({
       prefix: ["items"],
