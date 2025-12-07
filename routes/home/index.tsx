@@ -1,24 +1,20 @@
-import { Handlers, PageProps } from "$fresh/server.ts";
+import { page } from "fresh";
 import { ItemRepo } from "../../database/item.repo.ts";
 import ItemsIsland from "../../islands/items.tsx";
-import { ItemInterface } from "../../models/item/item.interface.ts";
+import { homePage } from "../../utils/index.ts";
 
-interface Data {
-  items: ItemInterface[];
-}
-
-export const handler: Handlers<Data> = {
-  async GET(_req, _ctx) {
+export const handler = homePage.handlers({
+  async GET(ctx) {
     const items = await ItemRepo.readAll();
-    return _ctx.render({ items });
+    return page({ items });
   },
-};
+});
 
-export default function Home({ data }: PageProps<Data>) {
+export default homePage.page<typeof handler>(function Home({ data }) {
   return (
     <main class="max-w-md mx-auto p-4">
       <h1 class="text-2xl font-bold mb-4">Home</h1>
       <ItemsIsland data={data.items} />
     </main>
   );
-}
+});
