@@ -1,8 +1,8 @@
 {
   "tasks": {
     "check": "deno fmt --check && deno lint && deno check",
-    "start": "deno run -A --watch=static/,routes/ --unstable-kv dev.ts",
-    "build": "deno run -A dev.ts build",
+    "dev": "vite",
+    "build": "vite build",
     "preview": "deno serve -A _fresh/server.js",
     "update": "deno run -A -r jsr:@fresh/update ."
   },
@@ -18,14 +18,17 @@
     "**/_fresh/*"
   ],
   "imports": {
+    "@fresh/plugin-vite": "jsr:@fresh/plugin-vite@^1.0.8",
+    "@tailwindcss/vite": "npm:@tailwindcss/vite@^4.1.17",
     "preact": "npm:preact@^10.27.2",
-    "preact/": "https://esm.sh/preact@10.19.6/",
+    "preact/": "https://esm.sh/preact@10.27.2/",
     "@preact/signals": "npm:@preact/signals@^2.5.0",
     "tailwindcss": "npm:tailwindcss@3.4.1",
     "tailwindcss/": "npm:/tailwindcss@3.4.1/",
     "tailwindcss/plugin": "npm:/tailwindcss@3.4.1/plugin.js",
     "$std/": "https://deno.land/std@0.216.0/",
-    "fresh": "jsr:@fresh/core@^2.2.0"
+    "fresh": "jsr:@fresh/core@^2.2.0",
+    "vite": "npm:vite@^7.2.6"
   },
   "compilerOptions": {
     "jsx": "react-jsx",

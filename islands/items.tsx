@@ -1,6 +1,5 @@
 import { useState } from "preact/hooks";
-import { Item, ItemInterface } from "../models/item/index.ts";
-import { ItemRepo } from "../database/item.repo.ts";
+import { ItemInterface } from "../models/item/index.ts";
 
 interface ItemsProps {
   data: ItemInterface[];
@@ -38,7 +37,7 @@ export default function Items({ data }: ItemsProps) {
           setItems(
             items.map((i: ItemInterface) =>
               i.id === item.id ? { ...item, ...values } : i
-            ),
+            )
           );
         };
 
@@ -50,7 +49,7 @@ export default function Items({ data }: ItemsProps) {
           });
           const savedItem = await response.json();
           setItems(
-            items.map((i: ItemInterface) => (i.id === item.id ? savedItem : i)),
+            items.map((i: ItemInterface) => (i.id === item.id ? savedItem : i))
           );
         };
 
@@ -67,13 +66,11 @@ export default function Items({ data }: ItemsProps) {
 
         return (
           <div key={item.id}>
-            {
-              /* <input
+            {/* <input
               type="checkbox"
               checked={Item.completed}
               onClick={(e) => handleChange({ completed: !Item.completed })}
-            /> */
-            }
+            /> */}
             <input
               value={item.name}
               onInput={(e) => handleChange({ name: e.currentTarget.value })}
