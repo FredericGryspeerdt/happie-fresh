@@ -1,14 +1,16 @@
-import { Handlers, PageProps } from "$fresh/server.ts";
+import { PageProps } from "fresh";
 import { getKv } from "../../database/db.ts";
 import { Item, type ItemInterface } from "../../models/item/index.ts";
+import { Handlers } from "fresh/compat";
 
 interface Data {}
 
 export const handler: Handlers<Data> = {
-  async GET(_req, ctx) {
+  async GET(ctx) {
     return await ctx.render();
   },
-  async POST(req, _ctx) {
+  async POST(_ctx) {
+    const req = ctx.req;
     const form = await req.formData();
     const name = form.get("name")?.toString();
     // validate the form

@@ -1,12 +1,14 @@
-import { Handlers, PageProps } from "$fresh/server.ts";
+import { PageProps } from "fresh";
 import { getKv } from "../../database/db.ts";
 import type { ItemInterface } from "../../models/item/index.ts";
+import { Handlers } from "fresh/compat";
+
 interface Data {
   items: ItemInterface[] | null;
 }
 
 export const handler: Handlers<Data> = {
-  async GET(_req, ctx) {
+  async GET(ctx) {
     // get data from the database
     const kv = await getKv();
 

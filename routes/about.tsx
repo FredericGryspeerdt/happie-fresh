@@ -1,11 +1,12 @@
-import { Handlers, PageProps } from "$fresh/server.ts";
+import { PageProps } from "fresh";
+import { Handlers } from "fresh/compat";
 
 interface AboutPageData {
   name: string;
 }
 
 export const handler: Handlers = {
-  async GET(_req, ctx) {
+  async GET(ctx) {
     const resp = await ctx.render();
     return resp;
   },

@@ -1,14 +1,15 @@
-import { Handlers, PageProps } from "$fresh/server.ts";
+import { PageProps } from "fresh";
 import { ItemRepo } from "../../database/item.repo.ts";
 import ItemsIsland from "../../islands/items.tsx";
 import { ItemInterface } from "../../models/item/item.interface.ts";
+import { Handlers } from "fresh/compat";
 
 interface Data {
   items: ItemInterface[];
 }
 
 export const handler: Handlers<Data> = {
-  async GET(_req, _ctx) {
+  async GET(_ctx) {
     const items = await ItemRepo.readAll();
     return _ctx.render({ items });
   },

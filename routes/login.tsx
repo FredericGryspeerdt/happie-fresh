@@ -1,14 +1,16 @@
-import { Handlers, PageProps } from "$fresh/server.ts";
+import { PageProps } from "fresh";
+import { Handlers } from "fresh/compat";
 
 interface Data {
   isLoggedIn: boolean;
 }
 
 export const handler: Handlers<Data> = {
-  async GET(_req, ctx) {
+  async GET(ctx) {
     return await ctx.render();
   },
-  async POST(req, ctx) {
+  async POST(ctx) {
+    const req = ctx.req;
     const form = await req.formData();
     const username = form.get("username")?.toString();
     const password = form.get("password")?.toString();

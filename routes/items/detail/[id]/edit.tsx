@@ -1,20 +1,23 @@
-import { Handlers, PageProps } from "$fresh/server.ts";
+import { PageProps } from "fresh";
 import { getKv } from "../../../../database/db.ts";
 import { Item, type ItemInterface } from "../../../../models/item/index.ts";
 import { ItemRepo } from "../../../../database/item.repo.ts";
+import { Handlers } from "fresh/compat";
+
 interface Data {
   item: ItemInterface | null;
 }
 
 export const handler: Handlers<Data> = {
-  async GET(_req, ctx) {
+  async GET(ctx) {
     const id = +ctx.params.id;
     // get the item from the db
     const kv = await getKv();
     const dbItem = await kv.get<ItemInterface>(["items", id]);
     return await ctx.render({ item: dbItem.value });
   },
-  async POST(req, _ctx) {
+  async POST(_ctx) {
+    const req = ctx.req;
     const form = await req.formData();
     const name = form.get("name")?.toString();
     // validate the form
