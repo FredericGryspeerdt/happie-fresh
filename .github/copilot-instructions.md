@@ -1,43 +1,59 @@
-# Project overview
-- You are working on a Fresh project, a full stack modern web framework for JavaScript and TypeScript developers.
-- This project is a shoppinglist application that allows users to manage their shopping lists.
-- The project is structured using Fresh's conventions, with directories for routes, islands, and components.
-- The project uses Deno kv for data storage, allowing for efficient and scalable data management.
-- The project uses Deno deploy for deployment, enabling easy hosting and scaling of the application.
-- The project is mobile-first, ensuring a responsive and user-friendly experience on all devices.
+# Project Overview
+This is a **Fresh** project (Deno-based full-stack framework) for a shopping list application.
+It uses **Deno KV** for data storage and **Tailwind CSS v4** for styling.
 
-# General instructions
-- You are an expert in Fresh, Deno, and TypeScript.
-- You are familiar with the Fresh project structure, including the `routes`, `islands`, and `components` directories.
-- You are familiar with Fresh's routing system and how to create dynamic routes.
-- You are familiar with Fresh's deployment process and how to deploy a Fresh application to platforms like Deno Deploy.
-- You are familiar with Fresh's testing framework and how to write tests for Fresh applications.
-- You are familiar with Fresh's styling system and how to use CSS and CSS-in-JS solutions.
-- You are familiar with Fresh's state management and how to manage application state effectively.
-- You are familiar with Fresh's error handling and logging mechanisms.
-- You are familiar with Fresh's performance optimization techniques, such as code splitting and lazy loading.
-- You are familiar with Fresh's security best practices, including how to handle user authentication and authorization.
-- You are familiar with Fresh's integration with third-party services and APIs.
-- You are familiar with Fresh's development tools and how to use them effectively. 
-- You are familiar with Fresh's community and resources, including the official documentation, forums, and GitHub repository.
-- You are familiar with the latest features and updates in Fresh and how they can be applied to improve the project.
-- You are familiar with the Fresh ecosystem, including popular libraries and tools that complement Fresh development.
-- You are familiar with the Fresh CLI and how to use it to manage Fresh projects.
-- You are familiar with the Fresh community guidelines and best practices for contributing to Fresh projects.
+# Architecture & Patterns
 
-## Libraries and Frameworks
+## Core Stack
+- **Runtime**: Deno
+- **Framework**: Fresh (Server-Side Rendering + Islands Architecture)
+- **UI Library**: Preact (via Fresh)
+- **Database**: Deno KV (Key-Value store)
+- **Styling**: Tailwind CSS v4 (via Vite plugin)
 
-- Tailwind CSS for styling.
-- Fresh for the backend.
-- Deno kv for data storage.
+## Directory Structure
+- `routes/`: File-system based routing.
+  - `routes/api/`: API endpoints (return JSON).
+  - `routes/[name].tsx`: Server-rendered pages (return HTML).
+- `islands/`: Interactive client-side components (hydrated).
+- `components/`: Stateless UI components (shared between server/client).
+- `database/`: Data access layer.
+  - `db.ts`: KV connection singleton.
+  - `*.repo.ts`: Repository pattern for entity access.
+- `models/`: TypeScript interfaces and types.
 
-## Coding Standards
+## Data Access Pattern
+- **Use Repositories**: Always use `database/*.repo.ts` classes (e.g., `ItemRepo`) for DB operations. Avoid accessing `Deno.openKv()` directly in routes.
+- **KV Keys**: Follow the pattern `[collection_name, id]` (e.g., `["items", "uuid"]`).
+- **IDs**: Generate IDs using `crypto.randomUUID()`.
 
-- Use best practices for software development.
+## State Management & Interactivity
+- **Islands**: Use islands (`islands/`) ONLY for components requiring client-side interactivity (event listeners, hooks).
+- **Server Components**: Prefer server-rendered components (`components/`) for static content.
+- **Hooks**: Use `@preact/signals` in islands.
 
+# Development Workflow
 
-## UI guidelines
+## Commands
+- **Start Dev Server**: `deno task dev` (uses Vite).
+- **Type Check & Lint**: `deno task check`.
+- **Run Tests**: `deno test`.
+- **Preview Production**: `deno task preview`.
 
-- Mobile first design.
-- Application should have a minimalistic and modern design.
-- Use Tailwind CSS for styling.
+## Common Tasks
+- **New Route**: Create a file in `routes/`. Use `export const handler` for server-side logic (GET/POST) and `export default function` for the UI.
+- **New API Endpoint**: Create a file in `routes/api/`. Return `Response` objects.
+- **New Entity**:
+    1. Define interface in `models/`.
+    2. Create repository in `database/`.
+    3. Use repository in routes/api.
+
+# Coding Conventions
+- **Imports**: Use the `@/` alias for the project root (e.g., `import { db } from "@/database/db.ts"`).
+- **Styling**: Use Tailwind utility classes directly in `class` (not `className`) attributes.
+- **Types**: Strictly type all props and data interfaces.
+- **Async/Await**: Use top-level await where supported (Deno).
+
+# Specific Implementation Details
+- **KV Singleton**: Use `getKv()` from `@/database/db.ts`.
+- **API Handlers**: In `routes/api/`, handlers receive `ctx: FreshContext`. Ensure `ctx` is correctly typed and used.
