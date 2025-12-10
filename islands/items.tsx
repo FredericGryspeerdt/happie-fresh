@@ -1,4 +1,4 @@
-import { useState } from "preact/hooks";
+import { useComputed, useSignal } from "@preact/signals";
 import { ItemInterface } from "../models/item/index.ts";
 
 interface ItemsProps {
@@ -6,11 +6,13 @@ interface ItemsProps {
 }
 
 export default function Items({ data }: ItemsProps) {
-  const [items, setItems] = useState<ItemInterface[]>(data || []);
-  const [search, setSearch] = useState("");
+  const items = useSignal<ItemInterface[]>(data || []);
+  const search = useSignal("");
 
-  const filteredItems = items.filter((item) =>
-    item?.name?.toLowerCase().includes(search.toLowerCase())
+  const filteredItems = useComputed(() =>
+    items.value.filter((item) =>
+      item?.name?.toLowerCase().includes(search.value.toLowerCase())
+    )
   );
 
   const addItem = async () => {
@@ -19,7 +21,7 @@ export default function Items({ data }: ItemsProps) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: "New Item" }),
     });
-    setItems([...items, await response.json()]);
+    items.value = [...items.value, await response.json()];
   };
 
   return (
@@ -28,15 +30,13 @@ export default function Items({ data }: ItemsProps) {
         type="text"
         placeholder="Search by name..."
         value={search}
-        onInput={(e) => setSearch(e.currentTarget.value)}
+        onInput={(e) => (search.value = e.currentTarget.value)}
         class="mb-4 p-2 border rounded w-full"
       />
-      {filteredItems.map((item: ItemInterface) => {
+      {filteredItems.value.map((item: ItemInterface) => {
         const handleChange = (values: Partial<ItemInterface>) => {
-          setItems(
-            items.map((i: ItemInterface) =>
-              i.id === item.id ? { ...item, ...values } : i
-            )
+          items.value = items.value.map((i: ItemInterface) =>
+            i.id === item.id ? { ...item, ...values } : i
           );
         };
 
@@ -47,8 +47,8 @@ export default function Items({ data }: ItemsProps) {
             body: JSON.stringify(item),
           });
           const savedItem = await response.json();
-          setItems(
-            items.map((i: ItemInterface) => (i.id === item.id ? savedItem : i))
+          items.value = items.value.map((i: ItemInterface) =>
+            i.id === item.id ? savedItem : i
           );
         };
 
@@ -60,7 +60,7 @@ export default function Items({ data }: ItemsProps) {
             body: JSON.stringify({ id: item.id }),
           });
 
-          setItems(items.filter((i: ItemInterface) => i !== item));
+          items.value = items.value.filter((i: ItemInterface) => i !== item);
         };
 
         return (
