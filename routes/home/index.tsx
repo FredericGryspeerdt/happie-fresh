@@ -1,7 +1,7 @@
 import { page } from "fresh";
-import { ItemRepo } from "../../database/item.repo.ts";
-import ItemsIsland from "../../islands/items.tsx";
-import { homePage } from "../../utils/index.ts";
+import { ItemRepo } from "@/database/index.ts";
+import ItemsIsland from "@/islands/items.tsx";
+import { homePage } from "@/utils/index.ts";
 
 export const handler = homePage.handlers({
   async GET(ctx) {

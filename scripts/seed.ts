@@ -1,20 +1,13 @@
 // scripts/seed.ts
 import { UserRepo } from "@/database/user.repo.ts";
 import { getKv } from "@/database/db.ts";
-
-async function hashPassword(password: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(password);
-  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  const hashHex = hashArray.map((b) => b.toString(16).padStart(2, "0")).join(
-    "",
-  );
-  return hashHex;
-}
+import { hashPassword } from "@/utils/index.ts";
 
 async function seed() {
   const kv = await getKv();
+
+  //   delete all existing users
+  await UserRepo.deleteAll();
 
   // Simple check to prevent re-seeding
   const existingUser = await UserRepo.findByUsername("admin");

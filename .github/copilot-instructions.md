@@ -49,7 +49,7 @@ It uses **Deno KV** for data storage and **Tailwind CSS v4** for styling.
     3. Use repository in routes/api.
 
 # Coding Conventions
-- **Imports**: Use the `@/` alias for the project root (e.g., `import { db } from "@/database/db.ts"`).
+- **Imports**: Use the `@/` alias for the project root (e.g., `import { db } from "@/database/index.ts"`).
 - **Styling**: Use Tailwind utility classes directly in `class` (not `className`) attributes.
 - **Types**: Strictly type all props and data interfaces.
 - **Async/Await**: Use top-level await where supported (Deno).

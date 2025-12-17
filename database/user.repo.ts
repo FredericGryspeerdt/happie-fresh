@@ -4,7 +4,7 @@ import { getKv } from "./db.ts";
 export class UserRepo {
   static async findByUsername(username: string): Promise<UserInterface | null> {
     const kv = await getKv();
-    const user = await kv.get<UserInterface>(["users", username]);
+    const user = await kv.get<UserInterface>(["users_by_username", username]);
     return user.value;
   }
 
@@ -18,5 +18,19 @@ export class UserRepo {
       .set(["users_by_username", user.username], userWithId)
       .commit();
     return userWithId;
+  }
+
+  static async deleteAll(): Promise<void> {
+    const kv = await getKv();
+    // WARNING: This will delete all users. Use with caution.
+    for await (const entry of kv.list<string>({ prefix: ["users"] })) {
+      const user = entry.value;
+      console.log("🚀 ~ UserRepo ~ deleteAll ~ user:", user);
+      await kv
+        .atomic()
+        .delete(["users", user.id])
+        .delete(["users_by_username", user.username])
+        .commit();
+    }
   }
 }

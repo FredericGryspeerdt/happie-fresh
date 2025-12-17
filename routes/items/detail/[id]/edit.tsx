@@ -1,7 +1,6 @@
 import { PageProps } from "fresh";
-import { getKv } from "../../../../database/db.ts";
-import { Item, type ItemInterface } from "../../../../models/item/index.ts";
-import { ItemRepo } from "../../../../database/item.repo.ts";
+import { getKv, ItemRepo } from "@/database/index.ts";
+import { Item, type ItemInterface } from "@/models/index.ts";
 import { Handlers } from "fresh/compat";
 
 interface Data {

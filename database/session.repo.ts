@@ -1,5 +1,5 @@
-import { getKv } from "../db.ts";
-import { SessionInterface } from "../../models/index.ts";
+import { getKv } from "./db.ts";
+import { SessionInterface } from "@/models/index.ts";
 
 const SESSION_TTL_MS = 1000 * 60 * 60 * 24; // 24 hours
 
