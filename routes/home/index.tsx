@@ -4,7 +4,7 @@ import ItemsIsland from "@/islands/items.tsx";
 import { homePage } from "@/utils/index.ts";
 
 export const handler = homePage.handlers({
-  async GET(ctx) {
+  async GET(_ctx) {
     const items = await ItemRepo.readAll();
     return page({ items });
   },

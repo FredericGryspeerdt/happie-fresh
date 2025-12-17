@@ -1,5 +1,10 @@
 import { type PageProps } from "fresh";
-export default function App({ Component }: PageProps) {
+
+interface State {
+  userId?: string;
+}
+
+export default function App({ Component, state }: PageProps<unknown, State>) {
   return (
     <html>
       <head>
@@ -8,6 +13,14 @@ export default function App({ Component }: PageProps) {
         <title>happie-fresh</title>
       </head>
       <body>
+        {state?.userId && (
+          <header class="p-4 bg-gray-100 flex justify-between items-center border-b">
+            <span class="font-bold text-xl">Happie Fresh</span>
+            <a href="/logout" class="text-red-600 hover:underline">
+              Logout
+            </a>
+          </header>
+        )}
         <Component />
       </body>
     </html>

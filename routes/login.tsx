@@ -1,10 +1,7 @@
-import { page, PageProps } from "fresh";
-import { Handlers } from "fresh/compat";
+import { page } from "fresh";
 import { setCookie } from "$std/http/cookie.ts";
 import { UserRepo, SessionRepo } from "@/database/index.ts";
-import { hashPassword } from "@/utils/index.ts";
-import { loginPage } from "../utils/login-page.ts";
-import { l } from "../_fresh/server/server-entry.mjs";
+import { hashPassword, loginPage } from "@/utils/index.ts";
 
 interface Data {
   error?: string;
@@ -18,22 +15,18 @@ export const handler = loginPage.handlers<Data>({
     const req = ctx.req;
     const form = await req.formData();
     const username = form.get("username")?.toString();
-    console.log("🚀 ~ username:", username);
     const password = form.get("password")?.toString();
-    console.log("🚀 ~ password:", password);
 
     if (!username || !password) {
       return page({ error: "Vul alle velden in." });
     }
 
     const user = await UserRepo.findByUsername(username);
-    console.log("🚀 ~ user:", user);
     if (!user) {
       return page({ error: "Ongeldige inloggegevens." });
     }
 
     const passwordHash = await hashPassword(password);
-    console.log("🚀 ~ passwordHash:", passwordHash);
     if (user.passwordHash !== passwordHash) {
       return page({ error: "Ongeldige inloggegevens." });
     }
