@@ -1,5 +1,5 @@
-import { getKv } from "../db.ts";
-import { UserInterface } from "../../models/index.ts";
+import { UserInterface } from "../models/index.ts";
+import { getKv } from "./db.ts";
 
 export class UserRepo {
   static async findByUsername(username: string): Promise<UserInterface | null> {

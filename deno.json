@@ -5,6 +5,8 @@
     "dev": "deno run --unstable-kv -A vite",
     "build": "vite build",
     "preview": "deno serve --unstable-kv -A _fresh/server.js",
+    "seed": "deno run --unstable-kv -A scripts/seed.ts",
+    "db:view": "deno run --unstable-kv -A scripts/db-viewer.ts",
     "update": "deno run -A -r jsr:@fresh/update ."
   },
   "lint": {
@@ -35,7 +37,7 @@
       "dom.asynciterable",
       "dom.iterable",
       "deno.ns",
-      "deno.unstable-kv"
+      "deno.unstable-kv",
     ],
     "jsx": "precompile",
     "jsxImportSource": "preact",
