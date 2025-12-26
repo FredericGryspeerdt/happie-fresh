@@ -1,4 +1,5 @@
 import { useComputed, useSignal } from "@preact/signals";
+import { useMemo } from "preact/hooks";
 import { ItemInterface, ShoppingListItemInterface } from "@/models/index.ts";
 import { createDebouncedMergeScheduler } from "@/utils/debounce-update.ts";
 interface ItemsProps {
@@ -11,16 +12,20 @@ export default function Items({ items: catalog, shoppingList }: ItemsProps) {
   const list = useSignal<ShoppingListItemInterface[]>(shoppingList || []);
   const search = useSignal("");
 
-  const scheduler = createDebouncedMergeScheduler<ShoppingListItemInterface>({
-    delayMs: 500,
-    flush: async (id, patch) => {
-      await fetch("/api/shopping-list", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, ...patch }),
-      });
-    },
-  });
+  const scheduler = useMemo(
+    () =>
+      createDebouncedMergeScheduler<ShoppingListItemInterface>({
+        delayMs: 500,
+        flush: async (id, patch) => {
+          await fetch("/api/shopping-list", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id, ...patch }),
+          });
+        },
+      }),
+    []
+  );
 
   const updateListItem = (
     id: string,

@@ -28,7 +28,6 @@ export function createDebouncedMergeScheduler<
     }
     const timer = setTimeout(async () => {
       timers.delete(id);
-      console.log("🚀 ~ schedule ~ flushing:");
       await options.flush(id, nextPatch);
     }, delay) as unknown as number;
     timers.set(id, { timer, patch: nextPatch });
