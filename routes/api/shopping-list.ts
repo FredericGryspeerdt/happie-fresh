@@ -29,6 +29,13 @@ export const handler = {
     const userId = ctx.state.userId;
     if (!userId) return new Response("Unauthorized", { status: 401 });
     const { id, quantity, note, checked } = await ctx.req.json();
+    console.log("[API] PATCH /api/shopping-list", {
+      userId,
+      id,
+      quantity,
+      note,
+      checked,
+    });
     if (!id) return new Response("id required", { status: 400 });
     const updated = await ShoppingListRepo.update(userId, id, {
       quantity,

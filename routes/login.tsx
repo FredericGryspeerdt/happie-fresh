@@ -1,6 +1,6 @@
 import { page } from "fresh";
 import { setCookie } from "$std/http/cookie.ts";
-import { UserRepo, SessionRepo } from "@/database/index.ts";
+import { SessionRepo, UserRepo } from "@/database/index.ts";
 import { hashPassword, loginPage } from "@/utils/index.ts";
 
 interface Data {

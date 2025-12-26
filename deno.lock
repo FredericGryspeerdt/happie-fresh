@@ -43,6 +43,7 @@
     "npm:preact@^10.27.2": "10.28.0",
     "npm:rollup@^4.50.0": "4.53.3",
     "npm:tailwindcss@^4.1.10": "4.1.17",
+    "npm:usehooks-ts@^3.1.1": "3.1.1_react@19.2.3",
     "npm:vite@^7.1.3": "7.2.6_@types+node@22.12.0_picomatch@4.0.3",
     "npm:vite@^7.1.4": "7.2.6_@types+node@22.12.0_picomatch@4.0.3"
   },
@@ -957,6 +958,9 @@
         "lightningcss-win32-x64-msvc"
       ]
     },
+    "lodash.debounce@4.0.8": {
+      "integrity": "sha512-FT1yDzDYEoYWhnSGnpE/4Kj1fLZkDFyqRb7fNt6FdYOSxlUWAtp42Eh6Wb0rGIv/m9Bgo7x4GhQbm5Ys4SG5ow=="
+    },
     "lru-cache@5.1.1": {
       "integrity": "sha512-KpNARQA3Iwv+jTA0utUVVbrh+Jlrr1Fv0e56GGzAFOXN7dk/FviaDW8LHmK52DlcH4WP2n6gI8vN1aesBFgo9w==",
       "dependencies": [
@@ -1004,6 +1008,9 @@
     },
     "preact@10.28.0": {
       "integrity": "sha512-rytDAoiXr3+t6OIP3WGlDd0ouCUG1iCWzkcY3++Nreuoi17y6T5i/zRhe6uYfoVcxq6YU+sBtJouuRDsq8vvqA=="
+    },
+    "react@19.2.3": {
+      "integrity": "sha512-Ku/hhYbVjOQnXDZFv2+RibmLFGwFdeeKHFcOTlrt7xplBnya5OGn/hIRDsqDiSUcfORsDC7MPxwork8jBwsIWA=="
     },
     "rollup@4.53.3": {
       "integrity": "sha512-w8GmOxZfBmKknvdXU1sdM9NHcoQejwF/4mNgj2JuEEdRaHwwF12K7e9eXn1nLZ07ad+du76mkVsyeb2rKGllsA==",
@@ -1068,6 +1075,13 @@
         "picocolors"
       ],
       "bin": true
+    },
+    "usehooks-ts@3.1.1_react@19.2.3": {
+      "integrity": "sha512-I4diPp9Cq6ieSUH2wu+fDAVQO43xwtulo+fKEidHUwZPnYImbtkTjzIJYcDcJqxgmX31GVqNFURodvcgHcW0pA==",
+      "dependencies": [
+        "lodash.debounce",
+        "react"
+      ]
     },
     "vite@7.2.6_@types+node@22.12.0_picomatch@4.0.3": {
       "integrity": "sha512-tI2l/nFHC5rLh7+5+o7QjKjSR04ivXDF4jcgV0f/bTQ+OJiITy5S6gaynVsEM+7RqzufMnVbIon6Sr5x1SDYaQ==",
@@ -1258,6 +1272,7 @@
       "npm:@tailwindcss/vite@^4.1.12",
       "npm:preact@^10.27.2",
       "npm:tailwindcss@^4.1.10",
+      "npm:usehooks-ts@^3.1.1",
       "npm:vite@^7.1.3"
     ]
   }

@@ -11,3 +11,11 @@ _fresh/
 node_modules/
 vendor/
 
+# Generated Vite timestamped configs (not source)
+vite.config.ts.timestamp-*.mjs
+
+# Deno KV local database files (environment-specific, do not commit)
+kv.db
+kv.db-shm
+kv.db-wal
+

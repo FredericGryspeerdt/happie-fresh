@@ -1,6 +1,6 @@
-import { useComputed, useSignal } from "@preact/signals";
+import { effect, useComputed, useSignal } from "@preact/signals";
 import { ItemInterface, ShoppingListItemInterface } from "@/models/index.ts";
-
+import { debounceSignal } from "@/utils/debounce-signal.ts";
 interface ItemsProps {
   items: ItemInterface[];
   shoppingList: ShoppingListItemInterface[];
@@ -11,6 +11,51 @@ export default function Items({ items: catalog, shoppingList }: ItemsProps) {
   const list = useSignal<ShoppingListItemInterface[]>(shoppingList || []);
   const search = useSignal("");
 
+  let debounceTimer: number = 0;
+
+  const noteChange = useSignal<{
+    id?: string;
+    patch?: Partial<ShoppingListItemInterface>;
+  }>();
+
+  const updateListItem = (
+    id: string,
+    patch: Partial<ShoppingListItemInterface>
+  ) => {
+    clearTimeout(debounceTimer);
+
+    debounceTimer = setTimeout(() => {
+      noteChange.value = { id, ...patch };
+    }, 500);
+  };
+
+  effect(() => {
+    if (!noteChange.value?.id) return;
+    fetch("/api/shopping-list", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...noteChange.value,
+      }),
+    });
+  });
+
+  const addToCatalog = async () => {
+    const name = search.value.trim();
+    if (!name) return;
+    const res = await fetch("/api/items", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    });
+    if (res.ok) {
+      const created: ItemInterface = await res.json();
+      items.value = [...items.value, created];
+      if (created?.id) {
+        await addToList(created.id);
+      }
+    }
+  };
   const filteredItems = useComputed(() =>
     (items.value || []).filter((item) =>
       item?.name?.toLowerCase().includes(search.value.toLowerCase())
@@ -26,24 +71,6 @@ export default function Items({ items: catalog, shoppingList }: ItemsProps) {
     if (res.ok) {
       const entry = await res.json();
       list.value = [...list.value, entry];
-    }
-  };
-
-  const updateListItem = async (
-    id: string,
-    patch: Partial<ShoppingListItemInterface>
-  ) => {
-    list.value = list.value.map((li) =>
-      li.id === id ? { ...li, ...patch } : li
-    );
-    const res = await fetch("/api/shopping-list", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, ...patch }),
-    });
-    if (res.ok) {
-      const updated = await res.json();
-      list.value = list.value.map((li) => (li.id === id ? updated : li));
     }
   };
 
@@ -86,6 +113,20 @@ export default function Items({ items: catalog, shoppingList }: ItemsProps) {
             </li>
           ))}
         </ul>
+        {filteredItems.value.length === 0 && search.value.trim().length > 0 && (
+          <div class="mt-3 flex items-center gap-3">
+            <span class="text-sm text-gray-600">
+              No matches. Add to catalog?
+            </span>
+            <button
+              type="button"
+              class="px-2 py-1 bg-green-600 text-white rounded"
+              onClick={addToCatalog}
+            >
+              Add "{search.value}"
+            </button>
+          </div>
+        )}
       </section>
 
       <section>
