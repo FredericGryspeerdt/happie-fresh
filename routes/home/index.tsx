@@ -5,6 +5,7 @@ import { homePage } from "@/utils/index.ts";
 
 export const handler = homePage.handlers({
   async GET(ctx) {
+    console.log("🚀 ~ GET home page:");
     const items = await ItemRepo.readAll();
     const userId = ctx.state.userId!;
     const shoppingList = await ShoppingListRepo.getAll(userId);

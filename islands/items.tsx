@@ -1,6 +1,6 @@
-import { effect, useComputed, useSignal } from "@preact/signals";
+import { useComputed, useSignal } from "@preact/signals";
 import { ItemInterface, ShoppingListItemInterface } from "@/models/index.ts";
-import { debounceSignal } from "@/utils/debounce-signal.ts";
+import { createDebouncedMergeScheduler } from "@/utils/debounce-update.ts";
 interface ItemsProps {
   items: ItemInterface[];
   shoppingList: ShoppingListItemInterface[];
@@ -11,34 +11,27 @@ export default function Items({ items: catalog, shoppingList }: ItemsProps) {
   const list = useSignal<ShoppingListItemInterface[]>(shoppingList || []);
   const search = useSignal("");
 
-  let debounceTimer: number = 0;
-
-  const noteChange = useSignal<{
-    id?: string;
-    patch?: Partial<ShoppingListItemInterface>;
-  }>();
+  const scheduler = createDebouncedMergeScheduler<ShoppingListItemInterface>({
+    delayMs: 500,
+    flush: async (id, patch) => {
+      await fetch("/api/shopping-list", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, ...patch }),
+      });
+    },
+  });
 
   const updateListItem = (
     id: string,
     patch: Partial<ShoppingListItemInterface>
   ) => {
-    clearTimeout(debounceTimer);
-
-    debounceTimer = setTimeout(() => {
-      noteChange.value = { id, ...patch };
-    }, 500);
+    // Optimistically update local state for immediate UI responsiveness.
+    list.value = list.value.map((li) =>
+      li.id === id ? { ...li, ...patch } : li
+    );
+    scheduler.schedule(id, patch);
   };
-
-  effect(() => {
-    if (!noteChange.value?.id) return;
-    fetch("/api/shopping-list", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...noteChange.value,
-      }),
-    });
-  });
 
   const addToCatalog = async () => {
     const name = search.value.trim();
@@ -75,6 +68,8 @@ export default function Items({ items: catalog, shoppingList }: ItemsProps) {
   };
 
   const removeListItem = async (id: string) => {
+    // Cancel any pending debounced PATCH for this item before deletion.
+    scheduler.cancel(id);
     list.value = list.value.filter((li) => li.id !== id);
     await fetch("/api/shopping-list", {
       method: "DELETE",
