@@ -18,6 +18,7 @@ export async function handler(
     path === "/login" ||
     path.startsWith("/_fresh") ||
     path.startsWith("/static") ||
+    path.startsWith("/assets") ||
     path.startsWith("/favicon.ico")
   ) {
     return await ctx.next();
