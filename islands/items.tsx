@@ -56,11 +56,12 @@ export default function Items({ items: catalog, shoppingList }: ItemsProps) {
       }
     }
   };
-  const filteredItems = useComputed(() =>
-    (items.value || []).filter((item) =>
+  const filteredItems = useComputed(() => {
+    if (search.value.trim() === "") return [];
+    return (items.value || []).filter((item) =>
       item?.name?.toLowerCase().includes(search.value.toLowerCase())
-    )
-  );
+    );
+  });
 
   const addToList = async (itemId: string) => {
     const res = await fetch("/api/shopping-list", {
