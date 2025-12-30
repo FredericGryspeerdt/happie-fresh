@@ -162,7 +162,7 @@ export default function Items({ items: catalog, shoppingList }: ItemsProps) {
                     <label class="text-sm">Qty</label>
                     <input
                       type="number"
-                      min="1"
+                      min="0"
                       value={li.quantity}
                       onInput={(e) =>
                         updateListItem(li.id, {
