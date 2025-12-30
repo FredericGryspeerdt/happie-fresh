@@ -234,7 +234,10 @@ export default function Items({ items: catalog, shoppingList }: ItemsProps) {
 
       <section>
         <ul class="space-y-4">
-          <For each={list}>
+          <For
+            each={list}
+            fallback={<p>Zoek en voeg items toe aan je lijst.</p>}
+          >
             {(li) => {
               const isExiting = exitingItems.value.includes(li.id);
               return (
