@@ -1,4 +1,5 @@
 import { type PageProps } from "fresh";
+import { Head } from "fresh/runtime";
 
 interface State {
   userId?: string;
@@ -7,11 +8,22 @@ interface State {
 export default function App({ Component, state }: PageProps<unknown, State>) {
   return (
     <html>
-      <head>
+      <Head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>happie-fresh</title>
-      </head>
+        <link
+          crossorigin="use-credentials"
+          rel="manifest"
+          href="/manifest.webmanifest"
+        />
+        <script type="module">
+          import
+          "https://cdn.jsdelivr.net/npm/@pwabuilder/pwaupdate/dist/pwa-update.js";
+          const el = document.createElement("pwa-update");
+          document.body.appendChild(el);
+        </script>
+      </Head>
       <body>
         {state?.userId && (
           <header class="p-4 bg-gray-100 flex justify-between items-center border-b">
