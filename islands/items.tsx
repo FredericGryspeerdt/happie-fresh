@@ -2,7 +2,7 @@ import { useComputed, useSignal } from "@preact/signals";
 import { useMemo, useRef } from "preact/hooks";
 import { ItemInterface, ShoppingListItemInterface } from "@/models/index.ts";
 import { createDebouncedMergeScheduler } from "@/utils/debounce-update.ts";
-import { For } from "@preact/signals/utils";
+import { For, Show } from "@preact/signals/utils";
 
 // --- Components ---
 
@@ -86,6 +86,7 @@ export default function Items({ items: catalog, shoppingList }: ItemsProps) {
   const search = useSignal("");
   const exitingItems = useSignal<string[]>([]);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const hasSearchQuery = useComputed(() => search.value.trim().length > 0);
 
   // debounced scheduler to batch rapid updates into single PATCH requests
   const patchScheduler = useMemo(
@@ -175,71 +176,73 @@ export default function Items({ items: catalog, shoppingList }: ItemsProps) {
 
   return (
     <div class="space-y-8 pb-24">
-      <section>
-        <div class="mb-4">
+      <section class="sticky top-0 z-10 bg-white/80 backdrop-blur-md py-4 -mx-4 px-4 border-b border-gray-100 shadow-sm">
+        <div class="mb-0">
           <SearchInput
             value={search.value}
             onInput={(v) => (search.value = v)}
             inputRef={searchInputRef}
           />
         </div>
-        <ul class="space-y-2">
-          <For
-            each={filteredItems}
-            fallback={
-              filteredItems.value.length === 0 &&
-              search.value.trim().length > 0 && (
-                <div class="mt-4 p-4 bg-gray-50 rounded-xl flex flex-col items-center gap-3 text-center border border-dashed border-gray-300">
-                  <span class="text-gray-600">
-                    No matches found for "{search.value}"
+        {/* Only show results dropdown if there is a search query */}
+        <Show when={hasSearchQuery}>
+          <ul class="space-y-2 mt-4 absolute left-0 right-0 px-4 bg-white/95 backdrop-blur-sm pb-4 shadow-lg rounded-b-2xl border-b border-gray-100">
+            <For
+              each={filteredItems}
+              fallback={
+                filteredItems.value.length === 0 && (
+                  <div class="mt-4 p-4 bg-gray-50 rounded-xl flex flex-col items-center gap-3 text-center border border-dashed border-gray-300">
+                    <span class="text-gray-600">
+                      No matches found for "{search.value}"
+                    </span>
+                    <button
+                      type="button"
+                      class="px-6 py-3 bg-green-600 text-white font-medium rounded-xl shadow-sm active:scale-95 transition-transform w-full sm:w-auto"
+                      onClick={addToCatalog}
+                    >
+                      Create & Add Item
+                    </button>
+                  </div>
+                )
+              }
+            >
+              {(item) => (
+                <li
+                  key={item.id}
+                  class="flex items-center justify-between p-4 bg-white border border-gray-100 rounded-xl shadow-sm active:bg-gray-50 transition-colors"
+                >
+                  <span class="font-medium text-gray-800 text-lg">
+                    {item.name}
                   </span>
                   <button
                     type="button"
-                    class="px-6 py-3 bg-green-600 text-white font-medium rounded-xl shadow-sm active:scale-95 transition-transform w-full sm:w-auto"
-                    onClick={addToCatalog}
+                    class="w-10 h-10 flex items-center justify-center bg-blue-100 text-blue-700 rounded-full active:bg-blue-200 active:scale-95 transition-all"
+                    onClick={() => item.id && addToList(item.id)}
+                    aria-label={`Add ${item.name} to list`}
                   >
-                    Create & Add Item
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke-width="2.5"
+                      stroke="currentColor"
+                      class="w-6 h-6"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M12 4.5v15m7.5-7.5h-15"
+                      />
+                    </svg>
                   </button>
-                </div>
-              )
-            }
-          >
-            {(item) => (
-              <li
-                key={item.id}
-                class="flex items-center justify-between p-4 bg-white border border-gray-100 rounded-xl shadow-sm active:bg-gray-50 transition-colors"
-              >
-                <span class="font-medium text-gray-800 text-lg">
-                  {item.name}
-                </span>
-                <button
-                  type="button"
-                  class="w-10 h-10 flex items-center justify-center bg-blue-100 text-blue-700 rounded-full active:bg-blue-200 active:scale-95 transition-all"
-                  onClick={() => item.id && addToList(item.id)}
-                  aria-label={`Add ${item.name} to list`}
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke-width="2.5"
-                    stroke="currentColor"
-                    class="w-6 h-6"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="M12 4.5v15m7.5-7.5h-15"
-                    />
-                  </svg>
-                </button>
-              </li>
-            )}
-          </For>
-        </ul>
+                </li>
+              )}
+            </For>
+          </ul>
+        </Show>
       </section>
 
-      <section>
+      <section class="pt-2">
         <ul class="space-y-4">
           <For
             each={list}
