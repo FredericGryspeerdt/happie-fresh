@@ -23,7 +23,7 @@ export class UserRepo {
   static async deleteAll(): Promise<void> {
     const kv = await getKv();
     // WARNING: This will delete all users. Use with caution.
-    for await (const entry of kv.list<string>({ prefix: ["users"] })) {
+    for await (const entry of kv.list<UserInterface>({ prefix: ["users"] })) {
       const user = entry.value;
       console.log("🚀 ~ UserRepo ~ deleteAll ~ user:", user);
       await kv

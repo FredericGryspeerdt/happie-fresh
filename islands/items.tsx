@@ -159,14 +159,17 @@ export default function Items({ items: catalog, shoppingList }: ItemsProps) {
 
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 items-center">
                   <div class="flex items-center gap-2">
-                    <label class="text-sm">Qty</label>
+                    <label for="quantity" class="text-sm">
+                      Qty
+                    </label>
                     <input
+                      id="quantity"
                       type="number"
                       min="0"
                       value={li.quantity}
                       onInput={(e) =>
                         updateListItem(li.id, {
-                          quantity: Number(e.currentTarget.value) || 1,
+                          quantity: Number(e.currentTarget.value) || 0,
                         })
                       }
                       class="w-24 p-2 border rounded"

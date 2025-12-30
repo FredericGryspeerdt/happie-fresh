@@ -2,11 +2,11 @@
   "nodeModulesDir": "manual",
   "tasks": {
     "check": "deno fmt --check && deno lint && deno check",
-    "dev": "deno run --unstable-kv -A vite",
+    "dev": "deno run --env-file --unstable-kv -A vite",
     "build": "vite build",
-    "preview": "deno serve --unstable-kv -A _fresh/server.js",
-    "db:seed": "deno run --unstable-kv -A scripts/seed.ts",
-    "db:view": "deno run --unstable-kv -A scripts/db-viewer.ts",
+    "preview": "deno serve --env-file --unstable-kv -A _fresh/server.js",
+    "db:seed": "deno run --env-file --unstable-kv -A scripts/seed.ts",
+    "db:view": "deno run --env-file --unstable-kv -A scripts/db-viewer.ts",
     "update": "deno run -A -r jsr:@fresh/update ."
   },
   "lint": {
@@ -38,7 +38,7 @@
       "dom.asynciterable",
       "dom.iterable",
       "deno.ns",
-      "deno.unstable-kv"
+      "deno.unstable"
     ],
     "jsx": "precompile",
     "jsxImportSource": "preact",
@@ -61,5 +61,9 @@
     "types": [
       "vite/client"
     ]
+  },
+  "deploy": {
+    "org": "fredericdev",
+    "app": "happie-fresh"
   }
 }
