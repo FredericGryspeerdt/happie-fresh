@@ -8,19 +8,19 @@ async function seed() {
 
   //   delete all existing users
   await UserRepo.deleteAll();
+  const username = Deno.env.get("SEED_USERNAME")!;
+  const password = Deno.env.get("SEED_PASSWORD")!; // In a real app, use a more secure password or env var
 
   // Simple check to prevent re-seeding
-  const existingUser = await UserRepo.findByUsername("admin");
+  const existingUser = await UserRepo.findByUsername(username);
   if (existingUser) {
-    console.log("✅ Admin user already exists. Seeding skipped.");
+    console.log(`✅ ${username} user already exists. Seeding skipped.`);
     kv.close();
     return;
   }
 
   console.log("🌱 Seeding database...");
 
-  const username = "admin";
-  const password = "password"; // In a real app, use a more secure password or env var
   const passwordHash = await hashPassword(password);
 
   await UserRepo.create({
@@ -29,7 +29,7 @@ async function seed() {
   });
 
   console.log(
-    `✅ Seed complete. Created user 'admin' with password 'password'.`,
+    `✅ Seed complete. Created user '${username}' with password '${password}'.`,
   );
   kv.close();
 }
