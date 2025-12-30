@@ -1,5 +1,5 @@
 import { useComputed, useSignal } from "@preact/signals";
-import { useMemo } from "preact/hooks";
+import { useMemo, useRef } from "preact/hooks";
 import { ItemInterface, ShoppingListItemInterface } from "@/models/index.ts";
 import { createDebouncedMergeScheduler } from "@/utils/debounce-update.ts";
 import { For } from "@preact/signals/utils";
@@ -39,13 +39,16 @@ function QuantityStepper({
 function SearchInput({
   value,
   onInput,
+  inputRef,
 }: {
   value: string;
   onInput: (val: string) => void;
+  inputRef?: preact.RefObject<HTMLInputElement>;
 }) {
   return (
     <div class="relative">
       <input
+        ref={inputRef}
         type="text"
         placeholder="Search items..."
         value={value}
@@ -82,6 +85,7 @@ export default function Items({ items: catalog, shoppingList }: ItemsProps) {
   const list = useSignal<ShoppingListItemInterface[]>(shoppingList || []);
   const search = useSignal("");
   const exitingItems = useSignal<string[]>([]);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   // debounced scheduler to batch rapid updates into single PATCH requests
   const patchScheduler = useMemo(
@@ -142,6 +146,8 @@ export default function Items({ items: catalog, shoppingList }: ItemsProps) {
     if (res.ok) {
       const entry = await res.json();
       list.value = [...list.value, entry];
+      search.value = ""; // Clear search after adding
+      searchInputRef.current?.focus(); // Keep focus for rapid entry
     }
   };
 
@@ -174,6 +180,7 @@ export default function Items({ items: catalog, shoppingList }: ItemsProps) {
           <SearchInput
             value={search.value}
             onInput={(v) => (search.value = v)}
+            inputRef={searchInputRef}
           />
         </div>
         <ul class="space-y-2">
