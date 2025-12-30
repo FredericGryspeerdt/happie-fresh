@@ -1,15 +1,15 @@
 import { PageProps } from "fresh";
-import { getKv } from "../../database/db.ts";
-import { Item, type ItemInterface } from "../../models/item/index.ts";
+import { getKv } from "@/database/index.ts";
+import { Item, type ItemInterface } from "@/models/index.ts";
 import { Handlers } from "fresh/compat";
 
-interface Data {}
+// Removed empty Data interface to satisfy lint rules.
 
-export const handler: Handlers<Data> = {
+export const handler: Handlers = {
   async GET(ctx) {
     return await ctx.render();
   },
-  async POST(_ctx) {
+  async POST(ctx) {
     const req = ctx.req;
     const form = await req.formData();
     const name = form.get("name")?.toString();
@@ -33,7 +33,7 @@ export const handler: Handlers<Data> = {
   },
 };
 
-export default function ItemNewPage(_data: PageProps<Data>) {
+export default function ItemNewPage(_props: PageProps) {
   return (
     <main>
       <h1>Nieuw item</h1>

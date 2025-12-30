@@ -7,4 +7,13 @@ export default defineConfig({
     fresh(),
     tailwindcss(),
   ],
+  server: {
+    watch: {
+      // Prevent full-page reloads when Deno KV writes to local files
+      ignored: [
+        "../data/**",
+        "../../data/**",
+      ],
+    },
+  },
 });
