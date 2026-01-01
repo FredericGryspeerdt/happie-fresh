@@ -1,8 +1,6 @@
-import { useComputed, useSignal } from "@preact/signals";
-import { useMemo, useRef } from "preact/hooks";
 import { ItemInterface, ShoppingListItemInterface } from "@/models/index.ts";
-import { createDebouncedMergeScheduler } from "@/utils/debounce-update.ts";
 import { For, Show } from "@preact/signals/utils";
+import { useShoppingList } from "@/hooks/index.ts";
 
 // --- Components ---
 
@@ -48,6 +46,7 @@ function SearchInput({
   return (
     <div class="relative">
       <input
+        id="search-input"
         ref={inputRef}
         type="text"
         placeholder="Search items..."
@@ -81,98 +80,19 @@ interface ItemsProps {
 }
 
 export default function Items({ items: catalog, shoppingList }: ItemsProps) {
-  const items = useSignal<ItemInterface[]>(catalog || []);
-  const list = useSignal<ShoppingListItemInterface[]>(shoppingList || []);
-  const search = useSignal("");
-  const exitingItems = useSignal<string[]>([]);
-  const searchInputRef = useRef<HTMLInputElement>(null);
-  const hasSearchQuery = useComputed(() => search.value.trim().length > 0);
-
-  // debounced scheduler to batch rapid updates into single PATCH requests
-  const patchScheduler = useMemo(
-    () =>
-      createDebouncedMergeScheduler<ShoppingListItemInterface>({
-        delayMs: 500,
-        flush: async (id, patch) => {
-          await fetch("/api/shopping-list", {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ id, ...patch }),
-          });
-        },
-      }),
-    []
-  );
-
-  const updateListItem = (
-    id: string,
-    patch: Partial<ShoppingListItemInterface>
-  ) => {
-    // Optimistically update local state for immediate UI responsiveness.
-    list.value = list.value.map((li) =>
-      li.id === id ? { ...li, ...patch } : li
-    );
-    patchScheduler.schedule(id, patch);
-  };
-
-  const addToCatalog = async () => {
-    const name = search.value.trim();
-    if (!name) return;
-    const res = await fetch("/api/items", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name }),
-    });
-    if (res.ok) {
-      const created: ItemInterface = await res.json();
-      items.value = [...items.value, created];
-      if (created?.id) {
-        await addToList(created.id);
-      }
-    }
-  };
-  const filteredItems = useComputed(() => {
-    if (search.value.trim() === "") return [];
-    return (items.value || []).filter((item) =>
-      item?.name?.toLowerCase().includes(search.value.toLowerCase())
-    );
-  });
-
-  const addToList = async (itemId: string) => {
-    const res = await fetch("/api/shopping-list", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ itemId }),
-    });
-    if (res.ok) {
-      const entry = await res.json();
-      list.value = [...list.value, entry];
-      search.value = ""; // Clear search after adding
-      searchInputRef.current?.focus(); // Keep focus for rapid entry
-    }
-  };
-
-  const removeListItem = async (id: string) => {
-    // Trigger exit animation
-    exitingItems.value = [...exitingItems.value, id];
-    await new Promise((resolve) => setTimeout(resolve, 300));
-
-    // Cancel any pending debounced PATCH for this item before deletion.
-    patchScheduler.cancel(id);
-    list.value = list.value.filter((li) => li.id !== id);
-
-    // Cleanup exiting state
-    exitingItems.value = exitingItems.value.filter((itemId) => itemId !== id);
-
-    await fetch("/api/shopping-list", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id }),
-    });
-  };
-
-  const getItemName = (itemId?: string) =>
-    items.value.find((i) => i.id === itemId)?.name || "Unknown";
+  const {
+    list,
+    search,
+    exitingItems,
+    searchInputRef,
+    filteredItems,
+    updateListItem,
+    addToList,
+    addToCatalog,
+    removeListItem,
+    getItemName,
+    hasSearchQuery,
+  } = useShoppingList(catalog, shoppingList);
 
   return (
     <div class="space-y-8 pb-24">
@@ -265,6 +185,7 @@ export default function Items({ items: catalog, shoppingList }: ItemsProps) {
                         {getItemName(li.itemId)}
                       </span>
                       <input
+                        id="note-input"
                         type="text"
                         placeholder="Add a note..."
                         value={li.note || ""}
@@ -276,7 +197,7 @@ export default function Items({ items: catalog, shoppingList }: ItemsProps) {
                     </div>
                     <button
                       type="button"
-                      class="ml-4 w-12 h-12 flex-shrink-0 flex items-center justify-center border-2 border-gray-200 rounded-full text-gray-300 active:bg-green-50 active:border-green-500 active:text-green-600 transition-all"
+                      class="ml-4 w-12 h-12 shrink-0 flex items-center justify-center border-2 border-gray-200 rounded-full text-gray-300 active:bg-green-50 active:border-green-500 active:text-green-600 transition-all"
                       onClick={() => removeListItem(li.id)}
                       aria-label="Mark as done"
                     >
