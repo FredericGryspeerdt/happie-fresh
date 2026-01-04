@@ -11,6 +11,27 @@ export const api = {
       if (!res.ok) return null;
       return res.json();
     },
+    getAll: async (): Promise<ItemInterface[]> => {
+      const res = await fetch("/api/items");
+      if (!res.ok) return [];
+      return res.json();
+    },
+    update: async (id: string, name: string, categoryId?: string): Promise<ItemInterface | null> => {
+      const res = await fetch("/api/items", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, name, categoryId }),
+      });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    delete: async (id: string): Promise<void> => {
+      await fetch("/api/items", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+    },
   },
   categories: {
     getAll: async (): Promise<CategoryInterface[]> => {

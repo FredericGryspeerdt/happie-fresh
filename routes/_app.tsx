@@ -29,6 +29,9 @@ export default function App({ Component, state }: PageProps<unknown, State>) {
           <header class="p-4 bg-gray-100 flex justify-between items-center border-b">
             <span class="font-bold text-xl">Happie Fresh</span>
             <div class="flex gap-4 items-center">
+              <a href="/items" class="text-blue-600 hover:underline">
+                Items
+              </a>
               <a href="/categories/manage" class="text-blue-600 hover:underline">
                 Categories
               </a>

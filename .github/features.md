@@ -24,5 +24,6 @@
 ## shopping mode:
 
 - condensed list items with check mark, search shopping list items
+- realtime updates
 
 ## catalog search: already added to shopping list hint
