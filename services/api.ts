@@ -1,14 +1,21 @@
-import { ItemInterface, ShoppingListItemInterface } from "@/models/index.ts";
+import { ItemInterface, ShoppingListItemInterface, CategoryInterface } from "@/models/index.ts";
 
 export const api = {
   items: {
-    create: async (name: string): Promise<ItemInterface | null> => {
+    create: async (name: string, categoryId?: string): Promise<ItemInterface | null> => {
       const res = await fetch("/api/items", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name }),
+        body: JSON.stringify({ name, categoryId }),
       });
       if (!res.ok) return null;
+      return res.json();
+    },
+  },
+  categories: {
+    getAll: async (): Promise<CategoryInterface[]> => {
+      const res = await fetch("/api/categories");
+      if (!res.ok) return [];
       return res.json();
     },
   },

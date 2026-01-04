@@ -28,9 +28,14 @@ export default function App({ Component, state }: PageProps<unknown, State>) {
         {state?.userId && (
           <header class="p-4 bg-gray-100 flex justify-between items-center border-b">
             <span class="font-bold text-xl">Happie Fresh</span>
-            <a href="/logout" class="text-red-600 hover:underline">
-              Logout
-            </a>
+            <div class="flex gap-4 items-center">
+              <a href="/categories/manage" class="text-blue-600 hover:underline">
+                Categories
+              </a>
+              <a href="/logout" class="text-red-600 hover:underline">
+                Logout
+              </a>
+            </div>
           </header>
         )}
         <Component />
