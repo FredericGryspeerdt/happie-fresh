@@ -6,8 +6,6 @@ import { hashPassword } from "@/utils/index.ts";
 async function seed() {
   const kv = await getKv();
 
-  //   delete all existing users
-  await UserRepo.deleteAll();
   const username = Deno.env.get("SEED_USERNAME")!;
   const password = Deno.env.get("SEED_PASSWORD")!; // In a real app, use a more secure password or env var
 
