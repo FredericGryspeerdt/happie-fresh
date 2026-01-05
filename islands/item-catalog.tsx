@@ -1,6 +1,7 @@
 import { CategoryInterface, ItemInterface } from "@/models/index.ts";
 import { useSignal } from "@preact/signals";
 import { api } from "@/services/api.ts";
+import SearchBox from "./search-box.tsx";
 
 interface ItemCatalogProps {
   items: ItemInterface[];
@@ -8,10 +9,9 @@ interface ItemCatalogProps {
 }
 
 export default function ItemCatalog(
-    { items: initialItems, categories: initialCategories }: ItemCatalogProps,
+  { items: initialItems, categories: initialCategories }: ItemCatalogProps,
 ) {
-    const items = useSignal<ItemInterface[]>(initialItems
-    );
+  const items = useSignal<ItemInterface[]>(initialItems);
   const categories = useSignal<CategoryInterface[]>(initialCategories);
   const searchQuery = useSignal("");
   const newItemName = useSignal("");
@@ -137,7 +137,7 @@ export default function ItemCatalog(
   return (
     <div class="space-y-6">
       {/* Search Bar */}
-      <div class="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+      {/* <div class="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
         <input
           type="text"
           placeholder="Search items..."
@@ -145,7 +145,11 @@ export default function ItemCatalog(
           onInput={(e) => searchQuery.value = e.currentTarget.value}
           class="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
-      </div>
+      </div> */}
+      <SearchBox
+        value={searchQuery.value}
+        onInput={(searchString) => searchQuery.value = searchString}
+      />
 
       {/* Add New Item */}
       <div class="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
