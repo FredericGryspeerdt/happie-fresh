@@ -1,34 +1,29 @@
 // @ts-types="preact"
 import { RefObject } from "preact";
 import { For, Show } from "@preact/signals/utils";
-import { useComputed, useSignal } from "@preact/signals";
-import { useRef } from "preact/hooks";
+import { Signal, useComputed } from "@preact/signals";
 
 export interface SearchBoxProps<T> {
+  query: Signal<string>;
+  results?: Signal<T[]>;
   inputRef?: RefObject<HTMLInputElement>;
-  items?: T[];
-  filterFn?: (searchString: string, item: T) => boolean;
-  filteredItems?: T[];
-  listItemRenderer?: (item: T) => preact.JSX.Element;
-  fallbackRenderer?: (searchString: string) => preact.JSX.Element;
+  renderItem?: (item: T) => preact.JSX.Element;
+  renderEmpty?: (query: string) => preact.JSX.Element;
+  placeholder?: string;
 }
+
 export default function SearchBox<T>({
-  items,
-  filterFn,
+  query,
+  results,
   inputRef,
-  listItemRenderer,
-  fallbackRenderer,
+  renderItem,
+  renderEmpty,
+  placeholder = "Search items...",
 }: SearchBoxProps<T>) {
-  const search = useSignal(""); // search input value
-  const initialItems = useSignal<T[]>(items || []);
-  const hasSearchQuery = useComputed(() => search.value.trim().length > 0);
-  const filteredItems = useComputed(() => {
-    return filterFn
-      ? initialItems?.value.filter((item) => filterFn(search.value, item))
-      : [];
-  });
+  const hasSearchQuery = useComputed(() => query.value.trim().length > 0 && !!renderItem && !!results);
+
   const onInput = (val: string) => {
-    search.value = val;
+    query.value = val.trim();
   };
 
   return (
@@ -38,8 +33,8 @@ export default function SearchBox<T>({
           id="search-input"
           ref={inputRef}
           type="text"
-          placeholder="Search items..."
-          value={search}
+          placeholder={placeholder}
+          value={query}
           onInput={(e) => onInput(e.currentTarget.value)}
           class="w-full p-4 pl-12 bg-white border border-gray-200 rounded-2xl shadow-sm text-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow"
         />
@@ -59,27 +54,18 @@ export default function SearchBox<T>({
             />
           </svg>
         </div>
-        {/* Only show results dropdown if there is a search query */}
       </div>
       <Show when={hasSearchQuery}>
-        <ul class="space-y-2 mt-4 absolute left-0 right-0 px-4 bg-white/95 backdrop-blur-sm pb-4 shadow-lg rounded-b-2xl border-b border-gray-100">
-          <For
-            each={filteredItems}
-            fallback={filteredItems.value.length === 0 && (
-              fallbackRenderer
-                ? (
-                  fallbackRenderer(search.value)
-                )
-                : <>Niets gevonden</>
-            )}
-          >
-            {(item) => (listItemRenderer
-              ? (
-                listItemRenderer(item)
-              )
-              : <p>No</p>)}
-          </For>
-        </ul>
+          <ul class="space-y-2 mt-4 absolute left-0 right-0 px-4 bg-white/95 backdrop-blur-sm pb-4 shadow-lg rounded-b-2xl border-b border-gray-100 z-10">
+            <For each={results!}>
+              {(item) => renderItem!(item)}
+            </For>
+            <Show when={() => results!.value.length === 0}>
+              {renderEmpty
+                ? renderEmpty(query.value)
+                : <div class="p-4 text-center text-gray-500">No results found</div>}
+            </Show>
+          </ul>
       </Show>
     </div>
   );

@@ -35,6 +35,9 @@ for styling.
   `["items", "uuid"]`).
 - **IDs**: Generate IDs using `crypto.randomUUID()`.
 
+## Preact Components
+- **patterns**: smart hook / dumb component, render props
+
 ## State Management & Interactivity
 
 - **Islands**: Use islands (`islands/`) ONLY for components requiring

@@ -4,7 +4,7 @@ import {
   ShoppingListItemInterface,
 } from "@/models/index.ts";
 import { For, Show } from "@preact/signals/utils";
-import { useShoppingList } from "@/hooks/index.ts";
+import { useSearchBox, useShoppingList } from "@/hooks/index.ts";
 import SearchBox from "./search-box.tsx";
 
 // --- Components ---
@@ -61,14 +61,19 @@ export default function Items(
     categories,
   } = useShoppingList(catalog, shoppingList, initialCategories);
 
-  const handleCreateItem = (searchString: string) => {
-    addToCatalog(searchString, selectedCategoryId.value || undefined);
-    selectedCategoryId.value = "";
-  };
   const filterFn = (searchString: string, item: ItemInterface) => {
     if (searchString.trim() === "") return false;
     return !!item?.name?.toLowerCase().includes(searchString.toLowerCase());
   };
+
+  const { query, results, inputRef, reset } = useSearchBox(catalog, filterFn);
+
+  const handleCreateItem = (searchString: string) => {
+    addToCatalog(searchString, selectedCategoryId.value || undefined);
+    selectedCategoryId.value = "";
+    reset();
+  };
+
   const renderListItem = (item: Required<ItemInterface>) => {
     const isInList = listItemsMap.value.has(item.id!);
     return (
@@ -154,10 +159,11 @@ export default function Items(
       <section class="sticky top-0 z-10 bg-white/80 backdrop-blur-md py-4 -mx-4 px-4 border-b border-gray-100 shadow-sm">
       <div class="mb-0">
         <SearchBox
-          items={catalog}
-          filterFn={filterFn}
-          listItemRenderer={renderListItem}
-          fallbackRenderer={renderFallback}
+          query={query}
+          results={results}
+          inputRef={inputRef}
+          renderItem={renderListItem}
+          renderEmpty={renderFallback}
         />
         </div>
       </section>

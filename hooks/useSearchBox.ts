@@ -3,25 +3,30 @@ import { useRef } from "preact/hooks";
 
 export function useSearchBox<T>(
   initialItems: T[],
-  onSearchChange: (searchString: string) => T[],
+  filterFn: (query: string, item: T) => boolean,
 ) {
   const items = useSignal<T[]>(initialItems || []);
-  const search = useSignal("");
-  const searchInputRef = useRef<HTMLInputElement>(null);
-  const hasSearchQuery = useComputed(() => search.value.trim().length > 0);
+  const query = useSignal("");
+  const inputRef = useRef<HTMLInputElement>(null);
+  const hasSearchQuery = useComputed(() => query.value.trim().length > 0);
 
-  const filteredItems = useComputed(() => {
-    if (search.value.trim() === "") return [];
-    return onSearchChange(search.value);
+  const results = useComputed(() => {
+    const q = query.value.trim();
+    if (q === "") return [];
+    return items.value?.filter((item) => filterFn(q, item)) || [];
   });
 
-
+  const reset = () => {
+    query.value = "";
+    inputRef.current?.focus();
+  };
 
   return {
     items,
-    search,
-    searchInputRef,
-    filteredItems,
+    query,
+    inputRef,
+    results,
     hasSearchQuery,
+    reset,
   };
 }

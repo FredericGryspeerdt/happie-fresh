@@ -137,18 +137,8 @@ export default function ItemCatalog(
   return (
     <div class="space-y-6">
       {/* Search Bar */}
-      {/* <div class="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
-        <input
-          type="text"
-          placeholder="Search items..."
-          value={searchQuery.value}
-          onInput={(e) => searchQuery.value = e.currentTarget.value}
-          class="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-      </div> */}
       <SearchBox
-        value={searchQuery.value}
-        onInput={(searchString) => searchQuery.value = searchString}
+        query={searchQuery}
       />
 
       {/* Add New Item */}
