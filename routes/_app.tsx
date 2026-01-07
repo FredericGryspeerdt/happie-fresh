@@ -27,8 +27,11 @@ export default function App({ Component, state }: PageProps<unknown, State>) {
       <body>
         {state?.userId && (
           <header class="p-4 bg-gray-100 flex justify-between items-center border-b">
-            <span class="font-bold text-xl">Happie Fresh</span>
+            <span class="font-bold text-xl">Happie</span>
             <div class="flex gap-4 items-center">
+              <a href="/home" class="text-blue-600 hover:underline">
+                Shopping list
+              </a>
               <a href="/items" class="text-blue-600 hover:underline">
                 Items
               </a>

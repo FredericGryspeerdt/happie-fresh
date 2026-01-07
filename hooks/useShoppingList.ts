@@ -15,10 +15,14 @@ export function useShoppingList(
 ) {
   const items = useSignal<ItemInterface[]>(initialCatalog || []);
   const list = useSignal<ShoppingListItemInterface[]>(initialList || []);
-  const search = useSignal("");
+  const listItemsMap = useComputed(() => {
+    const map = new Map<string, ShoppingListItemInterface>();
+    for (const listItem of list.value) {
+      map.set(listItem.itemId || "", listItem);
+    }
+    return map;
+  });
   const exitingItems = useSignal<string[]>([]);
-  const searchInputRef = useRef<HTMLInputElement>(null);
-  const hasSearchQuery = useComputed(() => search.value.trim().length > 0);
   const categories = useSignal<CategoryInterface[]>(initialCategories);
   const selectedCategoryId = useSignal<string>("");
 
@@ -49,13 +53,10 @@ export function useShoppingList(
     const entry = await api.shoppingList.add(itemId);
     if (entry) {
       list.value = [...list.value, entry];
-      search.value = "";
-      searchInputRef.current?.focus();
     }
   };
 
-  const addToCatalog = async (categoryId?: string) => {
-    const name = search.value.trim();
+  const addToCatalog = async (name: string, categoryId?: string) => {
     if (!name) return;
     const created = await api.items.create(name, categoryId);
     if (created) {
@@ -77,13 +78,6 @@ export function useShoppingList(
 
     await api.shoppingList.delete(id);
   };
-
-  const filteredItems = useComputed(() => {
-    if (search.value.trim() === "") return [];
-    return (items.value || []).filter((item) =>
-      item?.name?.toLowerCase().includes(search.value.toLowerCase())
-    );
-  });
 
   const getItemName = (itemId?: string) =>
     items.value.find((i) => i.id === itemId)?.name || "Unknown";
@@ -158,18 +152,15 @@ export function useShoppingList(
   return {
     items,
     list,
-    search,
     exitingItems,
-    searchInputRef,
-    filteredItems,
     updateListItem,
     addToList,
     addToCatalog,
     removeListItem,
     getItemName,
-    hasSearchQuery,
     groupedList,
     categories,
     selectedCategoryId,
+    listItemsMap
   };
 }

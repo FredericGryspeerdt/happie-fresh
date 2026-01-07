@@ -17,7 +17,7 @@ export class ItemRepo {
   static async readAll() {
     const kv = await getKv();
 
-    const entries = kv.list<ItemInterface>({ prefix: ["items"] });
+    const entries = kv.list<Required<ItemInterface>>({ prefix: ["items"] });
     const items = [];
     for await (const entry of entries) {
       const item = entry.value;
