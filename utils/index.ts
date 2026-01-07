@@ -1,5 +1,3 @@
-export * from "./home-page.ts";
 export * from "./security.ts";
-export * from "./login-page.ts";
 export * from "./debounce-update.ts";
-export * from './root-page.ts';
+export * from "./define.ts";

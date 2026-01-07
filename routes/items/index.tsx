@@ -1,17 +1,17 @@
 import { page } from "fresh";
 import { ItemRepo, CategoryRepo } from "@/database/index.ts";
 import ItemCatalog from "@/islands/item-catalog.tsx";
-import { homePage } from "@/utils/index.ts";
+import { define } from "@/utils/index.ts";
 
-export const handler = homePage.handlers({
-  async GET(ctx) {
+export const handler = define.handlers({
+  async GET(_ctx) {
     const items = await ItemRepo.readAll();
     const categories = await CategoryRepo.getAll();
     return page({ items, categories });
   },
 });
 
-export default homePage.page<typeof handler>(function Items({ data }) {
+export default define.page<typeof handler>(function Items({ data }) {
   return (
     <main class="max-w-4xl mx-auto p-4">
       <div class="mb-6">
