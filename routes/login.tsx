@@ -1,13 +1,13 @@
 import { page } from "fresh";
 import { setCookie } from "$std/http/cookie.ts";
 import { SessionRepo, UserRepo } from "@/database/index.ts";
-import { hashPassword, loginPage } from "@/utils/index.ts";
+import { hashPassword, define } from "@/utils/index.ts";
 
 interface Data {
   error?: string;
 }
 
-export const handler = loginPage.handlers<Data>({
+export const handler = define.handlers<Data>({
   GET(_ctx) {
     return page({});
   },
@@ -53,7 +53,7 @@ export const handler = loginPage.handlers<Data>({
   },
 });
 
-export default loginPage.page(function Login({ data }) {
+export default define.page(function Login({ data }) {
   const { error } = data || {};
 
   return (

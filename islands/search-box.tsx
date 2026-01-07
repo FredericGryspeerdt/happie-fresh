@@ -2,11 +2,12 @@
 import { RefObject } from "preact";
 import { For, Show } from "@preact/signals/utils";
 import { Signal, useComputed } from "@preact/signals";
+import { useSignalRef } from "@preact/signals/utils";
 
 export interface SearchBoxProps<T> {
   query: Signal<string>;
   results?: Signal<T[]>;
-  inputRef?: RefObject<HTMLInputElement>;
+  inputRef?: ReturnType<typeof useSignalRef<HTMLInputElement | null>>;
   renderItem?: (item: T) => preact.JSX.Element;
   renderEmpty?: (query: string) => preact.JSX.Element;
   placeholder?: string;
@@ -20,11 +21,14 @@ export default function SearchBox<T>({
   renderEmpty,
   placeholder = "Search items...",
 }: SearchBoxProps<T>) {
-  const hasSearchQuery = useComputed(() => query.value.trim().length > 0 && !!renderItem && !!results);
+  const hasSearchQuery = useComputed(() =>
+    query.value.trim().length > 0 && !!renderItem && !!results
+  );
 
   const onInput = (val: string) => {
     query.value = val.trim();
   };
+
 
   return (
     <div>
@@ -56,16 +60,20 @@ export default function SearchBox<T>({
         </div>
       </div>
       <Show when={hasSearchQuery}>
-          <ul class="space-y-2 mt-4 absolute left-0 right-0 px-4 bg-white/95 backdrop-blur-sm pb-4 shadow-lg rounded-b-2xl border-b border-gray-100 z-10">
-            <For each={results!}>
-              {(item) => renderItem!(item)}
-            </For>
-            <Show when={() => results!.value.length === 0}>
-              {renderEmpty
-                ? renderEmpty(query.value)
-                : <div class="p-4 text-center text-gray-500">No results found</div>}
-            </Show>
-          </ul>
+        <ul class="space-y-2 mt-4 absolute left-0 right-0 px-4 bg-white/95 backdrop-blur-sm pb-4 shadow-lg rounded-b-2xl border-b border-gray-100 z-10">
+          <For each={results!}>
+            {(item) => renderItem!(item)}
+          </For>
+          <Show when={() => results!.value.length === 0}>
+            {renderEmpty
+              ? renderEmpty(query.value)
+              : (
+                <div class="p-4 text-center text-gray-500">
+                  No results found
+                </div>
+              )}
+          </Show>
+        </ul>
       </Show>
     </div>
   );

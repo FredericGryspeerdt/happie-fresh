@@ -1,5 +1,5 @@
 import { useComputed, useSignal } from "@preact/signals";
-import { useRef } from "preact/hooks";
+import { useSignalRef } from "@preact/signals/utils";
 
 export function useSearchBox<T>(
   initialItems: T[],
@@ -7,17 +7,19 @@ export function useSearchBox<T>(
 ) {
   const items = useSignal<T[]>(initialItems || []);
   const query = useSignal("");
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useSignalRef<HTMLInputElement | null>(null);
   const hasSearchQuery = useComputed(() => query.value.trim().length > 0);
 
   const results = useComputed(() => {
     const q = query.value.trim();
-    if (q === "") return [];
+    if (q === "") return items.value;
     return items.value?.filter((item) => filterFn(q, item)) || [];
   });
+  
 
   const reset = () => {
     query.value = "";
+    inputRef.current!.value = "";
     inputRef.current?.focus();
   };
 
