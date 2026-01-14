@@ -1,5 +1,5 @@
 import { page } from "fresh";
-import { ItemRepo, CategoryRepo } from "@/database/index.ts";
+import { CategoryRepo, ItemRepo } from "@/database/index.ts";
 import ItemCatalog from "@/islands/item-catalog.tsx";
 import { define } from "@/utils/index.ts";
 

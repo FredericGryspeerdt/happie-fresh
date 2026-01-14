@@ -16,7 +16,7 @@ export const api = {
       if (!res.ok) return [];
       return res.json();
     },
-    update: async (id: string, name: string, categoryId?: string): Promise<ItemInterface | null> => {
+    update: async (id: string, name: string, categoryId?: string): Promise<Required<ItemInterface> | null> => {
       const res = await fetch("/api/items", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
