@@ -29,6 +29,10 @@ export default function SearchBox<T>({
     query.value = val.trim();
   };
 
+  const noSearchResults = useComputed(() =>
+    results!.value.length === 0
+  );
+
 
   return (
     <div>
@@ -64,7 +68,7 @@ export default function SearchBox<T>({
           <For each={results!}>
             {(item) => renderItem!(item)}
           </For>
-          <Show when={() => results!.value.length === 0}>
+          <Show when={noSearchResults}>
             {renderEmpty
               ? renderEmpty(query.value)
               : (
