@@ -6,6 +6,7 @@ import { useSearchBox } from "../hooks/useSearchBox.ts";
 import { Show } from "@preact/signals/utils";
 import { List } from "../components/index.ts";
 import { useCollection } from "../hooks/useCollection.ts";
+import { CreateItemDto } from "../models/item/item.interface.ts";
 
 interface ItemCatalogProps {
   items: ItemInterface[];
@@ -18,7 +19,10 @@ export default function ItemCatalog(
   const itemCollection = useCollection<ItemInterface>(initialItems);
   const items = itemCollection.collection;
 
-  const categories = useSignal<CategoryInterface[]>(initialCategories);
+  const categoryCollection = useCollection<CategoryInterface>(
+    initialCategories,
+  );
+  const categories = categoryCollection.collection;
   const searchQuery = useSignal("");
   const newItemName = useSignal("");
   const newItemCategoryId = useSignal("");
@@ -39,13 +43,13 @@ export default function ItemCatalog(
     return !hasSearchQuery.value;
   });
 
-  const filteredItems = () => {
+  const filteredItems = useComputed(() => {
     const query = searchQuery.value.toLowerCase();
     if (!query) return items.value;
     return items.value.filter((item) =>
       item.name?.toLowerCase().includes(query)
     );
-  };
+  });
 
   const searchResults = useComputed(() => {
     if (query.value.trim() === "") {
@@ -54,14 +58,24 @@ export default function ItemCatalog(
     return items.value.filter((category) => filterFn(query.value, category));
   });
 
-  const groupedItems = () => {
+  const groupedItems = useComputed(() => {
+    const grouped = Object.groupBy(
+      filteredItems.value,
+      (item) =>
+        item.categoryId
+          ? categoryCollection.dictionary.value?.[item.categoryId]?.label
+          : "uncategorized",
+    );
+    console.log("🚀 ~ ItemCatalog ~ grouped:", grouped);
+    return grouped;
+
     const categoryMap = new Map(
       categories.value.map((cat) => [cat.id, cat]),
     );
 
     const groups = new Map<string | undefined, ItemInterface[]>();
 
-    for (const item of filteredItems()) {
+    for (const item of filteredItems.value) {
       const categoryId = item.categoryId;
       if (!groups.has(categoryId)) {
         groups.set(categoryId, []);
@@ -100,14 +114,17 @@ export default function ItemCatalog(
     }
 
     return result;
-  };
+  });
 
   const createItem = async () => {
     if (!newItemName.value.trim()) return;
 
+    const item: CreateItemDto = {
+      name: newItemName.value.trim(),
+      categoryId: newItemCategoryId.value || undefined,
+    };
     const created = await api.items.create(
-      newItemName.value.trim(),
-      newItemCategoryId.value || undefined,
+      item,
     );
 
     if (created) {
@@ -226,19 +243,18 @@ export default function ItemCatalog(
             </List>
           }
         >
-          {groupedItems().map((group) => (
+          {Object.entries(groupedItems.value).map(([group, items]) => (
             <div
-              key={group.category?.id || "uncategorized"}
+              key={items[0]?.id || group}
               class="bg-white rounded-lg border border-gray-200 shadow-sm"
             >
               <div class="bg-gray-50 px-4 py-3 border-b border-gray-200">
                 <h3 class="font-bold text-gray-700">
-                  {group.category?.label || "Uncategorized"}{" "}
-                  ({group.items.length})
+                  {group || "Uncategorized"} ({items.length})
                 </h3>
               </div>
               <div class="divide-y">
-                {group.items.map((item: ItemInterface) => (
+                {items.map((item: ItemInterface) => (
                   <div
                     key={item.id}
                     class="p-4 hover:bg-gray-50 transition-colors"
@@ -322,7 +338,7 @@ export default function ItemCatalog(
               </div>
             </div>
           ))}
-          {groupedItems().length === 0 && (
+          {groupedItems.value.length === 0 && (
             <div class="bg-white p-8 rounded-lg border border-gray-200 text-center text-gray-500">
               {searchQuery.value
                 ? "No items found matching your search."
