@@ -5,16 +5,19 @@ import SearchBox from "./search-box.tsx";
 import { useSearchBox } from "../hooks/useSearchBox.ts";
 import { Show } from "@preact/signals/utils";
 import { List } from "../components/index.ts";
+import { useCollection } from "../hooks/useCollection.ts";
 
 interface ItemCatalogProps {
-  items: Required<ItemInterface>[];
+  items: ItemInterface[];
   categories: CategoryInterface[];
 }
 
 export default function ItemCatalog(
   { items: initialItems, categories: initialCategories }: ItemCatalogProps,
 ) {
-  const items = useSignal<Required<ItemInterface>[]>(initialItems);
+  const itemCollection = useCollection<ItemInterface>(initialItems);
+  const items = itemCollection.collection;
+
   const categories = useSignal<CategoryInterface[]>(initialCategories);
   const searchQuery = useSignal("");
   const newItemName = useSignal("");
@@ -108,7 +111,7 @@ export default function ItemCatalog(
     );
 
     if (created) {
-      items.value = [...items.value, created];
+      itemCollection.addOne(created);
       newItemName.value = "";
       newItemCategoryId.value = "";
     }
@@ -136,7 +139,7 @@ export default function ItemCatalog(
     );
 
     if (updated) {
-      items.value = items.value.map((item) => item.id === id ? updated : item);
+      itemCollection.updateOne(id, updated);
       cancelEdit();
     }
   };
@@ -149,7 +152,7 @@ export default function ItemCatalog(
     ) return;
 
     await api.items.delete(id);
-    items.value = items.value.filter((item) => item.id !== id);
+    itemCollection.removeOne(id);
   };
 
   const getCategoryName = (categoryId?: string) => {
