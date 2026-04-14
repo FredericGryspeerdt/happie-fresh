@@ -66,54 +66,42 @@ export default function ItemCatalog(
           ? categoryCollection.dictionary.value?.[item.categoryId]?.label
           : "uncategorized",
     );
-    console.log("🚀 ~ ItemCatalog ~ grouped:", grouped);
-    return grouped;
+    // return grouped;
 
-    const categoryMap = new Map(
-      categories.value.map((cat) => [cat.id, cat]),
+    const categoryWithItems = filteredItems.value.reduce(
+      (acc, item) => {
+        const categoryId = item.categoryId;
+        if (!categoryId) {
+          acc["uncategorized"].items.push(item);
+          return acc;
+        }
+        if (!acc[categoryId]) {
+          acc[categoryId] = {
+            category: categoryCollection.dictionary.value?.[categoryId],
+            items: [],
+          };
+        }
+        acc[categoryId].items.push(item);
+        return acc;
+      },
+      {
+        "uncategorized": {
+          category: { id: "-1", label: "uncategorized" },
+          items: [],
+        },
+      } as Record<
+        string,
+        { category: CategoryInterface; items: ItemInterface[] }
+      >,
     );
 
-    const groups = new Map<string | undefined, ItemInterface[]>();
+    const sortedCategories = Object.values(categoryWithItems).sort((a, b) => {
+      const orderA = a.category.order ?? 999;
+      const orderB = b.category.order ?? 999;
+      return orderA - orderB;
+    });
 
-    for (const item of filteredItems.value) {
-      const categoryId = item.categoryId;
-      if (!groups.has(categoryId)) {
-        groups.set(categoryId, []);
-      }
-      groups.get(categoryId)!.push(item);
-    }
-
-    const result: Array<
-      { category: CategoryInterface | null; items: ItemInterface[] }
-    > = [];
-
-    const categorizedGroups = Array.from(groups.entries())
-      .filter(([catId]) =>
-        catId !== undefined && catId !== null && catId !== ""
-      )
-      .map(([catId, items]) => ({
-        category: categoryMap.get(catId!) || null,
-        items: items.sort((a, b) => (a.name || "").localeCompare(b.name || "")),
-      }))
-      .sort((a, b) => {
-        const orderA = a.category?.order ?? 999;
-        const orderB = b.category?.order ?? 999;
-        return orderA - orderB;
-      });
-
-    result.push(...categorizedGroups);
-
-    const uncategorized = groups.get(undefined) || groups.get("") || [];
-    if (uncategorized.length > 0) {
-      result.push({
-        category: null,
-        items: uncategorized.sort((a, b) =>
-          (a.name || "").localeCompare(b.name || "")
-        ),
-      });
-    }
-
-    return result;
+    return sortedCategories;
   });
 
   const createItem = async () => {
@@ -243,18 +231,18 @@ export default function ItemCatalog(
             </List>
           }
         >
-          {Object.entries(groupedItems.value).map(([group, items]) => (
+          {groupedItems.value.map((group) => (
             <div
-              key={items[0]?.id || group}
+              key={group.category?.id}
               class="bg-white rounded-lg border border-gray-200 shadow-sm"
             >
               <div class="bg-gray-50 px-4 py-3 border-b border-gray-200">
                 <h3 class="font-bold text-gray-700">
-                  {group || "Uncategorized"} ({items.length})
+                  {group.category?.label} ({group.items.length})
                 </h3>
               </div>
               <div class="divide-y">
-                {items.map((item: ItemInterface) => (
+                {group.items.map((item: ItemInterface) => (
                   <div
                     key={item.id}
                     class="p-4 hover:bg-gray-50 transition-colors"
