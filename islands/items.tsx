@@ -234,7 +234,7 @@ export default function Items(
         <Show when={() => activeTab.value === "list"}>
           <Show
             when={() => groupedList.value.length > 0}
-            fallback={<p>Zoek en voeg items toe aan je lijst.</p>}
+            fallback={<p>Search and add items to your list.</p>}
           >
             <For each={groupedList}>
               {(group) => (

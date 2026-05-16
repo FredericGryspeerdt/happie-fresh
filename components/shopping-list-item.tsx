@@ -30,6 +30,7 @@ const ShoppingListItem = forwardRef<HTMLLIElement, ShoppingListItemProps>(
             <input
               type="text"
               placeholder="Add a note..."
+              aria-label={`Note for ${name}`}
               value={item.note || ""}
               onInput={(e) =>
                 onUpdate(item.id, { note: e.currentTarget.value })}
@@ -38,7 +39,7 @@ const ShoppingListItem = forwardRef<HTMLLIElement, ShoppingListItemProps>(
           </div>
           <button
             type="button"
-            class="ml-4 w-12 h-12 shrink-0 flex items-center justify-center border-2 border-gray-200 rounded-full text-gray-300 active:bg-green-50 active:border-green-500 active:text-green-600 transition-all"
+            class="ml-4 w-12 h-12 shrink-0 flex items-center justify-center border-2 border-gray-200 rounded-full text-gray-300 active:bg-green-50 active:border-green-500 active:text-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             onClick={() => onCheck(item.id)}
             aria-label={isPending ? "Saving" : "Mark as done"}
             disabled={isPending}
