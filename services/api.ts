@@ -50,6 +50,11 @@ export const api = {
     },
   },
   shoppingList: {
+    getAll: async (): Promise<ShoppingListItemInterface[]> => {
+      const res = await fetch("/api/shopping-list");
+      if (!res.ok) return [];
+      return res.json();
+    },
     add: async (itemId: string): Promise<ShoppingListItemInterface | null> => {
       const res = await fetch("/api/shopping-list", {
         method: "POST",
