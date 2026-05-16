@@ -159,3 +159,45 @@ Deno.test("uncheckItem — calls api.shoppingList.patch with checked: false", as
   assertEquals(calls[0][0], "sl-1");
   assertEquals(calls[0][1], { checked: false });
 });
+
+// ── pendingCount ──────────────────────────────────────────────────────────────
+
+Deno.test("pendingCount — starts at 0", () => {
+  const hook = useShoppingList([], []);
+  assertEquals(hook.pendingCount.value, 0);
+});
+
+Deno.test("pendingCount — returns to 0 after uncheckItem completes", async () => {
+  using _patch = stub(api.shoppingList, "patch", () => Promise.resolve());
+
+  const hook = useShoppingList(
+    [makeItem("item-1", "Milk")],
+    [makeListItem("sl-1", "item-1", true)],
+  );
+
+  await hook.uncheckItem("sl-1");
+
+  assertEquals(hook.pendingCount.value, 0);
+});
+
+Deno.test("pendingCount — is > 0 while an API call is in flight", async () => {
+  let resolveCall!: () => void;
+  const slowPatch = new Promise<void>((resolve) => {
+    resolveCall = resolve;
+  });
+  using _patch = stub(api.shoppingList, "patch", () => slowPatch);
+
+  const hook = useShoppingList(
+    [makeItem("item-1", "Milk")],
+    [makeListItem("sl-1", "item-1", true)],
+  );
+
+  const promise = hook.uncheckItem("sl-1");
+
+  assertEquals(hook.pendingCount.value, 1);
+
+  resolveCall();
+  await promise;
+
+  assertEquals(hook.pendingCount.value, 0);
+});
