@@ -373,8 +373,7 @@ Deno.test("addToCatalog — pendingCount returns to 0 after completion", async (
   using _add = stub(
     api.shoppingList,
     "add",
-    () =>
-      Promise.resolve(makeListItem("sl-new", "item-new", false)),
+    () => Promise.resolve(makeListItem("sl-new", "item-new", false)),
   );
 
   const hook = useShoppingList([], []);

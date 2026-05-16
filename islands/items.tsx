@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "preact/hooks";
 import { useSignal } from "@preact/signals";
 import { For, Show } from "@preact/signals/utils";
 import {
@@ -39,7 +40,19 @@ export default function Items(
   } = useShoppingList(catalog, shoppingList, initialCategories);
 
   const activeTab = useSignal<"list" | "done">("list");
+  const lastAddedId = useSignal<string | null>(null);
   const pendingItemIds = useSignal<Set<string>>(new Set());
+  const latestItemRef = useRef<HTMLLIElement | null>(null);
+
+  useEffect(() => {
+    if (lastAddedId.value && latestItemRef.current) {
+      latestItemRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+      lastAddedId.value = null;
+    }
+  }, [lastAddedId.value]);
 
   const filterFn = (searchString: string, item: ItemInterface) => {
     if (searchString.trim() === "") return false;
@@ -49,16 +62,18 @@ export default function Items(
   const { query, results, inputRef, reset } = useSearchBox(catalog, filterFn);
 
   const handleCreateItem = async (searchString: string) => {
-    await addToCatalog(
+    const id = await addToCatalog(
       searchString,
       selectedCategoryId.value || undefined,
     );
     selectedCategoryId.value = "";
     reset();
+    if (id) lastAddedId.value = id;
   };
 
   const handleAddToList = async (itemId: string) => {
-    await addToList(itemId);
+    const id = await addToList(itemId);
+    if (id) lastAddedId.value = id;
   };
 
   const handleCheckItem = async (id: string) => {
@@ -237,6 +252,7 @@ export default function Items(
                         isPending={pendingItemIds.value.has(li.id)}
                         onCheck={handleCheckItem}
                         onUpdate={updateListItem}
+                        ref={li.id === lastAddedId.value ? latestItemRef : null}
                       />
                     ))}
                   </ul>
