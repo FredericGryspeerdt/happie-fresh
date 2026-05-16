@@ -293,3 +293,93 @@ Deno.test("addToList — returns null when API call fails", async () => {
 
   assertEquals(id, null);
 });
+
+Deno.test("checkItem — pendingCount returns to 0 after completion", async () => {
+  using _patch = stub(api.shoppingList, "patch", () => Promise.resolve());
+
+  const hook = useShoppingList(
+    [makeItem("item-1", "Milk")],
+    [makeListItem("sl-1", "item-1", false)],
+  );
+
+  using time = new FakeTime();
+  const promise = hook.checkItem("sl-1");
+  await time.tickAsync(300);
+  await promise;
+
+  assertEquals(hook.pendingCount.value, 0);
+});
+
+Deno.test("addToList — appends entry to list", async () => {
+  using _add = stub(
+    api.shoppingList,
+    "add",
+    () =>
+      Promise.resolve(
+        makeListItem("sl-new", "item-1", false),
+      ),
+  );
+
+  const hook = useShoppingList([makeItem("item-1", "Milk")], []);
+
+  assertEquals(hook.list.value.length, 0);
+  await hook.addToList("item-1");
+  assertEquals(hook.list.value.length, 1);
+  assertEquals(hook.list.value[0].id, "sl-new");
+});
+
+// ── addToCatalog ──────────────────────────────────────────────────────────────
+
+Deno.test("addToCatalog — adds item to catalog and list, returns list entry id", async () => {
+  using _create = stub(
+    api.items,
+    "create",
+    () =>
+      Promise.resolve(
+        makeItem("item-new", "Cheese"),
+      ),
+  );
+  using _add = stub(
+    api.shoppingList,
+    "add",
+    () =>
+      Promise.resolve(
+        makeListItem("sl-new", "item-new", false),
+      ),
+  );
+
+  const hook = useShoppingList([], []);
+
+  const id = await hook.addToCatalog("Cheese");
+
+  assertEquals(id, "sl-new");
+  assertEquals(hook.items.value.length, 1);
+  assertEquals(hook.items.value[0].name, "Cheese");
+  assertEquals(hook.list.value.length, 1);
+});
+
+Deno.test("addToCatalog — returns null for empty name", async () => {
+  const hook = useShoppingList([], []);
+  const id = await hook.addToCatalog("");
+  assertEquals(id, null);
+});
+
+Deno.test("addToCatalog — pendingCount returns to 0 after completion", async () => {
+  using _create = stub(
+    api.items,
+    "create",
+    () => Promise.resolve(makeItem("item-new", "Cheese")),
+  );
+  using _add = stub(
+    api.shoppingList,
+    "add",
+    () =>
+      Promise.resolve(makeListItem("sl-new", "item-new", false)),
+  );
+
+  const hook = useShoppingList([], []);
+
+  await hook.addToCatalog("Cheese");
+
+  assertEquals(hook.pendingCount.value, 0);
+});
