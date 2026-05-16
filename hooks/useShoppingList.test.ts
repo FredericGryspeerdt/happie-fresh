@@ -260,3 +260,36 @@ Deno.test("refresh — pendingCount returns to 0 after completion", async () => 
 
   assertEquals(hook.pendingCount.value, 0);
 });
+
+// ── addToList / addToCatalog return IDs ───────────────────────────────────────
+
+Deno.test("addToList — returns the id of the created list entry", async () => {
+  using _add = stub(
+    api.shoppingList,
+    "add",
+    () =>
+      Promise.resolve(
+        makeListItem("sl-returned", "item-1", false),
+      ),
+  );
+
+  const hook = useShoppingList([makeItem("item-1", "Milk")], []);
+
+  const id = await hook.addToList("item-1");
+
+  assertEquals(id, "sl-returned");
+});
+
+Deno.test("addToList — returns null when API call fails", async () => {
+  using _add = stub(
+    api.shoppingList,
+    "add",
+    () => Promise.resolve(null),
+  );
+
+  const hook = useShoppingList([makeItem("item-1", "Milk")], []);
+
+  const id = await hook.addToList("item-1");
+
+  assertEquals(id, null);
+});
