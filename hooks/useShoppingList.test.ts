@@ -201,3 +201,62 @@ Deno.test("pendingCount — is > 0 while an API call is in flight", async () => 
 
   assertEquals(hook.pendingCount.value, 0);
 });
+
+// ── refresh ───────────────────────────────────────────────────────────────────
+
+Deno.test("refresh — overwrites list and checkedItems from API", async () => {
+  using _getAll = stub(
+    api.shoppingList,
+    "getAll",
+    () =>
+      Promise.resolve([
+        makeListItem("sl-new-1", "item-2", false),
+        makeListItem("sl-new-2", "item-2", true),
+      ]),
+  );
+  using _itemsGetAll = stub(
+    api.items,
+    "getAll",
+    () => Promise.resolve([makeItem("item-2", "Eggs")]),
+  );
+  using _catGetAll = stub(
+    api.categories,
+    "getAll",
+    () => Promise.resolve([]),
+  );
+
+  const hook = useShoppingList(
+    [makeItem("item-1", "Milk")],
+    [makeListItem("sl-1", "item-1", false)],
+  );
+
+  assertEquals(hook.list.value.length, 1);
+
+  await hook.refresh();
+
+  assertEquals(hook.list.value.length, 1);
+  assertEquals(hook.list.value[0].id, "sl-new-1");
+  assertEquals(hook.checkedItems.value.length, 1);
+  assertEquals(hook.checkedItems.value[0].id, "sl-new-2");
+  assertEquals(hook.items.value[0].name, "Eggs");
+});
+
+Deno.test("refresh — pendingCount returns to 0 after completion", async () => {
+  using _getAll = stub(
+    api.shoppingList,
+    "getAll",
+    () => Promise.resolve([]),
+  );
+  using _itemsGetAll = stub(api.items, "getAll", () => Promise.resolve([]));
+  using _catGetAll = stub(
+    api.categories,
+    "getAll",
+    () => Promise.resolve([]),
+  );
+
+  const hook = useShoppingList([], []);
+
+  await hook.refresh();
+
+  assertEquals(hook.pendingCount.value, 0);
+});
