@@ -1,5 +1,3 @@
-// @ts-types="preact"
-import { RefObject } from "preact";
 import { For, Show } from "@preact/signals/utils";
 import { Signal, useComputed } from "@preact/signals";
 import { useSignalRef } from "@preact/signals/utils";
@@ -29,10 +27,7 @@ export default function SearchBox<T>({
     query.value = val.trim();
   };
 
-  const noSearchResults = useComputed(() =>
-    results!.value.length === 0
-  );
-
+  const noSearchResults = useComputed(() => results!.value.length === 0);
 
   return (
     <div>
@@ -62,6 +57,35 @@ export default function SearchBox<T>({
             />
           </svg>
         </div>
+        {query.value.trim().length > 0 && (
+          <button
+            type="button"
+            aria-label="Clear search"
+            class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 active:scale-95 transition-all"
+            onClick={() => {
+              query.value = "";
+              if (inputRef?.current) {
+                (inputRef.current as unknown as HTMLInputElement).focus();
+              }
+            }}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="w-4 h-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2.5"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+            <span class="sr-only">Clear search</span>
+          </button>
+        )}
       </div>
       <Show when={hasSearchQuery}>
         <ul class="space-y-2 mt-4 absolute left-0 right-0 px-4 bg-white/95 backdrop-blur-sm pb-4 shadow-lg rounded-b-2xl border-b border-gray-100 z-10">
