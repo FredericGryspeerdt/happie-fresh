@@ -134,6 +134,29 @@ After `addToList` / `addToCatalog` resolves, set `lastAddedId.value = newId`. A 
 - **Global sync dot** (Approach B): The refresh button icon pulses / a small spinner badge appears in the header when `pendingCount.value > 0`.
 - **Per-button spinner** (hint of Approach A): The checkmark button on `ShoppingListItem` replaces its SVG with a spinner while `isPending` is true for that item's ID.
 
+## Testing Strategy (TDD)
+
+Development follows a red-green-refactor cycle. Tests are written before implementation for each unit.
+
+**What to test:**
+
+| Unit | Test type | File |
+|------|-----------|------|
+| `useShoppingList` — `checkItem`, `uncheckItem`, `refresh`, `pendingCount` | Unit (Deno test) | `hooks/useShoppingList.test.ts` |
+| `useShoppingList` — init splitting of `checked` vs active items | Unit | same |
+| `addToList` / `addToCatalog` returning new item ID | Unit | same |
+| `components/quantity-stepper.tsx` | Component render test | `components/quantity-stepper.test.tsx` |
+| `components/shopping-list-item.tsx` — `isPending` spinner, `isExiting` animation class | Component render test | `components/shopping-list-item.test.tsx` |
+| `components/done-list-item.tsx` — re-add and remove callbacks | Component render test | `components/done-list-item.test.tsx` |
+
+Hook tests use Deno's built-in test runner (`deno test`). Component tests use `@preact/test-utils` or equivalent shallow render. API calls in hook tests are mocked at the `services/api.ts` boundary.
+
+**Cycle per feature:**
+1. Write a failing test describing the behaviour
+2. Implement the minimum code to make it pass
+3. Refactor if needed, keeping tests green
+4. Run `deno task check` to confirm no lint/type regressions
+
 ## Bug Fixes
 
 | Bug | Fix |
