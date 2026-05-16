@@ -6,38 +6,7 @@ import {
 import { For, Show } from "@preact/signals/utils";
 import { useSearchBox, useShoppingList } from "@/hooks/index.ts";
 import SearchBox from "./search-box.tsx";
-
-// --- Components ---
-
-function QuantityStepper({
-  value,
-  onChange,
-}: {
-  value: number;
-  onChange: (val: number) => void;
-}) {
-  return (
-    <div class="flex items-center bg-gray-100 rounded-lg overflow-hidden border border-gray-200">
-      <button
-        type="button"
-        class="w-10 h-10 flex items-center justify-center text-gray-600 active:bg-gray-200 active:scale-95 transition-all touch-manipulation"
-        onClick={() => onChange(Math.max(0, value - 1))}
-        aria-label="Decrease quantity"
-      >
-        <span class="text-xl font-medium">-</span>
-      </button>
-      <div class="w-10 text-center font-semibold text-gray-800">{value}</div>
-      <button
-        type="button"
-        class="w-10 h-10 flex items-center justify-center text-gray-600 active:bg-gray-200 active:scale-95 transition-all touch-manipulation"
-        onClick={() => onChange(value + 1)}
-        aria-label="Increase quantity"
-      >
-        <span class="text-xl font-medium">+</span>
-      </button>
-    </div>
-  );
-}
+import QuantityStepper from "@/components/quantity-stepper.tsx";
 
 interface ItemsProps {
   items: Required<ItemInterface>[];
@@ -157,14 +126,14 @@ export default function Items(
   return (
     <div class="space-y-8 pb-24">
       <section class="sticky top-0 z-10 bg-white/80 backdrop-blur-md py-4 -mx-4 px-4 border-b border-gray-100 shadow-sm">
-      <div class="mb-0">
-        <SearchBox
-          query={query}
-          results={results}
-          inputRef={inputRef}
-          renderItem={renderListItem}
-          renderEmpty={renderFallback}
-        />
+        <div class="mb-0">
+          <SearchBox
+            query={query}
+            results={results}
+            inputRef={inputRef}
+            renderItem={renderListItem}
+            renderEmpty={renderFallback}
+          />
         </div>
       </section>
 
