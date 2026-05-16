@@ -115,3 +115,47 @@ Deno.test("checkItem — calls api.shoppingList.patch with checked: true", async
   assertEquals(calls[0][0], "sl-1");
   assertEquals(calls[0][1], { checked: true });
 });
+
+// ── uncheckItem ───────────────────────────────────────────────────────────────
+
+Deno.test("uncheckItem — moves item from checkedItems back to list", async () => {
+  using _patch = stub(api.shoppingList, "patch", () => Promise.resolve());
+
+  const hook = useShoppingList(
+    [makeItem("item-1", "Milk")],
+    [makeListItem("sl-1", "item-1", true)],
+  );
+
+  assertEquals(hook.checkedItems.value.length, 1);
+  assertEquals(hook.list.value.length, 0);
+
+  await hook.uncheckItem("sl-1");
+
+  assertEquals(hook.checkedItems.value, []);
+  assertEquals(hook.list.value.length, 1);
+  assertEquals(hook.list.value[0].id, "sl-1");
+  assertEquals(hook.list.value[0].checked, false);
+});
+
+Deno.test("uncheckItem — calls api.shoppingList.patch with checked: false", async () => {
+  const calls: Array<[string, Partial<ShoppingListItemInterface>]> = [];
+  using _patch = stub(
+    api.shoppingList,
+    "patch",
+    (id, patch) => {
+      calls.push([id, patch]);
+      return Promise.resolve();
+    },
+  );
+
+  const hook = useShoppingList(
+    [makeItem("item-1", "Milk")],
+    [makeListItem("sl-1", "item-1", true)],
+  );
+
+  await hook.uncheckItem("sl-1");
+
+  assertEquals(calls.length, 1);
+  assertEquals(calls[0][0], "sl-1");
+  assertEquals(calls[0][1], { checked: false });
+});
