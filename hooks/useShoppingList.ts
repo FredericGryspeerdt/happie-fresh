@@ -50,15 +50,19 @@ export function useShoppingList(
     patchScheduler.schedule(id, patch);
   };
 
+  const _addToList = async (itemId: string): Promise<string | null> => {
+    const entry = await api.shoppingList.add(itemId);
+    if (entry) {
+      list.value = [...list.value, entry];
+      return entry.id ?? null;
+    }
+    return null;
+  };
+
   const addToList = async (itemId: string): Promise<string | null> => {
     pendingCount.value++;
     try {
-      const entry = await api.shoppingList.add(itemId);
-      if (entry) {
-        list.value = [...list.value, entry];
-        return entry.id ?? null;
-      }
-      return null;
+      return await _addToList(itemId);
     } finally {
       pendingCount.value--;
     }
@@ -75,8 +79,7 @@ export function useShoppingList(
       if (created) {
         items.value = [...items.value, created];
         if (created.id) {
-          // addToList manages its own pendingCount increment/decrement
-          return await addToList(created.id);
+          return await _addToList(created.id);
         }
       }
       return null;
@@ -107,7 +110,10 @@ export function useShoppingList(
     try {
       await new Promise((resolve) => setTimeout(resolve, 300));
       const item = list.value.find((li) => li.id === id);
-      if (!item) return;
+      if (!item) {
+        exitingItems.value = exitingItems.value.filter((i) => i !== id);
+        return;
+      }
       patchScheduler.cancel(id);
       list.value = list.value.filter((li) => li.id !== id);
       exitingItems.value = exitingItems.value.filter((i) => i !== id);
