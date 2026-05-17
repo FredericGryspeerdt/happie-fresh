@@ -35,7 +35,10 @@ export default function App({ Component, state }: PageProps<unknown, State>) {
               <a href="/items" class="text-blue-600 hover:underline">
                 Items
               </a>
-              <a href="/categories/manage" class="text-blue-600 hover:underline">
+              <a
+                href="/categories/manage"
+                class="text-blue-600 hover:underline"
+              >
                 Categories
               </a>
               <a href="/logout" class="text-red-600 hover:underline">

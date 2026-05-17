@@ -1,43 +1,15 @@
+import { useEffect, useMemo, useRef } from "preact/hooks";
+import { useSignal } from "@preact/signals";
+import { For, Show } from "@preact/signals/utils";
 import {
   CategoryInterface,
   ItemInterface,
   ShoppingListItemInterface,
 } from "@/models/index.ts";
-import { For, Show } from "@preact/signals/utils";
 import { useSearchBox, useShoppingList } from "@/hooks/index.ts";
 import SearchBox from "./search-box.tsx";
-
-// --- Components ---
-
-function QuantityStepper({
-  value,
-  onChange,
-}: {
-  value: number;
-  onChange: (val: number) => void;
-}) {
-  return (
-    <div class="flex items-center bg-gray-100 rounded-lg overflow-hidden border border-gray-200">
-      <button
-        type="button"
-        class="w-10 h-10 flex items-center justify-center text-gray-600 active:bg-gray-200 active:scale-95 transition-all touch-manipulation"
-        onClick={() => onChange(Math.max(0, value - 1))}
-        aria-label="Decrease quantity"
-      >
-        <span class="text-xl font-medium">-</span>
-      </button>
-      <div class="w-10 text-center font-semibold text-gray-800">{value}</div>
-      <button
-        type="button"
-        class="w-10 h-10 flex items-center justify-center text-gray-600 active:bg-gray-200 active:scale-95 transition-all touch-manipulation"
-        onClick={() => onChange(value + 1)}
-        aria-label="Increase quantity"
-      >
-        <span class="text-xl font-medium">+</span>
-      </button>
-    </div>
-  );
-}
+import ShoppingListItem from "@/components/shopping-list-item.tsx";
+import DoneListItem from "@/components/done-list-item.tsx";
 
 interface ItemsProps {
   items: Required<ItemInterface>[];
@@ -48,18 +20,45 @@ interface ItemsProps {
 export default function Items(
   { items: catalog, shoppingList, categories: initialCategories }: ItemsProps,
 ) {
+  // useMemo with [] ensures useShoppingList is called only once.
+  // useShoppingList uses plain signal() (not useSignal), so calling it on every
+  // re-render would recreate all signals from SSR props, discarding local state.
   const {
     exitingItems,
     updateListItem,
     addToList,
     addToCatalog,
     removeListItem,
+    checkItem,
+    uncheckItem,
+    refresh,
     getItemName,
     groupedList,
     selectedCategoryId,
     listItemsMap,
     categories,
-  } = useShoppingList(catalog, shoppingList, initialCategories);
+    list,
+    checkedItems,
+    pendingCount,
+  } = useMemo(
+    () => useShoppingList(catalog, shoppingList, initialCategories),
+    [], // intentionally empty — signals are initialized once from SSR data
+  );
+
+  const activeTab = useSignal<"list" | "done">("list");
+  const lastAddedId = useSignal<string | null>(null);
+  const pendingItemIds = useSignal<Set<string>>(new Set());
+  const latestItemRef = useRef<HTMLLIElement | null>(null);
+
+  useEffect(() => {
+    if (lastAddedId.value && latestItemRef.current) {
+      latestItemRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+      lastAddedId.value = null;
+    }
+  }, [lastAddedId.value]);
 
   const filterFn = (searchString: string, item: ItemInterface) => {
     if (searchString.trim() === "") return false;
@@ -68,10 +67,30 @@ export default function Items(
 
   const { query, results, inputRef, reset } = useSearchBox(catalog, filterFn);
 
-  const handleCreateItem = (searchString: string) => {
-    addToCatalog(searchString, selectedCategoryId.value || undefined);
+  const handleCreateItem = async (searchString: string) => {
+    const id = await addToCatalog(
+      searchString,
+      selectedCategoryId.value || undefined,
+    );
     selectedCategoryId.value = "";
     reset();
+    if (id) lastAddedId.value = id;
+  };
+
+  const handleAddToList = async (itemId: string) => {
+    const id = await addToList(itemId);
+    if (id) lastAddedId.value = id;
+  };
+
+  const handleCheckItem = async (id: string) => {
+    pendingItemIds.value = new Set([...pendingItemIds.value, id]);
+    try {
+      await checkItem(id);
+    } finally {
+      const next = new Set(pendingItemIds.value);
+      next.delete(id);
+      pendingItemIds.value = next;
+    }
   };
 
   const renderListItem = (item: Required<ItemInterface>) => {
@@ -106,7 +125,7 @@ export default function Items(
               ? "bg-green-200 text-green-800 active:bg-green-300"
               : "bg-blue-100 text-blue-700 active:bg-blue-200"
           }`}
-          onClick={() => item.id && addToList(item.id)}
+          onClick={() => item.id && handleAddToList(item.id)}
           aria-label={`Add ${item.name} to list`}
         >
           <svg
@@ -133,7 +152,6 @@ export default function Items(
       <span class="text-gray-600 text-center">
         No matches found for "{searchString}"
       </span>
-
       <select
         value={selectedCategoryId.value}
         onChange={(e) => selectedCategoryId.value = e.currentTarget.value}
@@ -157,97 +175,122 @@ export default function Items(
   return (
     <div class="space-y-8 pb-24">
       <section class="sticky top-0 z-10 bg-white/80 backdrop-blur-md py-4 -mx-4 px-4 border-b border-gray-100 shadow-sm">
-      <div class="mb-0">
-        <SearchBox
-          query={query}
-          results={results}
-          inputRef={inputRef}
-          renderItem={renderListItem}
-          renderEmpty={renderFallback}
-        />
+        <div class="flex items-center gap-2">
+          <div class="flex-1">
+            <SearchBox
+              query={query}
+              results={results}
+              inputRef={inputRef}
+              renderItem={renderListItem}
+              renderEmpty={renderFallback}
+            />
+          </div>
+          <button
+            type="button"
+            class="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 active:bg-gray-200 transition-all shrink-0"
+            onClick={refresh}
+            aria-label="Refresh list"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="2"
+              stroke="currentColor"
+              class={`w-5 h-5 transition-transform ${
+                pendingCount.value > 0 ? "animate-spin" : ""
+              }`}
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"
+              />
+            </svg>
+          </button>
         </div>
       </section>
 
-      <section class="pt-2">
-        <Show
-          when={() => groupedList.value.length > 0}
-          fallback={<p>Zoek en voeg items toe aan je lijst.</p>}
+      <div class="flex border-b border-gray-200">
+        <button
+          type="button"
+          class={`flex-1 py-3 text-sm font-semibold transition-colors ${
+            activeTab.value === "list"
+              ? "border-b-2 border-blue-500 text-blue-600"
+              : "text-gray-500"
+          }`}
+          onClick={() => activeTab.value = "list"}
         >
-          <For each={groupedList}>
-            {(group) => (
-              <div class="mb-6">
-                <h2 class="text-lg font-bold text-gray-700 mb-3 px-2">
-                  {group.category?.label || "Uncategorized"}
-                </h2>
-                <ul class="space-y-4">
-                  {group.items.map((li: ShoppingListItemInterface) => {
-                    const isExiting = exitingItems.value.includes(li.id);
-                    return (
-                      <li
-                        key={li.id}
-                        class={`p-4 bg-white border border-gray-100 rounded-2xl shadow-sm transition-all duration-300 ease-out ${
-                          isExiting
-                            ? "opacity-0 translate-x-12 scale-95"
-                            : "opacity-100 translate-x-0 scale-100"
-                        }`}
-                      >
-                        <div class="flex items-start justify-between mb-4">
-                          <div class="flex-1 pt-1">
-                            <span class="font-semibold text-xl text-gray-900 block mb-1">
-                              {getItemName(li.itemId)}
-                            </span>
-                            <input
-                              id="note-input"
-                              type="text"
-                              placeholder="Add a note..."
-                              value={li.note || ""}
-                              onInput={(e) =>
-                                updateListItem(li.id, {
-                                  note: e.currentTarget.value,
-                                })}
-                              class="w-full text-sm text-gray-600 placeholder-gray-400 bg-transparent border-none p-0 focus:ring-0"
-                            />
-                          </div>
-                          <button
-                            type="button"
-                            class="ml-4 w-12 h-12 shrink-0 flex items-center justify-center border-2 border-gray-200 rounded-full text-gray-300 active:bg-green-50 active:border-green-500 active:text-green-600 transition-all"
-                            onClick={() => removeListItem(li.id)}
-                            aria-label="Mark as done"
-                          >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke-width="2"
-                              stroke="currentColor"
-                              class="w-6 h-6"
-                            >
-                              <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                d="m4.5 12.75 6 6 9-13.5"
-                              />
-                            </svg>
-                          </button>
-                        </div>
+          List ({list.value.length})
+        </button>
+        <button
+          type="button"
+          class={`flex-1 py-3 text-sm font-semibold transition-colors ${
+            activeTab.value === "done"
+              ? "border-b-2 border-blue-500 text-blue-600"
+              : "text-gray-500"
+          }`}
+          onClick={() => activeTab.value = "done"}
+        >
+          Done ({checkedItems.value.length})
+        </button>
+      </div>
 
-                        <div class="flex items-center justify-between border-t border-gray-50 pt-3 mt-2">
-                          <span class="text-xs font-medium text-gray-400 uppercase tracking-wider">
-                            Quantity
-                          </span>
-                          <QuantityStepper
-                            value={li.quantity}
-                            onChange={(val) =>
-                              updateListItem(li.id, { quantity: val })}
-                          />
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-            )}
-          </For>
+      <section class="pt-2">
+        <Show when={() => activeTab.value === "list"}>
+          <Show
+            when={() => groupedList.value.length > 0}
+            fallback={<p>Search and add items to your list.</p>}
+          >
+            <For each={groupedList}>
+              {(group) => (
+                <div class="mb-6">
+                  <h2 class="text-lg font-bold text-gray-700 mb-3 px-2">
+                    {group.category?.label || "Uncategorized"}
+                  </h2>
+                  <ul class="space-y-4">
+                    {group.items.map((li: ShoppingListItemInterface) => (
+                      <ShoppingListItem
+                        key={li.id}
+                        item={li}
+                        name={getItemName(li.itemId)}
+                        isExiting={exitingItems.value.includes(li.id)}
+                        isPending={pendingItemIds.value.has(li.id)}
+                        onCheck={handleCheckItem}
+                        onUpdate={updateListItem}
+                        ref={li.id === lastAddedId.value ? latestItemRef : null}
+                      />
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </For>
+          </Show>
+        </Show>
+
+        <Show when={() => activeTab.value === "done"}>
+          <Show
+            when={() => checkedItems.value.length > 0}
+            fallback={
+              <p class="text-gray-500 text-center py-8">
+                No done items yet.
+              </p>
+            }
+          >
+            <ul class="space-y-4">
+              <For each={checkedItems}>
+                {(li) => (
+                  <DoneListItem
+                    key={li.id}
+                    item={li}
+                    name={getItemName(li.itemId)}
+                    onReAdd={uncheckItem}
+                    onRemove={removeListItem}
+                  />
+                )}
+              </For>
+            </ul>
+          </Show>
         </Show>
       </section>
     </div>

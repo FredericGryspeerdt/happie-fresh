@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "dev",
+      "runtimeExecutable": "/Users/frederic.gryspeerdt/.deno/bin/deno",
+      "runtimeArgs": ["task", "dev"],
+      "port": 5173
+    }
+  ]
+}

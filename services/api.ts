@@ -1,12 +1,17 @@
-import { ItemInterface, ShoppingListItemInterface, CategoryInterface } from "@/models/index.ts";
+import {
+  CategoryInterface,
+  ItemInterface,
+  ShoppingListItemInterface,
+} from "@/models/index.ts";
+import { CreateItemDto } from "../models/item/item.interface.ts";
 
 export const api = {
   items: {
-    create: async (name: string, categoryId?: string): Promise<ItemInterface | null> => {
+    create: async (item: CreateItemDto): Promise<ItemInterface | null> => {
       const res = await fetch("/api/items", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, categoryId }),
+        body: JSON.stringify(item),
       });
       if (!res.ok) return null;
       return res.json();
@@ -16,7 +21,11 @@ export const api = {
       if (!res.ok) return [];
       return res.json();
     },
-    update: async (id: string, name: string, categoryId?: string): Promise<ItemInterface | null> => {
+    update: async (
+      id: string,
+      name: string,
+      categoryId?: string,
+    ): Promise<Required<ItemInterface> | null> => {
       const res = await fetch("/api/items", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -41,6 +50,11 @@ export const api = {
     },
   },
   shoppingList: {
+    getAll: async (): Promise<ShoppingListItemInterface[]> => {
+      const res = await fetch("/api/shopping-list");
+      if (!res.ok) return [];
+      return res.json();
+    },
     add: async (itemId: string): Promise<ShoppingListItemInterface | null> => {
       const res = await fetch("/api/shopping-list", {
         method: "POST",

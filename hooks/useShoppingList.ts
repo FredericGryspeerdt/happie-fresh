@@ -1,5 +1,4 @@
-import { useComputed, useSignal } from "@preact/signals";
-import { useMemo, useRef } from "preact/hooks";
+import { computed, signal } from "@preact/signals";
 import {
   CategoryInterface,
   ItemInterface,
@@ -13,62 +12,83 @@ export function useShoppingList(
   initialList: ShoppingListItemInterface[],
   initialCategories: CategoryInterface[] = [],
 ) {
-  const items = useSignal<ItemInterface[]>(initialCatalog || []);
-  const list = useSignal<ShoppingListItemInterface[]>(initialList || []);
-  const listItemsMap = useComputed(() => {
+  const items = signal<ItemInterface[]>(initialCatalog || []);
+  const list = signal<ShoppingListItemInterface[]>(
+    (initialList || []).filter((li) => !li.checked),
+  );
+  const checkedItems = signal<ShoppingListItemInterface[]>(
+    (initialList || []).filter((li) => li.checked),
+  );
+  const listItemsMap = computed(() => {
     const map = new Map<string, ShoppingListItemInterface>();
     for (const listItem of list.value) {
       map.set(listItem.itemId || "", listItem);
     }
     return map;
   });
-  const exitingItems = useSignal<string[]>([]);
-  const categories = useSignal<CategoryInterface[]>(initialCategories);
-  const selectedCategoryId = useSignal<string>("");
+  const exitingItems = signal<string[]>([]);
+  const categories = signal<CategoryInterface[]>(initialCategories);
+  const selectedCategoryId = signal<string>("");
+  const pendingCount = signal<number>(0);
 
-  // Debounced scheduler for PATCH requests
-  const patchScheduler = useMemo(
-    () =>
-      createDebouncedMergeScheduler<ShoppingListItemInterface>({
-        delayMs: 500,
-        flush: async (id, patch) => {
-          await api.shoppingList.patch(id, patch);
-        },
-      }),
-    [],
-  );
+  const patchScheduler = createDebouncedMergeScheduler<
+    ShoppingListItemInterface
+  >({
+    delayMs: 500,
+    flush: async (id, patch) => {
+      await api.shoppingList.patch(id, patch);
+    },
+  });
 
   const updateListItem = (
     id: string,
     patch: Partial<ShoppingListItemInterface>,
   ) => {
-    // Optimistic update
     list.value = list.value.map((li) =>
       li.id === id ? { ...li, ...patch } : li
     );
     patchScheduler.schedule(id, patch);
   };
 
-  const addToList = async (itemId: string) => {
+  const _addToList = async (itemId: string): Promise<string | null> => {
     const entry = await api.shoppingList.add(itemId);
     if (entry) {
       list.value = [...list.value, entry];
+      return entry.id ?? null;
+    }
+    return null;
+  };
+
+  const addToList = async (itemId: string): Promise<string | null> => {
+    pendingCount.value++;
+    try {
+      return await _addToList(itemId);
+    } finally {
+      pendingCount.value--;
     }
   };
 
-  const addToCatalog = async (name: string, categoryId?: string) => {
-    if (!name) return;
-    const created = await api.items.create(name, categoryId);
-    if (created) {
-      items.value = [...items.value, created];
-      if (created.id) {
-        await addToList(created.id);
+  const addToCatalog = async (
+    name: string,
+    categoryId?: string,
+  ): Promise<string | null> => {
+    if (!name) return null;
+    pendingCount.value++;
+    try {
+      const created = await api.items.create({ name, categoryId });
+      if (created) {
+        items.value = [...items.value, created];
+        if (created.id) {
+          return await _addToList(created.id);
+        }
       }
+      return null;
+    } finally {
+      pendingCount.value--;
     }
   };
 
   const removeListItem = async (id: string) => {
-    // Trigger exit animation
     exitingItems.value = [...exitingItems.value, id];
     await new Promise((resolve) => setTimeout(resolve, 300));
 
@@ -76,7 +96,64 @@ export function useShoppingList(
     list.value = list.value.filter((li) => li.id !== id);
     exitingItems.value = exitingItems.value.filter((itemId) => itemId !== id);
 
-    await api.shoppingList.delete(id);
+    pendingCount.value++;
+    try {
+      await api.shoppingList.delete(id);
+    } finally {
+      pendingCount.value--;
+    }
+  };
+
+  const checkItem = async (id: string) => {
+    pendingCount.value++;
+    exitingItems.value = [...exitingItems.value, id];
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      const item = list.value.find((li) => li.id === id);
+      if (!item) {
+        exitingItems.value = exitingItems.value.filter((i) => i !== id);
+        return;
+      }
+      patchScheduler.cancel(id);
+      list.value = list.value.filter((li) => li.id !== id);
+      exitingItems.value = exitingItems.value.filter((i) => i !== id);
+      const checked = { ...item, checked: true };
+      checkedItems.value = [...checkedItems.value, checked];
+      await api.shoppingList.patch(id, { checked: true });
+    } finally {
+      pendingCount.value--;
+    }
+  };
+
+  const uncheckItem = async (id: string) => {
+    pendingCount.value++;
+    try {
+      const item = checkedItems.value.find((li) => li.id === id);
+      if (!item) return;
+      checkedItems.value = checkedItems.value.filter((li) => li.id !== id);
+      const active = { ...item, checked: false };
+      list.value = [...list.value, active];
+      await api.shoppingList.patch(id, { checked: false });
+    } finally {
+      pendingCount.value--;
+    }
+  };
+
+  const refresh = async () => {
+    pendingCount.value++;
+    try {
+      const [newList, newItems, newCategories] = await Promise.all([
+        api.shoppingList.getAll(),
+        api.items.getAll(),
+        api.categories.getAll(),
+      ]);
+      list.value = newList.filter((li) => !li.checked);
+      checkedItems.value = newList.filter((li) => li.checked);
+      items.value = newItems;
+      categories.value = newCategories;
+    } finally {
+      pendingCount.value--;
+    }
   };
 
   const getItemName = (itemId?: string) =>
@@ -84,65 +161,51 @@ export function useShoppingList(
 
   const getItem = (itemId?: string) => items.value.find((i) => i.id === itemId);
 
-  // Group shopping list items by category
-  const groupedList = useComputed(() => {
+  const groupedList = computed(() => {
     type GroupedItems = {
       category: CategoryInterface | null;
       items: ShoppingListItemInterface[];
     };
 
-    // Create a map of categoryId -> category with order
     const categoryMap = new Map(
       categories.value.map((cat) => [cat.id, cat]),
     );
 
-    // Group items by categoryId
     const groups = new Map<string | undefined, ShoppingListItemInterface[]>();
-
     for (const listItem of list.value) {
       const item = getItem(listItem.itemId);
       const categoryId = item?.categoryId;
-
-      if (!groups.has(categoryId)) {
-        groups.set(categoryId, []);
-      }
+      if (!groups.has(categoryId)) groups.set(categoryId, []);
       groups.get(categoryId)!.push(listItem);
     }
 
-    // Convert to sorted array of groups
     const result: GroupedItems[] = [];
 
-    // Add categorized groups first, sorted by category order
     const categorizedGroups = Array.from(groups.entries())
       .filter(([catId]) =>
         catId !== undefined && catId !== null && catId !== ""
       )
-      .map(([catId, items]) => ({
+      .map(([catId, groupItems]) => ({
         category: categoryMap.get(catId!) || null,
-        items: items.sort((a, b) => {
-          const nameA = getItemName(a.itemId).toLowerCase();
-          const nameB = getItemName(b.itemId).toLowerCase();
-          return nameA.localeCompare(nameB);
-        }),
+        items: groupItems.sort((a, b) =>
+          getItemName(a.itemId).toLowerCase().localeCompare(
+            getItemName(b.itemId).toLowerCase(),
+          )
+        ),
       }))
-      .sort((a, b) => {
-        const orderA = a.category?.order ?? 999;
-        const orderB = b.category?.order ?? 999;
-        return orderA - orderB;
-      });
+      .sort((a, b) => (a.category?.order ?? 999) - (b.category?.order ?? 999));
 
     result.push(...categorizedGroups);
 
-    // Add uncategorized group last
     const uncategorized = groups.get(undefined) || groups.get("") || [];
     if (uncategorized.length > 0) {
       result.push({
         category: null,
-        items: uncategorized.sort((a, b) => {
-          const nameA = getItemName(a.itemId).toLowerCase();
-          const nameB = getItemName(b.itemId).toLowerCase();
-          return nameA.localeCompare(nameB);
-        }),
+        items: uncategorized.sort((a, b) =>
+          getItemName(a.itemId).toLowerCase().localeCompare(
+            getItemName(b.itemId).toLowerCase(),
+          )
+        ),
       });
     }
 
@@ -152,15 +215,20 @@ export function useShoppingList(
   return {
     items,
     list,
+    checkedItems,
     exitingItems,
+    pendingCount,
     updateListItem,
     addToList,
     addToCatalog,
     removeListItem,
+    checkItem,
+    uncheckItem,
+    refresh,
     getItemName,
     groupedList,
     categories,
     selectedCategoryId,
-    listItemsMap
+    listItemsMap,
   };
 }
