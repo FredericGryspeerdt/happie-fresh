@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "preact/hooks";
+import { useEffect, useMemo, useRef } from "preact/hooks";
 import { useSignal } from "@preact/signals";
 import { For, Show } from "@preact/signals/utils";
 import {
@@ -20,6 +20,9 @@ interface ItemsProps {
 export default function Items(
   { items: catalog, shoppingList, categories: initialCategories }: ItemsProps,
 ) {
+  // useMemo with [] ensures useShoppingList is called only once.
+  // useShoppingList uses plain signal() (not useSignal), so calling it on every
+  // re-render would recreate all signals from SSR props, discarding local state.
   const {
     exitingItems,
     updateListItem,
@@ -37,7 +40,10 @@ export default function Items(
     list,
     checkedItems,
     pendingCount,
-  } = useShoppingList(catalog, shoppingList, initialCategories);
+  } = useMemo(
+    () => useShoppingList(catalog, shoppingList, initialCategories),
+    [], // intentionally empty — signals are initialized once from SSR data
+  );
 
   const activeTab = useSignal<"list" | "done">("list");
   const lastAddedId = useSignal<string | null>(null);
