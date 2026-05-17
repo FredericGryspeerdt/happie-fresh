@@ -1,6 +1,6 @@
-import { assertEquals } from "jsr:@std/assert";
-import { stub } from "jsr:@std/testing/mock";
-import { FakeTime } from "jsr:@std/testing/time";
+import { assertEquals } from "jsr:@std/assert@^1.0.19";
+import { stub } from "jsr:@std/testing@^1.0.18/mock";
+import { FakeTime } from "jsr:@std/testing@^1.0.18/time";
 import { api } from "@/services/api.ts";
 import { useShoppingList } from "@/hooks/useShoppingList.ts";
 import type {

@@ -1,5 +1,5 @@
-import { assertEquals, assertStringIncludes } from "jsr:@std/assert";
-import { render } from "npm:preact-render-to-string";
+import { assertStringIncludes } from "jsr:@std/assert@^1.0.19";
+import { render } from "npm:preact-render-to-string@^6.6.3";
 import { h } from "preact";
 import QuantityStepper from "./quantity-stepper.tsx";
 

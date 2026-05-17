@@ -34,7 +34,7 @@ export default function ItemCatalog(
     if (searchString.trim() === "") return false;
     return !!item?.name?.toLowerCase().includes(searchString.toLowerCase());
   };
-  const { query, inputRef, reset, hasSearchQuery } = useSearchBox(
+  const { query, inputRef, reset: _reset, hasSearchQuery } = useSearchBox(
     initialItems,
     filterFn,
   );
@@ -59,7 +59,7 @@ export default function ItemCatalog(
   });
 
   const groupedItems = useComputed(() => {
-    const grouped = Object.groupBy(
+    const _grouped = Object.groupBy(
       filteredItems.value,
       (item) =>
         item.categoryId
