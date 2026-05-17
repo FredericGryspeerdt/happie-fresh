@@ -22,7 +22,7 @@ export const handler = {
 
     const req = _ctx.req;
     const { label } = await req.json();
-    
+
     if (!label || typeof label !== "string" || label.trim() === "") {
       return new Response("Label is required", { status: 400 });
     }
@@ -46,7 +46,9 @@ export const handler = {
         await CategoryRepo.reorder(body);
         return new Response(null, { status: 204 });
       } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : "Reorder failed";
+        const message = error instanceof Error
+          ? error.message
+          : "Reorder failed";
         return new Response(message, { status: 500 });
       }
     }
@@ -77,7 +79,7 @@ export const handler = {
 
     const req = _ctx.req;
     const { id } = await req.json();
-    
+
     if (!id) {
       return new Response("ID is required", { status: 400 });
     }

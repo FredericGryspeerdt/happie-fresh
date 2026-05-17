@@ -6,7 +6,6 @@ export interface CategoryInterface {
   createdBy?: string;
 }
 
-
 // Derived type for creation (No ID)
 export type CreateCategoryDto = Omit<CategoryInterface, "id">;
 

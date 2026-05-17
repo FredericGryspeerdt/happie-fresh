@@ -1,41 +1,55 @@
 # Items Island Refactor & Feature Additions — Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use
+> superpowers:subagent-driven-development (recommended) or
+> superpowers:executing-plans to implement this plan task-by-task. Steps use
+> checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Decompose `islands/items.tsx` into focused components, extend `useShoppingList` with checked-item management and refresh, and add Done tab, item count badges, scroll-to-latest, clear search, manual refresh, and loading indicators — all developed test-first.
+**Goal:** Decompose `islands/items.tsx` into focused components, extend
+`useShoppingList` with checked-item management and refresh, and add Done tab,
+item count badges, scroll-to-latest, clear search, manual refresh, and loading
+indicators — all developed test-first.
 
-**Architecture:** `useShoppingList` is refactored from Preact hooks (`useSignal`/`useComputed`) to plain signals (`signal()`/`computed()`) to enable unit testing outside a component. New sub-components (`QuantityStepper`, `ShoppingListItem`, `DoneListItem`) live in `components/` and receive callbacks as props. `islands/items.tsx` becomes a ~120-line coordinator that owns tab state and renders the sub-components.
+**Architecture:** `useShoppingList` is refactored from Preact hooks
+(`useSignal`/`useComputed`) to plain signals (`signal()`/`computed()`) to enable
+unit testing outside a component. New sub-components (`QuantityStepper`,
+`ShoppingListItem`, `DoneListItem`) live in `components/` and receive callbacks
+as props. `islands/items.tsx` becomes a ~120-line coordinator that owns tab
+state and renders the sub-components.
 
-**Tech Stack:** Deno, Fresh 2, Preact, `@preact/signals`, `jsr:@std/assert`, `jsr:@std/testing/mock`, `jsr:@std/testing/time`, `npm:preact-render-to-string`
+**Tech Stack:** Deno, Fresh 2, Preact, `@preact/signals`, `jsr:@std/assert`,
+`jsr:@std/testing/mock`, `jsr:@std/testing/time`, `npm:preact-render-to-string`
 
 ---
 
 ## File Map
 
-| File | Action | Purpose |
-|------|--------|---------|
-| `services/api.ts` | Modify | Add `shoppingList.getAll()` |
-| `hooks/useShoppingList.ts` | Modify | Replace Preact hooks with plain signals; add `checkedItems`, `checkItem`, `uncheckItem`, `refresh`, `pendingCount`; change `addToList`/`addToCatalog` to return IDs |
-| `hooks/useShoppingList.test.ts` | Create | Unit tests for all hook changes |
-| `components/quantity-stepper.tsx` | Create | Extracted from `islands/items.tsx` |
-| `components/quantity-stepper.test.tsx` | Create | Render test |
-| `components/shopping-list-item.tsx` | Create | Active list item card with pending/exiting states |
-| `components/shopping-list-item.test.tsx` | Create | Render test |
-| `components/done-list-item.tsx` | Create | Done tab item row |
-| `components/done-list-item.test.tsx` | Create | Render test |
-| `islands/search-box.tsx` | Modify | Add × clear button |
-| `islands/items.tsx` | Modify | Full coordinator refactor with tabs, counts, scroll-to-latest, refresh, loading indicator |
+| File                                     | Action | Purpose                                                                                                                                                             |
+| ---------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `services/api.ts`                        | Modify | Add `shoppingList.getAll()`                                                                                                                                         |
+| `hooks/useShoppingList.ts`               | Modify | Replace Preact hooks with plain signals; add `checkedItems`, `checkItem`, `uncheckItem`, `refresh`, `pendingCount`; change `addToList`/`addToCatalog` to return IDs |
+| `hooks/useShoppingList.test.ts`          | Create | Unit tests for all hook changes                                                                                                                                     |
+| `components/quantity-stepper.tsx`        | Create | Extracted from `islands/items.tsx`                                                                                                                                  |
+| `components/quantity-stepper.test.tsx`   | Create | Render test                                                                                                                                                         |
+| `components/shopping-list-item.tsx`      | Create | Active list item card with pending/exiting states                                                                                                                   |
+| `components/shopping-list-item.test.tsx` | Create | Render test                                                                                                                                                         |
+| `components/done-list-item.tsx`          | Create | Done tab item row                                                                                                                                                   |
+| `components/done-list-item.test.tsx`     | Create | Render test                                                                                                                                                         |
+| `islands/search-box.tsx`                 | Modify | Add × clear button                                                                                                                                                  |
+| `islands/items.tsx`                      | Modify | Full coordinator refactor with tabs, counts, scroll-to-latest, refresh, loading indicator                                                                           |
 
 ---
 
 ## Task 1: Add `api.shoppingList.getAll` to the API service
 
 **Files:**
+
 - Modify: `services/api.ts`
 
 - [ ] **Step 1: Add `getAll` to the `shoppingList` namespace**
 
-Open `services/api.ts`. Inside the `shoppingList` object, add `getAll` after the existing `add` method:
+Open `services/api.ts`. Inside the `shoppingList` object, add `getAll` after the
+existing `add` method:
 
 ```typescript
 getAll: async (): Promise<ShoppingListItemInterface[]> => {
@@ -102,9 +116,12 @@ git commit -m "feat: add shoppingList.getAll to api service"
 
 ## Task 2: Make `useShoppingList` testable (replace Preact hooks with plain signals)
 
-`useSignal` and `useComputed` are Preact lifecycle hooks and cannot be called outside a component. Replacing them with `signal()` and `computed()` makes the hook callable in plain Deno tests with no DOM.
+`useSignal` and `useComputed` are Preact lifecycle hooks and cannot be called
+outside a component. Replacing them with `signal()` and `computed()` makes the
+hook callable in plain Deno tests with no DOM.
 
 **Files:**
+
 - Modify: `hooks/useShoppingList.ts`
 
 - [ ] **Step 1: Replace imports and hook calls**
@@ -290,7 +307,9 @@ export function useShoppingList(
     const result: GroupedItems[] = [];
 
     const categorizedGroups = Array.from(groups.entries())
-      .filter(([catId]) => catId !== undefined && catId !== null && catId !== "")
+      .filter(([catId]) =>
+        catId !== undefined && catId !== null && catId !== ""
+      )
       .map(([catId, groupItems]) => ({
         category: categoryMap.get(catId!) || null,
         items: groupItems.sort((a, b) =>
@@ -360,6 +379,7 @@ git commit -m "refactor: use plain signals in useShoppingList for testability, a
 ## Task 3: Test — init splitting of checked vs active items
 
 **Files:**
+
 - Create: `hooks/useShoppingList.test.ts`
 
 - [ ] **Step 1: Write the failing test**
@@ -419,7 +439,8 @@ Deno.test("useShoppingList — initialises checkedItems with only checked items"
 });
 ```
 
-- [ ] **Step 2: Run test to confirm it passes (init splitting is already in Task 2)**
+- [ ] **Step 2: Run test to confirm it passes (init splitting is already in
+      Task 2)**
 
 ```bash
 deno test hooks/useShoppingList.test.ts
@@ -439,6 +460,7 @@ git commit -m "test: init splitting of checked/unchecked items in useShoppingLis
 ## Task 4: Test — `checkItem`
 
 **Files:**
+
 - Modify: `hooks/useShoppingList.test.ts`
 
 - [ ] **Step 1: Write the failing test**
@@ -537,6 +559,7 @@ git commit -m "test: checkItem behaviour in useShoppingList"
 ## Task 5: Test — `uncheckItem`
 
 **Files:**
+
 - Modify: `hooks/useShoppingList.test.ts`
 
 - [ ] **Step 1: Write the failing tests**
@@ -609,6 +632,7 @@ git commit -m "test: uncheckItem behaviour in useShoppingList"
 ## Task 6: Test — `pendingCount`
 
 **Files:**
+
 - Modify: `hooks/useShoppingList.test.ts`
 
 - [ ] **Step 1: Write the failing tests**
@@ -679,6 +703,7 @@ git commit -m "test: pendingCount behaviour in useShoppingList"
 ## Task 7: Test — `refresh`
 
 **Files:**
+
 - Modify: `hooks/useShoppingList.test.ts`
 
 - [ ] **Step 1: Write the failing tests**
@@ -766,6 +791,7 @@ git commit -m "test: refresh behaviour in useShoppingList"
 ## Task 8: Test — `addToList` and `addToCatalog` return the new item ID
 
 **Files:**
+
 - Modify: `hooks/useShoppingList.test.ts`
 
 - [ ] **Step 1: Write the failing tests**
@@ -835,6 +861,7 @@ git commit -m "test: addToList returns new item id"
 ## Task 9: Extract `QuantityStepper` component (TDD)
 
 **Files:**
+
 - Create: `components/quantity-stepper.tsx`
 - Create: `components/quantity-stepper.test.tsx`
 - Modify: `islands/items.tsx` (remove the inlined `QuantityStepper`)
@@ -879,7 +906,9 @@ interface QuantityStepperProps {
   onChange: (val: number) => void;
 }
 
-export default function QuantityStepper({ value, onChange }: QuantityStepperProps) {
+export default function QuantityStepper(
+  { value, onChange }: QuantityStepperProps,
+) {
   return (
     <div class="flex items-center bg-gray-100 rounded-lg overflow-hidden border border-gray-200">
       <button
@@ -914,7 +943,8 @@ Expected: PASS.
 
 - [ ] **Step 5: Remove inlined `QuantityStepper` from `islands/items.tsx`**
 
-In `islands/items.tsx`, delete lines 12–40 (the `QuantityStepper` function and its props interface). Add an import at the top:
+In `islands/items.tsx`, delete lines 12–40 (the `QuantityStepper` function and
+its props interface). Add an import at the top:
 
 ```typescript
 import QuantityStepper from "@/components/quantity-stepper.tsx";
@@ -940,6 +970,7 @@ git commit -m "refactor: extract QuantityStepper to components/"
 ## Task 10: `ShoppingListItem` component (TDD)
 
 **Files:**
+
 - Create: `components/shopping-list-item.tsx`
 - Create: `components/shopping-list-item.test.tsx`
 
@@ -1047,7 +1078,8 @@ interface ShoppingListItemProps {
 }
 
 export default function ShoppingListItem(
-  { item, name, isExiting, isPending, onCheck, onUpdate }: ShoppingListItemProps,
+  { item, name, isExiting, isPending, onCheck, onUpdate }:
+    ShoppingListItemProps,
 ) {
   return (
     <li
@@ -1066,8 +1098,7 @@ export default function ShoppingListItem(
             type="text"
             placeholder="Add a note..."
             value={item.note || ""}
-            onInput={(e) =>
-              onUpdate(item.id, { note: e.currentTarget.value })}
+            onInput={(e) => onUpdate(item.id, { note: e.currentTarget.value })}
             class="w-full text-sm text-gray-600 placeholder-gray-400 bg-transparent border-none p-0 focus:ring-0"
           />
         </div>
@@ -1162,6 +1193,7 @@ git commit -m "feat: add ShoppingListItem component with isPending spinner and b
 ## Task 11: `DoneListItem` component (TDD)
 
 **Files:**
+
 - Create: `components/done-list-item.tsx`
 - Create: `components/done-list-item.test.tsx`
 
@@ -1299,6 +1331,7 @@ git commit -m "feat: add DoneListItem component"
 ## Task 12: `search-box.tsx` — add × clear button (TDD)
 
 **Files:**
+
 - Modify: `islands/search-box.tsx`
 
 - [ ] **Step 1: Read the current `search-box.tsx`**
@@ -1307,7 +1340,8 @@ git commit -m "feat: add DoneListItem component"
 cat islands/search-box.tsx
 ```
 
-Note the current props interface and how `query` (a signal) and `inputRef` are used.
+Note the current props interface and how `query` (a signal) and `inputRef` are
+used.
 
 - [ ] **Step 2: Write the failing test**
 
@@ -1359,36 +1393,40 @@ Expected: FAIL — "Clear search" button is not rendered yet.
 
 - [ ] **Step 4: Add the × clear button to `islands/search-box.tsx`**
 
-Inside the search input container in `islands/search-box.tsx`, add a clear button that appears when `query.value` is non-empty. Place it absolutely positioned inside the search input wrapper, or as a sibling:
+Inside the search input container in `islands/search-box.tsx`, add a clear
+button that appears when `query.value` is non-empty. Place it absolutely
+positioned inside the search input wrapper, or as a sibling:
 
 ```tsx
-{query.value && (
-  <button
-    type="button"
-    aria-label="Clear search"
-    class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 active:scale-95 transition-all"
-    onClick={() => {
-      query.value = "";
-      inputRef.current?.focus();
-    }}
-  >
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      class="w-4 h-4"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-      stroke-width="2.5"
+{
+  query.value && (
+    <button
+      type="button"
+      aria-label="Clear search"
+      class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 active:scale-95 transition-all"
+      onClick={() => {
+        query.value = "";
+        inputRef.current?.focus();
+      }}
     >
-      <path
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        d="M6 18L18 6M6 6l12 12"
-      />
-    </svg>
-    <span class="sr-only">Clear search</span>
-  </button>
-)}
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        class="w-4 h-4"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        stroke-width="2.5"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          d="M6 18L18 6M6 6l12 12"
+        />
+      </svg>
+      <span class="sr-only">Clear search</span>
+    </button>
+  );
+}
 ```
 
 Make the input wrapper `relative` if it is not already.
@@ -1420,9 +1458,12 @@ git commit -m "feat: add clear button to SearchBox"
 
 ## Task 13: Refactor `islands/items.tsx` into the coordinator
 
-This task replaces the entire content of `islands/items.tsx` with the coordinator. No unit tests — this is integration of the pieces built in Tasks 2–12.
+This task replaces the entire content of `islands/items.tsx` with the
+coordinator. No unit tests — this is integration of the pieces built in Tasks
+2–12.
 
 **Files:**
+
 - Modify: `islands/items.tsx`
 
 - [ ] **Step 1: Replace `islands/items.tsx`**
@@ -1480,7 +1521,10 @@ export default function Items(
   // Scroll to latest added item
   useEffect(() => {
     if (lastAddedId.value && latestItemRef.current) {
-      latestItemRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+      latestItemRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
       lastAddedId.value = null;
     }
   }, [lastAddedId.value]);
@@ -1685,9 +1729,7 @@ export default function Items(
                         isPending={pendingItemIds.value.has(li.id)}
                         onCheck={handleCheckItem}
                         onUpdate={updateListItem}
-                        ref={li.id === lastAddedId.value
-                          ? latestItemRef
-                          : null}
+                        ref={li.id === lastAddedId.value ? latestItemRef : null}
                       />
                     ))}
                   </ul>
@@ -1700,7 +1742,9 @@ export default function Items(
         <Show when={() => activeTab.value === "done"}>
           <Show
             when={() => checkedItems.value.length > 0}
-            fallback={<p class="text-gray-500 text-center py-8">No done items yet.</p>}
+            fallback={
+              <p class="text-gray-500 text-center py-8">No done items yet.</p>
+            }
           >
             <ul class="space-y-4">
               <For each={checkedItems}>
@@ -1755,9 +1799,13 @@ Run these after all tasks are complete:
 - [ ] `deno task check` — format + lint + types all pass
 - [ ] `deno test` — all tests pass
 - [ ] `deno task dev` — add several items, observe scroll-to-latest behavior
-- [ ] Check off items — they disappear from List tab and appear in Done tab with correct count badges
-- [ ] Re-add from Done tab — item returns to List tab; confirm `checked: false` in DB with `deno task db:view`
-- [ ] Tap quantity stepper rapidly — observe sync spinner in header during debounced save
-- [ ] Tap refresh — DB state reloads without page reload; active tab remains unchanged
+- [ ] Check off items — they disappear from List tab and appear in Done tab with
+      correct count badges
+- [ ] Re-add from Done tab — item returns to List tab; confirm `checked: false`
+      in DB with `deno task db:view`
+- [ ] Tap quantity stepper rapidly — observe sync spinner in header during
+      debounced save
+- [ ] Tap refresh — DB state reloads without page reload; active tab remains
+      unchanged
 - [ ] Clear search with × button — query resets and input is refocused
 - [ ] Inspect DOM — confirm no duplicate `id` attributes on note inputs

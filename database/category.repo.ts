@@ -8,13 +8,15 @@ export class CategoryRepo {
     const kv = await getKv();
 
     const id = crypto.randomUUID();
-    
+
     // Get current max order to append new category at the end
     const categories = await this.getAll();
-    const maxOrder = categories.reduce((max, cat) => 
-      cat.order !== undefined && cat.order > max ? cat.order : max, -1
+    const maxOrder = categories.reduce(
+      (max, cat) =>
+        cat.order !== undefined && cat.order > max ? cat.order : max,
+      -1,
     );
-    
+
     const category: CategoryInterface = {
       id,
       label,
@@ -22,7 +24,7 @@ export class CategoryRepo {
       createdAt: new Date().toISOString(),
       createdBy: userId,
     };
-    
+
     const categoryKey = ["categories", id];
     const ok = await kv.atomic().set(categoryKey, category).commit();
     if (!ok) throw new Error("Something went wrong.");
@@ -37,7 +39,7 @@ export class CategoryRepo {
     for await (const entry of entries) {
       categories.push(entry.value);
     }
-    
+
     // Sort by order field
     return categories.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
   }
@@ -50,10 +52,10 @@ export class CategoryRepo {
 
   static async update(id: string, patch: Partial<CategoryInterface>) {
     const kv = await getKv();
-    
+
     const existing = await this.getById(id);
     if (!existing) return null;
-    
+
     const updated = { ...existing, ...patch };
     await kv.set(["categories", id], updated);
     return updated;
@@ -66,10 +68,10 @@ export class CategoryRepo {
 
   static async reorder(updates: Array<{ id: string; order: number }>) {
     const kv = await getKv();
-    
+
     // Batch update all order changes in a transaction
     let atomic = kv.atomic();
-    
+
     for (const { id, order } of updates) {
       const existing = await this.getById(id);
       if (existing) {
@@ -77,7 +79,7 @@ export class CategoryRepo {
         atomic = atomic.set(["categories", id], updated);
       }
     }
-    
+
     const ok = await atomic.commit();
     if (!ok) throw new Error("Failed to reorder categories.");
   }

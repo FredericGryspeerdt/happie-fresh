@@ -1,7 +1,7 @@
 import { page } from "fresh";
 import { setCookie } from "$std/http/cookie.ts";
 import { SessionRepo, UserRepo } from "@/database/index.ts";
-import { hashPassword, define } from "@/utils/index.ts";
+import { define, hashPassword } from "@/utils/index.ts";
 
 interface Data {
   error?: string;

@@ -2,7 +2,7 @@ import { CategoryInterface } from "@/models/index.ts";
 import { useCategoryManagement } from "@/hooks/index.ts";
 import { useSearchBox } from "@/hooks/useSearchBox.ts";
 import SearchBox from "./search-box.tsx";
-import { useComputed, useSignalEffect, useSignal } from "@preact/signals";
+import { useComputed, useSignal, useSignalEffect } from "@preact/signals";
 import { List } from "../components/list.tsx";
 import { useSignalRef } from "@preact/signals/utils";
 

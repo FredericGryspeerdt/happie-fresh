@@ -36,24 +36,39 @@ for styling.
 - **IDs**: Generate IDs using `crypto.randomUUID()`.
 
 ## Design Patterns
-- **HOC Pattern**:
-Within our application, we often want to use the same logic in multiple components. This logic can include applying a certain styling to components, requiring authorization, or adding a global state.
 
-One way of being able to reuse the same logic in multiple components, is by using the higher order component pattern. This pattern allows us to reuse component logic throughout our application.
+- **HOC Pattern**: Within our application, we often want to use the same logic
+  in multiple components. This logic can include applying a certain styling to
+  components, requiring authorization, or adding a global state.
 
-A Higher Order Component (HOC) is a component that receives another component. The HOC contains certain logic that we want to apply to the component that we pass as a parameter. After applying that logic, the HOC returns the element with the additional logic.
+One way of being able to reuse the same logic in multiple components, is by
+using the higher order component pattern. This pattern allows us to reuse
+component logic throughout our application.
 
-- **Compound Pattern**:
-In our application, we often have components that belong to each other. They’re dependent on each other through the shared state, and share logic together. You often see this with components like select, dropdown components, or menu items. The compound component pattern allows you to create components that all work together to perform a task.
+A Higher Order Component (HOC) is a component that receives another component.
+The HOC contains certain logic that we want to apply to the component that we
+pass as a parameter. After applying that logic, the HOC returns the element with
+the additional logic.
 
-- **Container/Presentational Pattern**:
-In Preact, one way to enforce separation of concerns is by using the Container/Presentational pattern. With this pattern, we can separate the view from the application logic.
+- **Compound Pattern**: In our application, we often have components that belong
+  to each other. They’re dependent on each other through the shared state, and
+  share logic together. You often see this with components like select, dropdown
+  components, or menu items. The compound component pattern allows you to create
+  components that all work together to perform a task.
 
-- **Render Props Pattern**:
-In the section on Higher Order Components, we saw that being able to reuse component logic can be very convenient if multiple components need access to the same data, or contain the same logic.
+- **Container/Presentational Pattern**: In Preact, one way to enforce separation
+  of concerns is by using the Container/Presentational pattern. With this
+  pattern, we can separate the view from the application logic.
 
-Another way of making components very reusable, is by using the render prop pattern. A render prop is a prop on a component, which value is a function that returns a JSX element. The component itself does not render anything besides the render prop. Instead, the component simply calls the render prop, instead of implementing its own rendering logic.
+- **Render Props Pattern**: In the section on Higher Order Components, we saw
+  that being able to reuse component logic can be very convenient if multiple
+  components need access to the same data, or contain the same logic.
 
+Another way of making components very reusable, is by using the render prop
+pattern. A render prop is a prop on a component, which value is a function that
+returns a JSX element. The component itself does not render anything besides the
+render prop. Instead, the component simply calls the render prop, instead of
+implementing its own rendering logic.
 
 ## State Management & Interactivity
 
