@@ -153,16 +153,29 @@ A one-time migration script (`deno task db:migrate`) migrates all existing data.
 
 ## UI Changes
 
-### Home page (`routes/home/index.tsx`)
+### Routing
 
-- The active list is determined by the `?listId=` query param. If absent, the first list for the household is used.
-- The server renders the page with the correct list's items already hydrated (no extra round-trip).
-- A list selector (dropdown or tab strip) at the top lets the user switch between lists.
-- A "+" button creates a new list; inline rename and delete are available per list.
+| Route | Page | Description |
+|-------|------|-------------|
+| `/` | redirect | Redirects to `/lists` |
+| `/lists` | Shopping lists overview | All lists for the household |
+| `/lists/:id` | Shopping list detail | Items in a specific list (current home page content) |
 
-### Empty state
+The current `routes/home/index.tsx` becomes `routes/lists/[id]/index.tsx`. The current `routes/index.tsx` redirect points to `/lists` instead of `/home`.
 
-When a household has no lists, the home page shows an empty state with a prompt to create the first shopping list. There is no minimum list count — deleting the last list is allowed.
+### Shopping lists overview (`routes/lists/index.tsx`) — new page
+
+- Server-renders all lists for the user's household.
+- Each list is shown as a card/row with its name; clicking navigates to `/lists/:id`.
+- A "New list" button creates a list (inline or via a small form).
+- Rename and delete actions are available per list.
+- **Empty state:** when the household has no lists, show a prompt to create the first one. There is no minimum list count — deleting the last list is allowed.
+
+### Shopping list detail (`routes/lists/[id]/index.tsx`) — replaces home page
+
+- Server-renders the specific list's items, hydrated directly (no extra round-trip).
+- A back link returns to `/lists`.
+- No list selector needed — switching lists goes back to `/lists` and picks another.
 
 ### `hooks/useShoppingList.ts`
 
