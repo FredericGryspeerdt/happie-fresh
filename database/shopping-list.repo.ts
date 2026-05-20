@@ -1,50 +1,55 @@
+import { CreateShoppingListDto, ShoppingListInterface } from "@/models/index.ts";
 import { getKv } from "./db.ts";
-import { ShoppingListItemInterface } from "@/models/index.ts";
 
 export class ShoppingListRepo {
-  static async add(
-    userId: string,
-    itemId: string,
-  ): Promise<ShoppingListItemInterface> {
+  static async create(
+    data: CreateShoppingListDto,
+  ): Promise<ShoppingListInterface> {
     const kv = await getKv();
     const id = crypto.randomUUID();
-    const entry: ShoppingListItemInterface = {
-      id,
-      userId,
-      itemId,
-      quantity: 1,
-      checked: false,
-    };
-    await kv.set(["shopping_list", userId, id], entry);
-    return entry;
+    const list: ShoppingListInterface = { ...data, id };
+    await kv.set(["shopping_lists", data.householdId, id], list);
+    return list;
   }
 
-  static async getAll(userId: string): Promise<ShoppingListItemInterface[]> {
+  static async getAll(householdId: string): Promise<ShoppingListInterface[]> {
     const kv = await getKv();
-    const iter = kv.list<ShoppingListItemInterface>({
-      prefix: ["shopping_list", userId],
+    const iter = kv.list<ShoppingListInterface>({
+      prefix: ["shopping_lists", householdId],
     });
-    const items: ShoppingListItemInterface[] = [];
-    for await (const { value } of iter) items.push(value);
-    return items;
+    const lists: ShoppingListInterface[] = [];
+    for await (const { value } of iter) lists.push(value);
+    return lists;
+  }
+
+  static async getById(
+    householdId: string,
+    id: string,
+  ): Promise<ShoppingListInterface | null> {
+    const kv = await getKv();
+    const result = await kv.get<ShoppingListInterface>([
+      "shopping_lists",
+      householdId,
+      id,
+    ]);
+    return result.value;
   }
 
   static async update(
-    userId: string,
+    householdId: string,
     id: string,
-    patch: Partial<ShoppingListItemInterface>,
-  ): Promise<ShoppingListItemInterface | null> {
+    patch: Partial<ShoppingListInterface>,
+  ): Promise<ShoppingListInterface | null> {
     const kv = await getKv();
-    const key = ["shopping_list", userId, id];
-    const current = await kv.get<ShoppingListItemInterface>(key);
-    if (!current.value) return null;
-    const next = { ...current.value, ...patch } as ShoppingListItemInterface;
-    await kv.set(key, next);
-    return next;
+    const existing = await this.getById(householdId, id);
+    if (!existing) return null;
+    const updated = { ...existing, ...patch };
+    await kv.set(["shopping_lists", householdId, id], updated);
+    return updated;
   }
 
-  static async delete(userId: string, id: string): Promise<void> {
+  static async delete(householdId: string, id: string): Promise<void> {
     const kv = await getKv();
-    await kv.delete(["shopping_list", userId, id]);
+    await kv.delete(["shopping_lists", householdId, id]);
   }
 }
