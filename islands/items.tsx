@@ -79,7 +79,10 @@ export default function Items(
 
   const handleAddToList = async (itemId: string) => {
     const id = await addToList(itemId);
-    if (id) lastAddedId.value = id;
+    if (id) {
+      lastAddedId.value = id;
+      reset();
+    }
   };
 
   const handleCheckItem = async (id: string) => {
