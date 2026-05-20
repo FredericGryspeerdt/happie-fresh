@@ -4,8 +4,8 @@ const KEY_LEN_BITS = 256;
 const PREFIX = "$pbkdf2-sha256$";
 const MIN_ITERATIONS = 100_000;
 
-function toBase64url(buf: ArrayBuffer): string {
-  const bytes = new Uint8Array(buf);
+function toBase64url(buf: ArrayBuffer | Uint8Array): string {
+  const bytes = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
   let binary = "";
   for (const b of bytes) binary += String.fromCharCode(b);
   return btoa(binary)
@@ -56,7 +56,9 @@ async function deriveKey(
 export async function hashPassword(password: string): Promise<string> {
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const derived = await deriveKey(password, salt, ITERATIONS);
-  return `${PREFIX}${ITERATIONS}$${toBase64url(salt.buffer)}$${toBase64url(derived)}`;
+  return `${PREFIX}${ITERATIONS}$${toBase64url(salt)}$${
+    toBase64url(derived)
+  }`;
 }
 
 export async function verifyPassword(
