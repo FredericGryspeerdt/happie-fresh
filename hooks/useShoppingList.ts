@@ -94,6 +94,7 @@ export function useShoppingList(
 
     patchScheduler.cancel(id);
     list.value = list.value.filter((li) => li.id !== id);
+    checkedItems.value = checkedItems.value.filter((li) => li.id !== id);
     exitingItems.value = exitingItems.value.filter((itemId) => itemId !== id);
 
     pendingCount.value++;
