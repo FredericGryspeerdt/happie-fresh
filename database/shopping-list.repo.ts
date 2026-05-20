@@ -1,4 +1,7 @@
-import { CreateShoppingListDto, ShoppingListInterface } from "@/models/index.ts";
+import {
+  CreateShoppingListDto,
+  ShoppingListInterface,
+} from "@/models/index.ts";
 import { getKv } from "./db.ts";
 
 export class ShoppingListRepo {
