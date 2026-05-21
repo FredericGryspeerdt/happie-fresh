@@ -55,22 +55,17 @@ async function migrate() {
     ) {
       const legacy = itemEntry.value;
       const newEntry = await ShoppingListItemRepo.add(list.id, legacy.itemId);
-      // Preserve existing quantity, note, checked state
-      if (
-        legacy.quantity !== 1 || legacy.note || legacy.checked
-      ) {
-        await ShoppingListItemRepo.update(list.id, newEntry.id, {
-          quantity: legacy.quantity,
-          note: legacy.note,
-          checked: legacy.checked,
-        });
-      }
+      await ShoppingListItemRepo.update(list.id, newEntry.id, {
+        quantity: legacy.quantity,
+        note: legacy.note,
+        checked: legacy.checked,
+      });
       await kv.delete(itemEntry.key);
       migratedItems++;
     }
 
     migratedUsers++;
-    console.log(`  ✅ household: ${household.id}, list: ${list.id}`);
+    console.log(`  Done. household: ${household.id}, list: ${list.id}`);
   }
 
   console.log(
