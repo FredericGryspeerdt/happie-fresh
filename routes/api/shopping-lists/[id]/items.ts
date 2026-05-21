@@ -30,7 +30,10 @@ export const handler = {
     const { itemId } = await ctx.req.json();
     if (!itemId) return new Response("itemId required", { status: 400 });
     const entry = await ShoppingListItemRepo.add(list.id, itemId);
-    return new Response(JSON.stringify(entry), { status: 201 });
+    return new Response(JSON.stringify(entry), {
+      status: 201,
+      headers: { "Content-Type": "application/json" },
+    });
   },
 
   async PATCH(ctx: Context<State>) {
@@ -44,7 +47,10 @@ export const handler = {
       checked,
     });
     if (!updated) return new Response("Not found", { status: 404 });
-    return new Response(JSON.stringify(updated), { status: 200 });
+    return new Response(JSON.stringify(updated), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
   },
 
   async DELETE(ctx: Context<State>) {

@@ -31,6 +31,9 @@ export const handler = {
       createdBy: userId,
       createdAt: new Date().toISOString(),
     });
-    return new Response(JSON.stringify(list), { status: 201 });
+    return new Response(JSON.stringify(list), {
+      status: 201,
+      headers: { "Content-Type": "application/json" },
+    });
   },
 };
