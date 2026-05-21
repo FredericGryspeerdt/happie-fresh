@@ -6,6 +6,7 @@
     "build": "vite build",
     "preview": "deno serve --env-file --unstable-kv -A _fresh/server.js",
     "db:seed": "deno run --env-file --unstable-kv -A scripts/seed.ts",
+    "db:migrate": "deno run --env-file --unstable-kv -A scripts/migrate.ts",
     "db:view": "deno run --env-file --unstable-kv -A scripts/db-viewer.ts",
     "update": "deno run -A -r jsr:@fresh/update ."
   },
