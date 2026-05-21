@@ -7,7 +7,7 @@ import type { ShoppingListItemInterface } from "@/models/index.ts";
 const baseItem: ShoppingListItemInterface = {
   id: "sl-1",
   itemId: "item-1",
-  userId: "user-1",
+  listId: "list-1",
   quantity: 2,
   checked: false,
 };
