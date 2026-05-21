@@ -12,13 +12,14 @@ import ShoppingListItem from "@/components/shopping-list-item.tsx";
 import DoneListItem from "@/components/done-list-item.tsx";
 
 interface ItemsProps {
+  listId: string;
   items: Required<ItemInterface>[];
   shoppingList: ShoppingListItemInterface[];
   categories: CategoryInterface[];
 }
 
 export default function Items(
-  { items: catalog, shoppingList, categories: initialCategories }: ItemsProps,
+  { listId, items: catalog, shoppingList, categories: initialCategories }: ItemsProps,
 ) {
   // useMemo with [] ensures useShoppingList is called only once.
   // useShoppingList uses plain signal() (not useSignal), so calling it on every
@@ -41,7 +42,7 @@ export default function Items(
     checkedItems,
     pendingCount,
   } = useMemo(
-    () => useShoppingList(catalog, shoppingList, initialCategories),
+    () => useShoppingList(listId, catalog, shoppingList, initialCategories),
     [], // intentionally empty — signals are initialized once from SSR data
   );
 
