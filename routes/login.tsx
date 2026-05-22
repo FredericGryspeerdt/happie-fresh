@@ -1,7 +1,7 @@
 import { page } from "fresh";
 import { setCookie } from "$std/http/cookie.ts";
 import { SessionRepo, UserRepo } from "@/database/index.ts";
-import { define, hashPassword } from "@/utils/index.ts";
+import { define, verifyPassword } from "@/utils/index.ts";
 
 interface Data {
   error?: string;
@@ -26,8 +26,8 @@ export const handler = define.handlers<Data>({
       return page({ error: "Ongeldige inloggegevens." });
     }
 
-    const passwordHash = await hashPassword(password);
-    if (user.passwordHash !== passwordHash) {
+    const valid = await verifyPassword(password, user.passwordHash);
+    if (!valid) {
       return page({ error: "Ongeldige inloggegevens." });
     }
 

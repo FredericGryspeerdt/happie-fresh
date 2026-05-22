@@ -26,9 +26,7 @@ async function seed() {
     passwordHash,
   });
 
-  console.log(
-    `✅ Seed complete. Created user '${username}' with password '${password}'.`,
-  );
+  console.log(`✅ Seed complete. Created user '${username}'.`);
   kv.close();
 }
 
