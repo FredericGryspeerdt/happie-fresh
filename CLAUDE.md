@@ -50,9 +50,11 @@ with batched PATCH requests.
   operations in `models/`
 - **Design patterns in use**: Render Props (see `components/list.tsx`),
   Container/Presentational, Compound components, HOC
-- **Commits**: Follow the [Conventional Commits](https://www.conventionalcommits.org/) specification.
-  Format: `<type>[optional scope]: <description>` — e.g. `feat: add search`, `fix(auth): handle expired tokens`, `chore: update deps`.
-  Common types: `feat`, `fix`, `chore`, `docs`, `refactor`, `test`, `style`, `perf`.
+- **Commits**: Follow the
+  [Conventional Commits](https://www.conventionalcommits.org/) specification.
+  Format: `<type>[optional scope]: <description>` — e.g. `feat: add search`,
+  `fix(auth): handle expired tokens`, `chore: update deps`. Common types:
+  `feat`, `fix`, `chore`, `docs`, `refactor`, `test`, `style`, `perf`.
 
 ## Deployment
 
