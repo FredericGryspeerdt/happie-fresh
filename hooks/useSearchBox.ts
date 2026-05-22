@@ -15,7 +15,6 @@ export function useSearchBox<T>(
     if (q === "") return items.value;
     return items.value?.filter((item) => filterFn(q, item)) || [];
   });
-  
 
   const reset = () => {
     query.value = "";

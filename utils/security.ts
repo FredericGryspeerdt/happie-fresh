@@ -56,9 +56,7 @@ async function deriveKey(
 export async function hashPassword(password: string): Promise<string> {
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const derived = await deriveKey(password, salt, ITERATIONS);
-  return `${PREFIX}${ITERATIONS}$${toBase64url(salt)}$${
-    toBase64url(derived)
-  }`;
+  return `${PREFIX}${ITERATIONS}$${toBase64url(salt)}$${toBase64url(derived)}`;
 }
 
 export async function verifyPassword(

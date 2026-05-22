@@ -40,7 +40,12 @@ async function migrate() {
       }
 
       const encoder = new TextEncoder();
-      if (!timingSafeEqual(encoder.encode(user.passwordHash), encoder.encode(legacyHash))) {
+      if (
+        !timingSafeEqual(
+          encoder.encode(user.passwordHash),
+          encoder.encode(legacyHash),
+        )
+      ) {
         console.warn(
           `⚠️  Skipped '${user.username}' — stored hash does not match SEED_PASSWORD.`,
         );
