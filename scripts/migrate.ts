@@ -1,6 +1,6 @@
 import { UserRepo } from "@/database/user.repo.ts";
 import { getKv } from "@/database/db.ts";
-import { hashPassword } from "@/utils/index.ts";
+import { hashPassword, timingSafeEqual } from "@/utils/index.ts";
 import { UserInterface } from "@/models/index.ts";
 
 function isLegacyHash(hash: string): boolean {
@@ -23,38 +23,43 @@ async function migrate() {
   }
 
   const kv = await getKv();
-  let migrated = 0;
-  let skippedMismatch = 0;
-  let alreadyMigrated = 0;
-
-  for await (const entry of kv.list<UserInterface>({ prefix: ["users"] })) {
-    const user = entry.value;
-    if (!user) continue;
-
-    if (!isLegacyHash(user.passwordHash)) {
-      alreadyMigrated++;
-      continue;
-    }
+  try {
+    let migrated = 0;
+    let skippedMismatch = 0;
+    let alreadyMigrated = 0;
 
     const legacyHash = await sha256Hex(password);
-    if (user.passwordHash !== legacyHash) {
-      console.warn(
-        `⚠️  Skipped '${user.username}' — stored hash does not match SEED_PASSWORD.`,
-      );
-      skippedMismatch++;
-      continue;
+
+    for await (const entry of kv.list<UserInterface>({ prefix: ["users"] })) {
+      const user = entry.value;
+      if (!user) continue;
+
+      if (!isLegacyHash(user.passwordHash)) {
+        alreadyMigrated++;
+        continue;
+      }
+
+      const encoder = new TextEncoder();
+      if (!timingSafeEqual(encoder.encode(user.passwordHash), encoder.encode(legacyHash))) {
+        console.warn(
+          `⚠️  Skipped '${user.username}' — stored hash does not match SEED_PASSWORD.`,
+        );
+        skippedMismatch++;
+        continue;
+      }
+
+      const newHash = await hashPassword(password);
+      await UserRepo.updatePasswordHash(user.id, newHash);
+      console.log(`✅ Migrated '${user.username}'`);
+      migrated++;
     }
 
-    const newHash = await hashPassword(password);
-    await UserRepo.updatePasswordHash(user.id, newHash);
-    console.log(`✅ Migrated '${user.username}'`);
-    migrated++;
+    console.log(
+      `\nDone. ${migrated} migrated, ${skippedMismatch} skipped (password mismatch), ${alreadyMigrated} already on PBKDF2.`,
+    );
+  } finally {
+    kv.close();
   }
-
-  console.log(
-    `\nDone. ${migrated} migrated, ${skippedMismatch} skipped (password mismatch), ${alreadyMigrated} already on PBKDF2.`,
-  );
-  kv.close();
 }
 
 if (import.meta.main) {
