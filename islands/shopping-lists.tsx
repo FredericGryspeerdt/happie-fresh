@@ -1,4 +1,4 @@
-import { signal } from "@preact/signals";
+import { useSignal } from "@preact/signals";
 import { For, Show } from "@preact/signals/utils";
 import { ShoppingListInterface } from "@/models/index.ts";
 import { api } from "@/services/api.ts";
@@ -10,11 +10,11 @@ interface ShoppingListsProps {
 export default function ShoppingLists(
   { initialLists }: ShoppingListsProps,
 ) {
-  const lists = signal<ShoppingListInterface[]>(initialLists);
-  const newName = signal("");
-  const editingId = signal<string | null>(null);
-  const editName = signal("");
-  const loading = signal(false);
+  const lists = useSignal<ShoppingListInterface[]>(initialLists);
+  const newName = useSignal("");
+  const editingId = useSignal<string | null>(null);
+  const editName = useSignal("");
+  const loading = useSignal(false);
 
   const createList = async () => {
     const name = newName.value.trim();
