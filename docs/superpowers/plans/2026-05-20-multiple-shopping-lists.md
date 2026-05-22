@@ -1,50 +1,70 @@
 # Multiple Shopping Lists Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use
+> superpowers:subagent-driven-development (recommended) or
+> superpowers:executing-plans to implement this plan task-by-task. Steps use
+> checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Introduce Household entities, multiple named shopping lists per household, a dedicated lists overview page at `/lists`, and migrate existing single-list-per-user data to the new model.
+**Goal:** Introduce Household entities, multiple named shopping lists per
+household, a dedicated lists overview page at `/lists`, and migrate existing
+single-list-per-user data to the new model.
 
-**Architecture:** A new `Household` entity groups users; lists belong to households. `ShoppingListItem` keys move from `["shopping_list", userId, id]` to `["shopping_list_items", listId, id]`. A one-time migration script handles existing data. New file-system routes under `routes/lists/` replace `routes/home/`.
+**Architecture:** A new `Household` entity groups users; lists belong to
+households. `ShoppingListItem` keys move from `["shopping_list", userId, id]` to
+`["shopping_list_items", listId, id]`. A one-time migration script handles
+existing data. New file-system routes under `routes/lists/` replace
+`routes/home/`.
 
-**Tech Stack:** Deno, Fresh 2 (SSR + Islands), Preact + @preact/signals, Deno KV, Tailwind CSS v4, `deno test` for tests.
+**Tech Stack:** Deno, Fresh 2 (SSR + Islands), Preact + @preact/signals, Deno
+KV, Tailwind CSS v4, `deno test` for tests.
 
 ---
 
 ## File Map
 
 **Create:**
+
 - `models/household/household.interface.ts` — `HouseholdInterface`
 - `models/household/index.ts` — re-export
 - `models/shopping-list/shopping-list.interface.ts` — `ShoppingListInterface`
 - `database/household.repo.ts` — `HouseholdRepo`
-- `database/shopping-list-item.repo.ts` — `ShoppingListItemRepo` (logic from current `shopping-list.repo.ts`)
+- `database/shopping-list-item.repo.ts` — `ShoppingListItemRepo` (logic from
+  current `shopping-list.repo.ts`)
 - `routes/api/shopping-lists.ts` — GET all lists, POST create
 - `routes/api/shopping-lists/[id]/index.ts` — PATCH rename, DELETE list
 - `routes/api/shopping-lists/[id]/items.ts` — GET/POST/PATCH/DELETE items
 - `routes/lists/index.tsx` — lists overview page (SSR + island)
-- `routes/lists/[id]/index.tsx` — list detail page (replaces `routes/home/index.tsx`)
+- `routes/lists/[id]/index.tsx` — list detail page (replaces
+  `routes/home/index.tsx`)
 - `islands/shopping-lists.tsx` — interactive list management island
 - `scripts/migrate.ts` — one-time data migration
 
 **Modify:**
+
 - `models/shopping-list/shopping-list-item.interface.ts` — `userId` → `listId`
 - `models/shopping-list/index.ts` — add `ShoppingListInterface` export
 - `models/user/user.interface.ts` — add `householdId: string`
 - `models/index.ts` — add household export
-- `database/shopping-list.repo.ts` — replace with `ShoppingListRepo` (list CRUD, not items)
+- `database/shopping-list.repo.ts` — replace with `ShoppingListRepo` (list CRUD,
+  not items)
 - `database/index.ts` — add new exports
-- `database/user.repo.ts` — add `findById`, update `create` to auto-create household + default list
+- `database/user.repo.ts` — add `findById`, update `create` to auto-create
+  household + default list
 - `utils/define.ts` — add `householdId` to `StateInterface`
 - `routes/_middleware.ts` — add `householdId` to state
 - `routes/index.tsx` — redirect `/` → `/lists`
 - `routes/login.tsx` — redirect after login → `/lists`
-- `services/api.ts` — add `shoppingLists` service, update `shoppingList` to accept `listId`
-- `hooks/useShoppingList.ts` — accept `listId` first param, thread through API calls
-- `hooks/useShoppingList.test.ts` — update `makeListItem` and stub arg assertions
+- `services/api.ts` — add `shoppingLists` service, update `shoppingList` to
+  accept `listId`
+- `hooks/useShoppingList.ts` — accept `listId` first param, thread through API
+  calls
+- `hooks/useShoppingList.test.ts` — update `makeListItem` and stub arg
+  assertions
 - `islands/items.tsx` — accept `listId` prop, pass to `useShoppingList`
 - `deno.json` — add `db:migrate` task
 
 **Delete:**
+
 - `routes/api/shopping-list.ts`
 - `routes/home/index.tsx`
 
@@ -53,6 +73,7 @@
 ### Task 1: Data model — new interfaces
 
 **Files:**
+
 - Create: `models/household/household.interface.ts`
 - Create: `models/household/index.ts`
 - Create: `models/shopping-list/shopping-list.interface.ts`
@@ -139,13 +160,16 @@ export * from "./category/index.ts";
 export * from "./household/index.ts";
 ```
 
-- [ ] **Step 8: Run type-check to confirm no regressions yet (some are expected — note them)**
+- [ ] **Step 8: Run type-check to confirm no regressions yet (some are expected
+      — note them)**
 
 ```bash
 deno task check 2>&1 | head -60
 ```
 
-Expected: type errors in `database/shopping-list.repo.ts` (uses old `userId`), `routes/api/shopping-list.ts`, `hooks/useShoppingList.test.ts`, `islands/items.tsx`. These are addressed in later tasks.
+Expected: type errors in `database/shopping-list.repo.ts` (uses old `userId`),
+`routes/api/shopping-list.ts`, `hooks/useShoppingList.test.ts`,
+`islands/items.tsx`. These are addressed in later tasks.
 
 - [ ] **Step 9: Commit**
 
@@ -159,6 +183,7 @@ git commit -m "feat: add Household and ShoppingList interfaces, replace userId w
 ### Task 2: HouseholdRepo
 
 **Files:**
+
 - Create: `database/household.repo.ts`
 
 - [ ] **Step 1: Create `database/household.repo.ts`**
@@ -196,11 +221,13 @@ git commit -m "feat: add HouseholdRepo"
 ### Task 3: ShoppingListItemRepo
 
 **Files:**
+
 - Create: `database/shopping-list-item.repo.ts`
 
 - [ ] **Step 1: Create `database/shopping-list-item.repo.ts`**
 
-This replaces the current `shopping-list.repo.ts` logic, updated to use `listId` and the new KV key `["shopping_list_items", listId, id]`.
+This replaces the current `shopping-list.repo.ts` logic, updated to use `listId`
+and the new KV key `["shopping_list_items", listId, id]`.
 
 ```ts
 import { ShoppingListItemInterface } from "@/models/index.ts";
@@ -276,14 +303,19 @@ git commit -m "feat: add ShoppingListItemRepo with new KV key pattern"
 ### Task 4: ShoppingListRepo (list entity)
 
 **Files:**
+
 - Modify: `database/shopping-list.repo.ts` (full replacement)
 
 - [ ] **Step 1: Replace `database/shopping-list.repo.ts`**
 
-The current file handled items. It is replaced entirely with a repo for the `ShoppingList` entity.
+The current file handled items. It is replaced entirely with a repo for the
+`ShoppingList` entity.
 
 ```ts
-import { ShoppingListInterface, CreateShoppingListDto } from "@/models/index.ts";
+import {
+  CreateShoppingListDto,
+  ShoppingListInterface,
+} from "@/models/index.ts";
 import { getKv } from "./db.ts";
 
 export class ShoppingListRepo {
@@ -365,11 +397,13 @@ git commit -m "feat: replace ShoppingListRepo with list-entity CRUD, add Shoppin
 ### Task 5: Update UserRepo
 
 **Files:**
+
 - Modify: `database/user.repo.ts`
 
 - [ ] **Step 1: Write failing type-check test**
 
-Run type-check to confirm `UserRepo.create` now has a type error (it no longer accepts the old shape once `UserInterface` requires `householdId`):
+Run type-check to confirm `UserRepo.create` now has a type error (it no longer
+accepts the old shape once `UserInterface` requires `householdId`):
 
 ```bash
 deno check database/user.repo.ts 2>&1
@@ -403,8 +437,14 @@ export class UserRepo {
   ): Promise<UserInterface> {
     const kv = await getKv();
     const id = crypto.randomUUID();
-    const household = await HouseholdRepo.create(`${user.username}'s household`);
-    const userWithId: UserInterface = { ...user, id, householdId: household.id };
+    const household = await HouseholdRepo.create(
+      `${user.username}'s household`,
+    );
+    const userWithId: UserInterface = {
+      ...user,
+      id,
+      householdId: household.id,
+    };
     await kv
       .atomic()
       .set(["users", userWithId.id], userWithId)
@@ -453,12 +493,14 @@ git commit -m "feat: UserRepo.create auto-creates Household and default Shopping
 ### Task 6: Update middleware to expose householdId
 
 **Files:**
+
 - Modify: `utils/define.ts`
 - Modify: `routes/_middleware.ts`
 
 - [ ] **Step 1: Update `utils/define.ts`**
 
-Add `householdId` to `StateInterface` so all `define.handlers` page routes can access it:
+Add `householdId` to `StateInterface` so all `define.handlers` page routes can
+access it:
 
 ```ts
 import { createDefine } from "fresh";
@@ -538,6 +580,7 @@ git commit -m "feat: expose householdId in middleware state"
 ### Task 7: Migration script
 
 **Files:**
+
 - Create: `scripts/migrate.ts`
 - Modify: `deno.json`
 
@@ -671,6 +714,7 @@ git commit -m "feat: add one-time migration script for household/list data model
 ### Task 8: New API routes — shopping lists CRUD
 
 **Files:**
+
 - Create: `routes/api/shopping-lists.ts`
 - Create: `routes/api/shopping-lists/[id]/index.ts`
 - Delete: `routes/api/shopping-list.ts`
@@ -716,7 +760,8 @@ export const handler = {
 };
 ```
 
-- [ ] **Step 2: Create the directory and file `routes/api/shopping-lists/[id]/index.ts`**
+- [ ] **Step 2: Create the directory and file
+      `routes/api/shopping-lists/[id]/index.ts`**
 
 ```ts
 import { Context } from "fresh";
@@ -773,6 +818,7 @@ git commit -m "feat: add shopping-lists CRUD API routes, remove old shopping-lis
 ### Task 9: New API route — shopping list items
 
 **Files:**
+
 - Create: `routes/api/shopping-lists/[id]/items.ts`
 
 - [ ] **Step 1: Create `routes/api/shopping-lists/[id]/items.ts`**
@@ -850,6 +896,7 @@ git commit -m "feat: add shopping list items API route scoped to list"
 ### Task 10: Update services/api.ts
 
 **Files:**
+
 - Modify: `services/api.ts`
 
 - [ ] **Step 1: Replace `services/api.ts`**
@@ -990,6 +1037,7 @@ git commit -m "feat: update api service with shoppingLists CRUD and listId-scope
 ### Task 11: Update useShoppingList hook and tests
 
 **Files:**
+
 - Modify: `hooks/useShoppingList.ts`
 - Modify: `hooks/useShoppingList.test.ts`
 
@@ -1237,8 +1285,11 @@ export function useShoppingList(
 - [ ] **Step 2: Update `hooks/useShoppingList.test.ts`**
 
 Two changes needed:
+
 1. `makeListItem` uses `userId` — replace with `listId`
-2. Tests that capture `api.shoppingList.patch` call args now receive `(listId, id, patch)` — fix the index of `id` and `patch` in the captured `calls` array
+2. Tests that capture `api.shoppingList.patch` call args now receive
+   `(listId, id, patch)` — fix the index of `id` and `patch` in the captured
+   `calls` array
 
 ```ts
 import { assertEquals } from "jsr:@std/assert@^1.0.19";
@@ -1662,6 +1713,7 @@ git commit -m "feat: useShoppingList accepts listId, thread through all API call
 ### Task 12: Update islands/items.tsx
 
 **Files:**
+
 - Modify: `islands/items.tsx`
 
 - [ ] **Step 1: Add `listId` prop to `islands/items.tsx`**
@@ -1688,7 +1740,8 @@ export default function Items(
   // ... rest unchanged
 ```
 
-The only changes are: add `listId` to `ItemsProps`, add `listId` as a destructured prop, and pass it as first arg to `useShoppingList`.
+The only changes are: add `listId` to `ItemsProps`, add `listId` as a
+destructured prop, and pass it as first arg to `useShoppingList`.
 
 - [ ] **Step 2: Run type check**
 
@@ -1710,6 +1763,7 @@ git commit -m "feat: pass listId through Items island to useShoppingList"
 ### Task 13: Shopping lists island
 
 **Files:**
+
 - Create: `islands/shopping-lists.tsx`
 
 - [ ] **Step 1: Create `islands/shopping-lists.tsx`**
@@ -1916,6 +1970,7 @@ git commit -m "feat: add ShoppingLists island with create/rename/delete and empt
 ### Task 14: New routes — lists overview and list detail
 
 **Files:**
+
 - Create: `routes/lists/index.tsx`
 - Create: `routes/lists/[id]/index.tsx`
 - Delete: `routes/home/index.tsx`
@@ -2026,6 +2081,7 @@ git commit -m "feat: add /lists overview and /lists/:id detail pages, remove /ho
 ### Task 15: Update routing and login redirect
 
 **Files:**
+
 - Modify: `routes/index.tsx`
 - Modify: `routes/login.tsx`
 
@@ -2096,6 +2152,7 @@ deno task db:migrate
 ```
 
 Expected output: migration summary, e.g.:
+
 ```
 Migrating user: demo
   ✅ household: <uuid>, list: <uuid>
@@ -2110,6 +2167,7 @@ deno task dev
 ```
 
 Open `http://localhost:8000` — should redirect to `/lists`. Verify:
+
 - Lists overview shows the default "Shopping List"
 - Clicking the list opens `/lists/:id` with the existing items
 - Adding/removing items still works
