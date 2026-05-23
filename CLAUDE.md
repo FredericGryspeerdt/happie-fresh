@@ -32,6 +32,13 @@ routes.
 debounced merge scheduler (`utils/debounce-update.ts`) for optimistic UI updates
 with batched PATCH requests.
 
+**Signals in islands**: Always use `useSignal()` (not `signal()`) for local
+state inside island component functions. `signal()` in a function body creates a
+new signal instance on every re-render, resetting state (e.g. clearing input
+values on each keystroke). `useSignal()` is the hook equivalent — it creates the
+signal once on mount and returns the same instance on subsequent renders.
+`signal()` is only safe at module scope (outside any function).
+
 **Routing**: File-system based. `routes/api/*.ts` return JSON responses.
 `routes/*.tsx` return pages. Dynamic segments use `[id]` folders.
 `_middleware.ts` handles cookie-based session auth (24h expiry) with redirect to
