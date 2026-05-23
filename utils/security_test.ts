@@ -25,7 +25,8 @@ Deno.test("verifyPassword returns false for wrong password", async () => {
 });
 
 Deno.test("verifyPassword returns false for legacy SHA-256 hex string", async () => {
-  const legacySha256 = "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918";
+  const legacySha256 =
+    "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918";
   const result = await verifyPassword("admin", legacySha256);
   assertEquals(result, false);
 });

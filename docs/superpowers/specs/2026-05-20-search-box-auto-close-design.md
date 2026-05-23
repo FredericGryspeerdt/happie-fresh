@@ -2,15 +2,19 @@
 
 ## Summary
 
-After a search result is added to the shopping list, the search results panel closes automatically by resetting the query.
+After a search result is added to the shopping list, the search results panel
+closes automatically by resetting the query.
 
 ## Current Behavior
 
-`handleAddToList` in `islands/items.tsx` adds the item but leaves `query.value` non-empty, so the results panel remains open.
+`handleAddToList` in `islands/items.tsx` adds the item but leaves `query.value`
+non-empty, so the results panel remains open.
 
 ## Desired Behavior
 
-The results panel closes immediately after a successful add (i.e., when the API returns an id), matching the behavior of `handleCreateItem` which already calls `reset()`.
+The results panel closes immediately after a successful add (i.e., when the API
+returns an id), matching the behavior of `handleCreateItem` which already calls
+`reset()`.
 
 ## Change
 
@@ -26,7 +30,8 @@ const handleAddToList = async (itemId: string) => {
 };
 ```
 
-`reset()` is provided by `useSearchBox` and clears `query.value`, which collapses the panel via the `hasSearchQuery` computed in `SearchBox`.
+`reset()` is provided by `useSearchBox` and clears `query.value`, which
+collapses the panel via the `hasSearchQuery` computed in `SearchBox`.
 
 ## Scope
 

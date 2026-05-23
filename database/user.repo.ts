@@ -37,6 +37,23 @@ export class UserRepo {
     return userWithId;
   }
 
+  static async updatePasswordHash(
+    userId: string,
+    newHash: string,
+  ): Promise<void> {
+    const kv = await getKv();
+    const entry = await kv.get<UserInterface>(["users", userId]);
+    if (!entry.value) {
+      throw new Error(`User not found: ${userId}`);
+    }
+    const updated = { ...entry.value, passwordHash: newHash };
+    await kv
+      .atomic()
+      .set(["users", userId], updated)
+      .set(["users_by_username", entry.value.username], updated)
+      .commit();
+  }
+
   static async deleteAll(): Promise<void> {
     const kv = await getKv();
     for await (const entry of kv.list<UserInterface>({ prefix: ["users"] })) {

@@ -1,40 +1,57 @@
 # PBKDF2 Password Hashing Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use
+> superpowers:subagent-driven-development (recommended) or
+> superpowers:executing-plans to implement this plan task-by-task. Steps use
+> checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Replace unsalted SHA-256 password hashing with PBKDF2-SHA-256 (salted, 310k iterations) using only Deno's built-in Web Crypto API, and fix a plaintext password log in the seed script.
+**Goal:** Replace unsalted SHA-256 password hashing with PBKDF2-SHA-256 (salted,
+310k iterations) using only Deno's built-in Web Crypto API, and fix a plaintext
+password log in the seed script.
 
-**Architecture:** `utils/security.ts` gains a `verifyPassword` function alongside the updated `hashPassword`. The stored format is a self-describing PHC-style string (`$pbkdf2-sha256$310000$<base64url-salt>$<base64url-hash>`) so no schema changes are needed. The login route swaps its two-step hash-then-compare for a single `verifyPassword` call.
+**Architecture:** `utils/security.ts` gains a `verifyPassword` function
+alongside the updated `hashPassword`. The stored format is a self-describing
+PHC-style string (`$pbkdf2-sha256$310000$<base64url-salt>$<base64url-hash>`) so
+no schema changes are needed. The login route swaps its two-step
+hash-then-compare for a single `verifyPassword` call.
 
-**Tech Stack:** Deno, Web Crypto API (`crypto.subtle.importKey`, `crypto.subtle.deriveBits`, `crypto.subtle.timingSafeEqual`), Fresh 2, Deno KV.
+**Tech Stack:** Deno, Web Crypto API (`crypto.subtle.importKey`,
+`crypto.subtle.deriveBits`, `crypto.subtle.timingSafeEqual`), Fresh 2, Deno KV.
 
 ---
 
 ## File Map
 
-| Action | Path | Responsibility |
-|--------|------|----------------|
-| Modify | `utils/security.ts` | Replace SHA-256 hash with PBKDF2 `hashPassword` + new `verifyPassword` |
-| Create | `utils/security_test.ts` | Unit tests for both functions |
-| Modify | `routes/login.tsx` | Use `verifyPassword` instead of hash-then-compare |
-| Modify | `scripts/seed.ts` | Remove plaintext password from log line |
+| Action | Path                     | Responsibility                                                         |
+| ------ | ------------------------ | ---------------------------------------------------------------------- |
+| Modify | `utils/security.ts`      | Replace SHA-256 hash with PBKDF2 `hashPassword` + new `verifyPassword` |
+| Create | `utils/security_test.ts` | Unit tests for both functions                                          |
+| Modify | `routes/login.tsx`       | Use `verifyPassword` instead of hash-then-compare                      |
+| Modify | `scripts/seed.ts`        | Remove plaintext password from log line                                |
 
 ---
 
 ## Task 1: Rewrite `utils/security.ts` with PBKDF2
 
 **Files:**
+
 - Modify: `utils/security.ts`
 
 ### Background
 
 `crypto.subtle` in Deno's Web Crypto API supports PBKDF2 natively. The approach:
-1. Generate a 16-byte random salt.
-2. Import the password as a `CryptoKey` with `importKey("raw", ..., "PBKDF2", false, ["deriveBits"])`.
-3. Call `deriveBits` with `{ name: "PBKDF2", hash: "SHA-256", salt, iterations: 310_000 }` to get 256 bits (32 bytes).
-4. Base64url-encode both salt and derived bits, concatenate into a PHC-style string.
 
-`verifyPassword` reverses the process: parse the stored string, re-derive, compare with `timingSafeEqual`.
+1. Generate a 16-byte random salt.
+2. Import the password as a `CryptoKey` with
+   `importKey("raw", ..., "PBKDF2", false, ["deriveBits"])`.
+3. Call `deriveBits` with
+   `{ name: "PBKDF2", hash: "SHA-256", salt, iterations: 310_000 }` to get 256
+   bits (32 bytes).
+4. Base64url-encode both salt and derived bits, concatenate into a PHC-style
+   string.
+
+`verifyPassword` reverses the process: parse the stored string, re-derive,
+compare with `timingSafeEqual`.
 
 - [ ] **Step 1: Replace `utils/security.ts` with the new implementation**
 
@@ -82,7 +99,9 @@
   export async function hashPassword(password: string): Promise<string> {
     const salt = crypto.getRandomValues(new Uint8Array(16));
     const derived = await deriveKey(password, salt, ITERATIONS);
-    return `${PREFIX}${ITERATIONS}$${toBase64url(salt)}$${toBase64url(derived)}`;
+    return `${PREFIX}${ITERATIONS}$${toBase64url(salt)}$${
+      toBase64url(derived)
+    }`;
   }
 
   export async function verifyPassword(
@@ -117,6 +136,7 @@
 ## Task 2: Write and run unit tests
 
 **Files:**
+
 - Create: `utils/security_test.ts`
 
 - [ ] **Step 1: Create `utils/security_test.ts`**
@@ -149,7 +169,8 @@
   });
 
   Deno.test("verifyPassword returns false for legacy SHA-256 hex string", async () => {
-    const legacySha256 = "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918";
+    const legacySha256 =
+      "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918";
     const result = await verifyPassword("admin", legacySha256);
     assertEquals(result, false);
   });
@@ -161,7 +182,8 @@
   deno test utils/security_test.ts --unstable-kv
   ```
 
-  Expected: 5 tests pass. Note: PBKDF2 at 310k iterations takes ~200ms per hash, so the test suite will take a few seconds — this is expected.
+  Expected: 5 tests pass. Note: PBKDF2 at 310k iterations takes ~200ms per hash,
+  so the test suite will take a few seconds — this is expected.
 
 - [ ] **Step 3: Commit**
 
@@ -175,6 +197,7 @@
 ## Task 3: Update `routes/login.tsx` to use `verifyPassword`
 
 **Files:**
+
 - Modify: `routes/login.tsx`
 
 - [ ] **Step 1: Update the import line**
@@ -225,6 +248,7 @@
 ## Task 4: Fix plaintext password log in `scripts/seed.ts`
 
 **Files:**
+
 - Modify: `scripts/seed.ts`
 
 - [ ] **Step 1: Remove password from the log line**
@@ -271,7 +295,9 @@
 
 - [ ] **Step 3: Migrate the existing user**
 
-  The existing seeded user in Deno KV has a 64-char hex SHA-256 hash. `verifyPassword` will reject it (no `$pbkdf2-sha256$` prefix), so login will fail until the user is re-seeded.
+  The existing seeded user in Deno KV has a 64-char hex SHA-256 hash.
+  `verifyPassword` will reject it (no `$pbkdf2-sha256$` prefix), so login will
+  fail until the user is re-seeded.
 
   Delete the old user and re-seed:
   ```bash
@@ -306,4 +332,5 @@
   ```bash
   deno task dev
   ```
-  Navigate to `http://localhost:8000/login`, log in with the credentials from `.env`. Confirm you reach the home page without errors.
+  Navigate to `http://localhost:8000/login`, log in with the credentials from
+  `.env`. Confirm you reach the home page without errors.

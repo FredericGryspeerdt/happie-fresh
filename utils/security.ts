@@ -24,7 +24,7 @@ function fromBase64url(s: string): Uint8Array | null {
   }
 }
 
-function timingSafeEqual(a: Uint8Array, b: Uint8Array): boolean {
+export function timingSafeEqual(a: Uint8Array, b: Uint8Array): boolean {
   if (a.length !== b.length) return false;
   let result = 0;
   for (let i = 0; i < a.length; i++) {
@@ -56,9 +56,7 @@ async function deriveKey(
 export async function hashPassword(password: string): Promise<string> {
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const derived = await deriveKey(password, salt, ITERATIONS);
-  return `${PREFIX}${ITERATIONS}$${toBase64url(salt)}$${
-    toBase64url(derived)
-  }`;
+  return `${PREFIX}${ITERATIONS}$${toBase64url(salt)}$${toBase64url(derived)}`;
 }
 
 export async function verifyPassword(
