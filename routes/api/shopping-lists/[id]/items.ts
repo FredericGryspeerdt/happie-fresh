@@ -1,9 +1,9 @@
-import { type FreshContext } from "fresh";
+import { type Context } from "fresh";
 import { ShoppingListItemRepo, ShoppingListRepo } from "@/database/index.ts";
 import { define, type StateInterface } from "@/utils/index.ts";
 
 async function authorizeList(
-  ctx: FreshContext<StateInterface>,
+  ctx: Context<StateInterface>,
   listId: string,
 ) {
   const householdId = ctx.state.householdId;

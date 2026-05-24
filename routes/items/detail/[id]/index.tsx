@@ -1,4 +1,4 @@
-import { type FreshContext } from "fresh";
+import { type Context } from "fresh";
 import { getKv } from "@/database/index.ts";
 import { Button } from "@/components/Button.tsx";
 import type { ItemInterface } from "@/models/index.ts";
@@ -18,7 +18,7 @@ export const handler: Handlers<Data> = {
   },
 };
 
-export default async function ItemDetailPage(ctx: FreshContext<Data>) {
+export default async function ItemDetailPage(ctx: Context<Data>) {
   const id = +ctx.params.id;
   // get the item from the db
   const kv = await getKv();
