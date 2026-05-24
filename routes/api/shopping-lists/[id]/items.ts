@@ -1,11 +1,11 @@
-import { Context } from "fresh";
+import { type FreshContext } from "fresh";
 import { ShoppingListItemRepo, ShoppingListRepo } from "@/database/index.ts";
+import { define, type StateInterface } from "@/utils/index.ts";
 
-interface State {
-  householdId?: string;
-}
-
-async function authorizeList(ctx: Context<State>, listId: string) {
+async function authorizeList(
+  ctx: FreshContext<StateInterface>,
+  listId: string,
+) {
   const householdId = ctx.state.householdId;
   if (!householdId) return null;
   const list = await ShoppingListRepo.getById(householdId, listId);
@@ -13,8 +13,8 @@ async function authorizeList(ctx: Context<State>, listId: string) {
   return list;
 }
 
-export const handler = {
-  async GET(ctx: Context<State>) {
+export const handler = define.handlers({
+  async GET(ctx) {
     const list = await authorizeList(ctx, ctx.params.id);
     if (!list) return new Response("Forbidden", { status: 403 });
     const items = await ShoppingListItemRepo.getAll(list.id);
@@ -24,7 +24,7 @@ export const handler = {
     });
   },
 
-  async POST(ctx: Context<State>) {
+  async POST(ctx) {
     const list = await authorizeList(ctx, ctx.params.id);
     if (!list) return new Response("Forbidden", { status: 403 });
     const { itemId } = await ctx.req.json();
@@ -36,7 +36,7 @@ export const handler = {
     });
   },
 
-  async PATCH(ctx: Context<State>) {
+  async PATCH(ctx) {
     const list = await authorizeList(ctx, ctx.params.id);
     if (!list) return new Response("Forbidden", { status: 403 });
     const { id, quantity, note, checked } = await ctx.req.json();
@@ -53,7 +53,7 @@ export const handler = {
     });
   },
 
-  async DELETE(ctx: Context<State>) {
+  async DELETE(ctx) {
     const list = await authorizeList(ctx, ctx.params.id);
     if (!list) return new Response("Forbidden", { status: 403 });
     const { id } = await ctx.req.json();
@@ -61,4 +61,4 @@ export const handler = {
     await ShoppingListItemRepo.delete(list.id, id);
     return new Response(null, { status: 204 });
   },
-};
+});

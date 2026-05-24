@@ -1,12 +1,8 @@
-import { Context } from "fresh";
 import { ShoppingListItemRepo, ShoppingListRepo } from "@/database/index.ts";
+import { define } from "@/utils/index.ts";
 
-interface State {
-  householdId?: string;
-}
-
-export const handler = {
-  async PATCH(ctx: Context<State>) {
+export const handler = define.handlers({
+  async PATCH(ctx) {
     const householdId = ctx.state.householdId;
     if (!householdId) return new Response("Unauthorized", { status: 401 });
     const id = ctx.params.id;
@@ -23,7 +19,7 @@ export const handler = {
     });
   },
 
-  async DELETE(ctx: Context<State>) {
+  async DELETE(ctx) {
     const householdId = ctx.state.householdId;
     if (!householdId) return new Response("Unauthorized", { status: 401 });
     const id = ctx.params.id;
@@ -33,4 +29,4 @@ export const handler = {
     await ShoppingListRepo.delete(householdId, id);
     return new Response(null, { status: 204 });
   },
-};
+});

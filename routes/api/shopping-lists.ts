@@ -1,13 +1,8 @@
-import { Context } from "fresh";
 import { ShoppingListRepo } from "@/database/index.ts";
+import { define } from "@/utils/index.ts";
 
-interface State {
-  userId?: string;
-  householdId?: string;
-}
-
-export const handler = {
-  async GET(ctx: Context<State>) {
+export const handler = define.handlers({
+  async GET(ctx) {
     const householdId = ctx.state.householdId;
     if (!householdId) return new Response("Unauthorized", { status: 401 });
     const lists = await ShoppingListRepo.getAll(householdId);
@@ -17,7 +12,7 @@ export const handler = {
     });
   },
 
-  async POST(ctx: Context<State>) {
+  async POST(ctx) {
     const userId = ctx.state.userId;
     const householdId = ctx.state.householdId;
     if (!userId || !householdId) {
@@ -36,4 +31,4 @@ export const handler = {
       headers: { "Content-Type": "application/json" },
     });
   },
-};
+});
