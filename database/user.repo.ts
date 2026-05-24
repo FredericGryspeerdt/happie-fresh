@@ -21,8 +21,14 @@ export class UserRepo {
   ): Promise<UserInterface> {
     const kv = await getKv();
     const id = crypto.randomUUID();
-    const household = await HouseholdRepo.create(`${user.username}'s household`);
-    const userWithId: UserInterface = { ...user, id, householdId: household.id };
+    const household = await HouseholdRepo.create(
+      `${user.username}'s household`,
+    );
+    const userWithId: UserInterface = {
+      ...user,
+      id,
+      householdId: household.id,
+    };
     await kv
       .atomic()
       .set(["users", userWithId.id], userWithId)

@@ -19,7 +19,8 @@ interface ItemsProps {
 }
 
 export default function Items(
-  { listId, items: catalog, shoppingList, categories: initialCategories }: ItemsProps,
+  { listId, items: catalog, shoppingList, categories: initialCategories }:
+    ItemsProps,
 ) {
   // useMemo with [] ensures useShoppingList is called only once.
   // useShoppingList uses plain signal() (not useSignal), so calling it on every
