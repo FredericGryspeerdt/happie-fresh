@@ -32,6 +32,13 @@ routes.
 debounced merge scheduler (`utils/debounce-update.ts`) for optimistic UI updates
 with batched PATCH requests.
 
+**Signals in islands**: Always use `useSignal()` (not `signal()`) for local
+state inside island component functions. `signal()` in a function body creates a
+new signal instance on every re-render, resetting state (e.g. clearing input
+values on each keystroke). `useSignal()` is the hook equivalent — it creates the
+signal once on mount and returns the same instance on subsequent renders.
+`signal()` is only safe at module scope (outside any function).
+
 **Routing**: File-system based. `routes/api/*.ts` return JSON responses.
 `routes/*.tsx` return pages. Dynamic segments use `[id]` folders.
 `_middleware.ts` handles cookie-based session auth (24h expiry) with redirect to
@@ -39,6 +46,23 @@ with batched PATCH requests.
 
 **KV key pattern**: `[collection_name, id]` (e.g., `["items", "uuid"]`). IDs via
 `crypto.randomUUID()`.
+
+## Researching APIs and Conventions
+
+When working with Deno, Fresh 2, or any other library in this project, always
+use **Context7** (`mcp__plugin_context7_context7__*` tools) to look up the
+current API before writing code. Training data goes stale; Context7 reflects the
+live docs.
+
+Typical cases where you **must** consult Context7 first:
+
+- Fresh 2 handler patterns (e.g. `define.handlers`, `define.page`, middleware
+  signatures)
+- Fresh type names — e.g. `Context` vs the deprecated `FreshContext`
+- Deno KV APIs, Deno Deploy constraints
+- Any `jsr:` or `npm:` package whose API may have changed
+
+Workflow: `resolve-library-id` → `query-docs` → write code.
 
 ## Coding Conventions
 

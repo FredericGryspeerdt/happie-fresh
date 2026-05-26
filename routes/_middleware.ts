@@ -1,9 +1,11 @@
 import { Context } from "fresh";
 import { getCookies } from "$std/http/cookie.ts";
 import { SessionRepo } from "@/database/session.repo.ts";
+import { UserRepo } from "@/database/user.repo.ts";
 
 interface State {
   userId?: string;
+  householdId?: string;
 }
 
 export async function handler(
@@ -31,7 +33,9 @@ export async function handler(
   if (sessionId) {
     const session = await SessionRepo.findById(sessionId);
     if (session && new Date(session.expiresAt) > new Date()) {
+      const user = await UserRepo.findById(session.userId);
       ctx.state.userId = session.userId;
+      ctx.state.householdId = user?.householdId;
       return await ctx.next();
     }
   }

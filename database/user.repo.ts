@@ -1,5 +1,7 @@
 import { UserInterface } from "../models/index.ts";
 import { getKv } from "./db.ts";
+import { HouseholdRepo } from "./household.repo.ts";
+import { ShoppingListRepo } from "./shopping-list.repo.ts";
 
 export class UserRepo {
   static async findByUsername(username: string): Promise<UserInterface | null> {
@@ -8,15 +10,36 @@ export class UserRepo {
     return user.value;
   }
 
-  static async create(user: Omit<UserInterface, "id">): Promise<UserInterface> {
+  static async findById(id: string): Promise<UserInterface | null> {
+    const kv = await getKv();
+    const user = await kv.get<UserInterface>(["users", id]);
+    return user.value;
+  }
+
+  static async create(
+    user: Omit<UserInterface, "id" | "householdId">,
+  ): Promise<UserInterface> {
     const kv = await getKv();
     const id = crypto.randomUUID();
-    const userWithId = { ...user, id };
+    const household = await HouseholdRepo.create(
+      `${user.username}'s household`,
+    );
+    const userWithId: UserInterface = {
+      ...user,
+      id,
+      householdId: household.id,
+    };
     await kv
       .atomic()
       .set(["users", userWithId.id], userWithId)
       .set(["users_by_username", user.username], userWithId)
       .commit();
+    await ShoppingListRepo.create({
+      householdId: household.id,
+      name: "Shopping List",
+      createdBy: id,
+      createdAt: new Date().toISOString(),
+    });
     return userWithId;
   }
 
@@ -39,10 +62,8 @@ export class UserRepo {
 
   static async deleteAll(): Promise<void> {
     const kv = await getKv();
-    // WARNING: This will delete all users. Use with caution.
     for await (const entry of kv.list<UserInterface>({ prefix: ["users"] })) {
       const user = entry.value;
-      console.log("🚀 ~ UserRepo ~ deleteAll ~ user:", user);
       await kv
         .atomic()
         .delete(["users", user.id])

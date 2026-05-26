@@ -8,6 +8,7 @@ import { createDebouncedMergeScheduler } from "@/utils/debounce-update.ts";
 import { api } from "@/services/api.ts";
 
 export function useShoppingList(
+  listId: string,
   initialCatalog: ItemInterface[],
   initialList: ShoppingListItemInterface[],
   initialCategories: CategoryInterface[] = [],
@@ -36,7 +37,7 @@ export function useShoppingList(
   >({
     delayMs: 500,
     flush: async (id, patch) => {
-      await api.shoppingList.patch(id, patch);
+      await api.shoppingList.updateItem(listId, id, patch);
     },
   });
 
@@ -51,7 +52,7 @@ export function useShoppingList(
   };
 
   const _addToList = async (itemId: string): Promise<string | null> => {
-    const entry = await api.shoppingList.add(itemId);
+    const entry = await api.shoppingList.addItem(listId, itemId);
     if (entry) {
       list.value = [...list.value, entry];
       return entry.id ?? null;
@@ -99,7 +100,7 @@ export function useShoppingList(
 
     pendingCount.value++;
     try {
-      await api.shoppingList.delete(id);
+      await api.shoppingList.removeItem(listId, id);
     } finally {
       pendingCount.value--;
     }
@@ -120,7 +121,7 @@ export function useShoppingList(
       exitingItems.value = exitingItems.value.filter((i) => i !== id);
       const checked = { ...item, checked: true };
       checkedItems.value = [...checkedItems.value, checked];
-      await api.shoppingList.patch(id, { checked: true });
+      await api.shoppingList.updateItem(listId, id, { checked: true });
     } finally {
       pendingCount.value--;
     }
@@ -134,7 +135,7 @@ export function useShoppingList(
       checkedItems.value = checkedItems.value.filter((li) => li.id !== id);
       const active = { ...item, checked: false };
       list.value = [...list.value, active];
-      await api.shoppingList.patch(id, { checked: false });
+      await api.shoppingList.updateItem(listId, id, { checked: false });
     } finally {
       pendingCount.value--;
     }
@@ -144,7 +145,7 @@ export function useShoppingList(
     pendingCount.value++;
     try {
       const [newList, newItems, newCategories] = await Promise.all([
-        api.shoppingList.getAll(),
+        api.shoppingList.getItems(listId),
         api.items.getAll(),
         api.categories.getAll(),
       ]);

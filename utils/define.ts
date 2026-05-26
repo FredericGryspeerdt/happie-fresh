@@ -1,7 +1,8 @@
 import { createDefine } from "fresh";
 import { ItemInterface, ShoppingListItemInterface } from "../models/index.ts";
-interface StateInterface {
+export interface StateInterface {
   userId?: string;
+  householdId?: string;
   items?: ItemInterface[];
   shoppingList?: ShoppingListItemInterface[];
   error?: string;

@@ -29,8 +29,8 @@ export default function App({ Component, state }: PageProps<unknown, State>) {
           <header class="p-4 bg-gray-100 flex justify-between items-center border-b">
             <span class="font-bold text-xl">Happie</span>
             <div class="flex gap-4 items-center">
-              <a href="/home" class="text-blue-600 hover:underline">
-                Shopping list
+              <a href="/lists" class="text-blue-600 hover:underline">
+                Shopping lists
               </a>
               <a href="/items" class="text-blue-600 hover:underline">
                 Items
