@@ -1,6 +1,6 @@
 import { PageProps } from "fresh";
 import { getKv } from "@/database/index.ts";
-import { Item, type ItemInterface } from "@/models/index.ts";
+import { Item, type CreateItemDto } from "@/models/index.ts";
 import { Handlers } from "fresh/compat";
 
 // Removed empty Data interface to satisfy lint rules.
@@ -18,7 +18,7 @@ export const handler: Handlers = {
     // save the item to the db
 
     const id = 111;
-    const item: ItemInterface = new Item(name || "unknown");
+    const item: CreateItemDto = new Item(name || "unknown");
     const kv = await getKv();
     const _result = await kv.set(["items", id], item);
 

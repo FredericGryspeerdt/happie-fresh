@@ -1,6 +1,6 @@
 import { PageProps } from "fresh";
 import { getKv, ItemRepo } from "@/database/index.ts";
-import { Item, type ItemInterface } from "@/models/index.ts";
+import { Item, type CreateItemDto, type ItemInterface } from "@/models/index.ts";
 import { Handlers } from "fresh/compat";
 
 interface Data {
@@ -23,7 +23,7 @@ export const handler: Handlers<Data> = {
 
     // save the item to the db
 
-    const item: ItemInterface = new Item(name || "unknown");
+    const item: CreateItemDto = new Item(name || "unknown");
 
     const newItem = await ItemRepo.create(item);
 
