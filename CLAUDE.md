@@ -47,6 +47,23 @@ signal once on mount and returns the same instance on subsequent renders.
 **KV key pattern**: `[collection_name, id]` (e.g., `["items", "uuid"]`). IDs via
 `crypto.randomUUID()`.
 
+## Researching APIs and Conventions
+
+When working with Deno, Fresh 2, or any other library in this project, always
+use **Context7** (`mcp__plugin_context7_context7__*` tools) to look up the
+current API before writing code. Training data goes stale; Context7 reflects the
+live docs.
+
+Typical cases where you **must** consult Context7 first:
+
+- Fresh 2 handler patterns (e.g. `define.handlers`, `define.page`, middleware
+  signatures)
+- Fresh type names — e.g. `Context` vs the deprecated `FreshContext`
+- Deno KV APIs, Deno Deploy constraints
+- Any `jsr:` or `npm:` package whose API may have changed
+
+Workflow: `resolve-library-id` → `query-docs` → write code.
+
 ## Coding Conventions
 
 - **Imports**: Use `@/` alias for project root (e.g.,
