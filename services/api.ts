@@ -82,12 +82,12 @@ export const api = {
     },
   },
   shoppingList: {
-    getAll: async (listId: string): Promise<ShoppingListItemInterface[]> => {
+    getItems: async (listId: string): Promise<ShoppingListItemInterface[]> => {
       const res = await fetch(`/api/shopping-lists/${listId}/items`);
       if (!res.ok) return [];
       return res.json();
     },
-    add: async (
+    addItem: async (
       listId: string,
       itemId: string,
     ): Promise<ShoppingListItemInterface | null> => {
@@ -99,7 +99,7 @@ export const api = {
       if (!res.ok) return null;
       return res.json();
     },
-    patch: async (
+    updateItem: async (
       listId: string,
       id: string,
       patch: Partial<ShoppingListItemInterface>,
@@ -110,7 +110,7 @@ export const api = {
         body: JSON.stringify({ id, ...patch }),
       });
     },
-    delete: async (listId: string, id: string): Promise<void> => {
+    removeItem: async (listId: string, id: string): Promise<void> => {
       await fetch(`/api/shopping-lists/${listId}/items`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
