@@ -201,7 +201,7 @@ immediate visual feedback.
 
 - [ ] **Step 4: Update the trash button's `onClick`**
 
-Find the button with `aria-label={\`Delete ${list.name}\`}`. Change its `onClick`
+Find the button with `aria-label={\`Delete ${list.name}\`}`. Change its`onClick`
 from:
 
 ```ts
@@ -309,10 +309,10 @@ Work through these in order:
    sheet dismisses, list unchanged.
 4. Tap trash again → sheet appears. Press **Escape** → sheet dismisses, list
    unchanged.
-5. *(Touch device or DevTools touch simulation)* Tap trash → sheet appears.
-   Drag the sheet downward more than ~80px and release → sheet dismisses without
+5. _(Touch device or DevTools touch simulation)_ Tap trash → sheet appears. Drag
+   the sheet downward more than ~80px and release → sheet dismisses without
    deleting.
-6. *(Touch device)* Tap trash → drag the sheet slightly (< 80px) → release →
+6. _(Touch device)_ Tap trash → drag the sheet slightly (< 80px) → release →
    sheet snaps back to fully open.
 7. Tap trash → tap **Delete** → sheet closes immediately, list disappears from
    the page. Refresh to confirm the deletion persisted in the database.

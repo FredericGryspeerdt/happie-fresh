@@ -1,6 +1,6 @@
 import { PageProps } from "fresh";
 import { getKv } from "@/database/index.ts";
-import { Item, type CreateItemDto } from "@/models/index.ts";
+import { type CreateItemDto, Item } from "@/models/index.ts";
 import { Handlers } from "fresh/compat";
 
 // Removed empty Data interface to satisfy lint rules.

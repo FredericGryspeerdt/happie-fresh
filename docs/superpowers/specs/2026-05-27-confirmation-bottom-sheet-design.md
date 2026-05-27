@@ -1,6 +1,6 @@
 # Confirmation Bottom Sheet — Design Spec
 
-**Date:** 2026-05-27  **Status:** Approved
+**Date:** 2026-05-27 **Status:** Approved
 
 ## Context
 
@@ -10,7 +10,8 @@ data loss. This spec introduces a reusable bottom sheet component that gates
 irreversible actions behind an explicit confirmation step, following native
 mobile UX conventions.
 
-The immediate trigger is [issue #11](https://github.com/FredericGryspeerdt/happie-fresh/issues/11)
+The immediate trigger is
+[issue #11](https://github.com/FredericGryspeerdt/happie-fresh/issues/11)
 (confirm before deleting a shopping list), but the component is designed to be
 used across the app wherever a destructive action needs confirmation.
 
@@ -19,6 +20,7 @@ used across the app wherever a destructive action needs confirmation.
 ## Scope
 
 **In scope:**
+
 - Generic `BottomSheet` component (`components/BottomSheet.tsx`)
 - Delete-list confirmation wired into `islands/shopping-lists.tsx`
 - Swipe-to-dismiss gesture
@@ -26,16 +28,18 @@ used across the app wherever a destructive action needs confirmation.
 - Backdrop tap to dismiss
 
 **Out of scope:**
+
 - Other confirmation use cases (added as needed when encountered)
-- Animated exit (sheet dismisses via CSS transition; no JS-driven exit animation)
+- Animated exit (sheet dismisses via CSS transition; no JS-driven exit
+  animation)
 - Error handling if the delete API call fails (silent failure is acceptable)
 
 ---
 
 ## Component: `components/BottomSheet.tsx`
 
-A regular Preact component (not an island). Rendered inside islands that need
-it — the island is the hydration boundary.
+A regular Preact component (not an island). Rendered inside islands that need it
+— the island is the hydration boundary.
 
 ### Props
 
@@ -69,10 +73,10 @@ keeps the component generic for any action pattern.
 Both the backdrop and sheet are always in the DOM. Visibility is controlled
 entirely by CSS transitions — no mount/unmount, no `useEffect` for animation:
 
-| Element  | Closed state                             | Open state                        |
-|----------|------------------------------------------|-----------------------------------|
-| Backdrop | `opacity-0 pointer-events-none`          | `opacity-50 pointer-events-auto`  |
-| Sheet    | `translate-y-full pointer-events-none`   | `translate-y-0 pointer-events-auto` |
+| Element  | Closed state                           | Open state                          |
+| -------- | -------------------------------------- | ----------------------------------- |
+| Backdrop | `opacity-0 pointer-events-none`        | `opacity-50 pointer-events-auto`    |
+| Sheet    | `translate-y-full pointer-events-none` | `translate-y-0 pointer-events-auto` |
 
 Both transition over 300ms (`ease-out` for sheet, `linear` for backdrop).
 
@@ -88,7 +92,8 @@ variables (not signals — no re-render needed during drag):
   - If `delta ≤ 0` (upward drag): ignore.
 - **`touchend`**: evaluate final delta.
   - `delta > 80px` → call `onClose()`, clear inline transform.
-  - `delta ≤ 80px` → re-enable CSS transition, clear inline transform (snaps back).
+  - `delta ≤ 80px` → re-enable CSS transition, clear inline transform (snaps
+    back).
 
 The 80px threshold avoids accidental dismissal from small incidental drags.
 
@@ -122,7 +127,7 @@ The `deleteList` function is removed entirely.
 const handleDeleteConfirm = async () => {
   if (!pendingDelete.value) return;
   const { id } = pendingDelete.value;
-  pendingDelete.value = null;          // close sheet before API call (optimistic)
+  pendingDelete.value = null; // close sheet before API call (optimistic)
   await api.shoppingLists.delete(id);
   lists.value = lists.value.filter((l) => l.id !== id);
 };
@@ -157,7 +162,7 @@ immediately on confirmation tap.
   >
     Cancel
   </button>
-</BottomSheet>
+</BottomSheet>;
 ```
 
 The list name is quoted in the body copy so the user sees exactly which list is
