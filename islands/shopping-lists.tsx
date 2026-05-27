@@ -17,6 +17,7 @@ export default function ShoppingLists(
   const editName = useSignal("");
   const loading = useSignal(false);
   const pendingDelete = useSignal<{ id: string; name: string } | null>(null);
+  const pendingDeleteName = useSignal<string>("");
 
   const createList = async () => {
     const name = newName.value.trim();
@@ -108,11 +109,13 @@ export default function ShoppingLists(
                         <button
                           type="button"
                           class="p-2 text-gray-400 hover:text-red-500 transition-colors"
-                          onClick={() =>
+                          onClick={() => {
+                            pendingDeleteName.value = list.name;
                             pendingDelete.value = {
                               id: list.id,
                               name: list.name,
-                            }}
+                            };
+                          }}
                           aria-label={`Delete ${list.name}`}
                         >
                           <svg
@@ -192,7 +195,7 @@ export default function ShoppingLists(
       >
         <p class="text-lg font-semibold text-gray-900 mb-1">Delete list?</p>
         <p class="text-sm text-gray-500 mb-6">
-          "{pendingDelete.value?.name}" and all its items will be permanently
+          "{pendingDeleteName.value}" and all its items will be permanently
           deleted. This cannot be undone.
         </p>
         <button
