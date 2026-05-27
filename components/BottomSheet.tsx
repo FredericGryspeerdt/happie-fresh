@@ -42,12 +42,21 @@ export default function BottomSheet(
     const sheet = sheetRef.current;
     if (!sheet) return;
     if (currentDelta.current > 80) {
+      sheet.style.transition = "";
       sheet.style.transform = "";
       onClose();
     } else {
       sheet.style.transition = "";
       sheet.style.transform = "";
     }
+    currentDelta.current = 0;
+  };
+
+  const handleTouchCancel = () => {
+    const sheet = sheetRef.current;
+    if (!sheet) return;
+    sheet.style.transition = "";
+    sheet.style.transform = "";
     currentDelta.current = 0;
   };
 
@@ -74,6 +83,7 @@ export default function BottomSheet(
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchCancel}
       >
         <div class="flex justify-center pt-3 pb-1">
           <div class="w-10 h-1 bg-gray-300 rounded-full" />
