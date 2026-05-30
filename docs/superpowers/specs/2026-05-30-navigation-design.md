@@ -49,7 +49,7 @@ export const NAV_CONFIG = [
 ];
 ```
 
-### `components/BottomTabBar.tsx` (new)
+### `components/TabBar.tsx` (new)
 
 Fixed to the bottom of the viewport. Renders one tab per main feature using standard `<a>` links. Receives `activeTabId` as a prop from `_app.tsx` — does not read the URL itself. Server-rendered (no event handlers needed).
 
@@ -60,7 +60,7 @@ Fixed to the bottom of the viewport. Renders one tab per main feature using stan
 └─────────────────────────────┘
 ```
 
-### `islands/SectionNav.tsx` (new)
+### `islands/AppBar.tsx` (new)
 
 Replaces the current `<header>` in `_app.tsx`. Combines the section header bar and the slide-down sub-nav panel into one island, since they share toggle state. Receives `activeTabLabel`, `subNavItems`, and `activeRoute` as props.
 
@@ -88,13 +88,13 @@ Closes on outside tap or when the user navigates to a sub-feature link.
 
 - Remove the current hardcoded `<header>` nav links
 - Resolve `activeTabId`, `activeTabLabel`, `subNavItems`, and `activeRoute` from `ctx.url.pathname` using `NAV_CONFIG`
-- Render `SectionNav` island at the top
-- Render `BottomTabBar` component fixed at the bottom
+- Render `AppBar` island at the top
+- Render `TabBar` component fixed at the bottom
 - Add bottom padding to page body (`pb-16` or equivalent) so content is not hidden behind the tab bar
 
 ## Active State Mapping
 
-Active state is resolved server-side in `_app.tsx` and passed as props to `SectionNav` and `BottomTabBar`. Neither reads the URL itself.
+Active state is resolved server-side in `_app.tsx` and passed as props to `AppBar` and `TabBar`. Neither reads the URL itself.
 
 - **Active tab:** first entry in `NAV_CONFIG` whose `routes` array contains a prefix matching `ctx.url.pathname`
 - **Active sub-nav item:** exact match of `ctx.url.pathname` against `subNav[].route` within the active tab
@@ -102,9 +102,9 @@ Active state is resolved server-side in `_app.tsx` and passed as props to `Secti
 ## User Flows
 
 **Navigating between main features**
-1. User taps a tab in `BottomTabBar`
+1. User taps a tab in `TabBar`
 2. Browser navigates to that feature's `defaultRoute`
-3. `_app.tsx` resolves new active tab; `BottomTabBar` re-renders with updated highlight
+3. `_app.tsx` resolves new active tab; `TabBar` re-renders with updated highlight
 
 **Accessing a sub-feature**
 1. User taps ≡ in `SectionHeader`
@@ -114,7 +114,7 @@ Active state is resolved server-side in `_app.tsx` and passed as props to `Secti
 **Direct URL / deep link**
 1. User opens e.g. `/categories/manage` directly
 2. `_app.tsx` matches it to the "Shopping Lists" tab via `routes` prefix
-3. `BottomTabBar` highlights "Shopping Lists"; `SectionSubNav` (if opened) highlights "Categories"
+3. `TabBar` highlights "Shopping Lists"; `SectionSubNav` (if opened) highlights "Categories"
 
 ## Phase 2 Migration (future, not in scope)
 
