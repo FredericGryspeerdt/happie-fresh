@@ -1,32 +1,42 @@
 # Navigation Redesign Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use
+> superpowers:subagent-driven-development (recommended) or
+> superpowers:executing-plans to implement this plan task-by-task. Steps use
+> checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Replace the flat header navbar with a bottom `TabBar` (main features) + `AppBar` island (section header + slide-down sub-nav), as specified in `docs/superpowers/specs/2026-05-30-navigation-design.md`.
+**Goal:** Replace the flat header navbar with a bottom `TabBar` (main
+features) + `AppBar` island (section header + slide-down sub-nav), as specified
+in `docs/superpowers/specs/2026-05-30-navigation-design.md`.
 
-**Architecture:** Active state (which tab, which sub-route) is resolved server-side in `_app.tsx` using a central `NAV_CONFIG` and passed as props to both new components. `TabBar` is a static server-rendered component (just `<a>` links); `AppBar` is an island that owns the open/close toggle signal.
+**Architecture:** Active state (which tab, which sub-route) is resolved
+server-side in `_app.tsx` using a central `NAV_CONFIG` and passed as props to
+both new components. `TabBar` is a static server-rendered component (just `<a>`
+links); `AppBar` is an island that owns the open/close toggle signal.
 
-**Tech Stack:** Deno, Fresh 2, Preact, `@preact/signals`, Tailwind CSS v4, `preact-render-to-string` (tests), `@std/assert` (tests)
+**Tech Stack:** Deno, Fresh 2, Preact, `@preact/signals`, Tailwind CSS v4,
+`preact-render-to-string` (tests), `@std/assert` (tests)
 
 ---
 
 ## File Map
 
-| Action | Path | Responsibility |
-|--------|------|----------------|
-| Create | `config/navigation.ts` | NAV_CONFIG, types, `resolveActiveTab` helper |
-| Create | `config/navigation.test.ts` | Unit tests for `resolveActiveTab` |
-| Create | `components/TabBar.tsx` | Server-rendered bottom tab bar |
-| Create | `components/TabBar.test.tsx` | Render tests for TabBar |
-| Create | `islands/AppBar.tsx` | Header + slide-down sub-nav island |
-| Create | `islands/AppBar.test.tsx` | SSR render tests for AppBar (closed state) |
-| Modify | `routes/_app.tsx` | Wire AppBar + TabBar, remove old header |
+| Action | Path                         | Responsibility                               |
+| ------ | ---------------------------- | -------------------------------------------- |
+| Create | `config/navigation.ts`       | NAV_CONFIG, types, `resolveActiveTab` helper |
+| Create | `config/navigation.test.ts`  | Unit tests for `resolveActiveTab`            |
+| Create | `components/TabBar.tsx`      | Server-rendered bottom tab bar               |
+| Create | `components/TabBar.test.tsx` | Render tests for TabBar                      |
+| Create | `islands/AppBar.tsx`         | Header + slide-down sub-nav island           |
+| Create | `islands/AppBar.test.tsx`    | SSR render tests for AppBar (closed state)   |
+| Modify | `routes/_app.tsx`            | Wire AppBar + TabBar, remove old header      |
 
 ---
 
 ## Task 1: Navigation config
 
 **Files:**
+
 - Create: `config/navigation.ts`
 - Create: `config/navigation.test.ts`
 
@@ -130,6 +140,7 @@
 ## Task 2: TabBar component
 
 **Files:**
+
 - Create: `components/TabBar.tsx`
 - Create: `components/TabBar.test.tsx`
 
@@ -247,20 +258,19 @@
 ## Task 3: AppBar island
 
 **Files:**
+
 - Create: `islands/AppBar.tsx`
 - Create: `islands/AppBar.test.tsx`
 
 - [ ] **Step 1: Write the failing tests**
 
-  The tests cover the SSR/initial render only — effects and signal mutations don't run server-side, so `open` is always `false` in tests.
+  The tests cover the SSR/initial render only — effects and signal mutations
+  don't run server-side, so `open` is always `false` in tests.
 
   Create `islands/AppBar.test.tsx`:
 
   ```tsx
-  import {
-    assertFalse,
-    assertStringIncludes,
-  } from "jsr:@std/assert@^1.0.19";
+  import { assertFalse, assertStringIncludes } from "jsr:@std/assert@^1.0.19";
   import { render } from "npm:preact-render-to-string@^6.6.3";
   import { h } from "preact";
   import AppBar from "./AppBar.tsx";
@@ -457,18 +467,21 @@
 ## Task 4: Wire up `_app.tsx`
 
 **Files:**
+
 - Modify: `routes/_app.tsx`
 
 - [ ] **Step 1: Verify `url` is available on `PageProps` in Fresh 2**
 
-  Run the following Context7 lookup before writing code — the API may differ from training data:
+  Run the following Context7 lookup before writing code — the API may differ
+  from training data:
 
   ```
   resolve-library-id: "fresh"
   query-docs: "PageProps url property _app"
   ```
 
-  Confirm that `PageProps` exposes `url: URL`. If the property name differs, adjust the destructuring in Step 2 accordingly.
+  Confirm that `PageProps` exposes `url: URL`. If the property name differs,
+  adjust the destructuring in Step 2 accordingly.
 
 - [ ] **Step 2: Replace `routes/_app.tsx`**
 
@@ -539,7 +552,9 @@
   deno task check
   ```
 
-  Expected: no errors. If `url` is not on `PageProps`, the type checker will catch it here — follow the Fresh 2 docs from Step 1 to find the correct access pattern.
+  Expected: no errors. If `url` is not on `PageProps`, the type checker will
+  catch it here — follow the Fresh 2 docs from Step 1 to find the correct access
+  pattern.
 
 - [ ] **Step 4: Run the dev server and verify manually**
 
@@ -547,7 +562,8 @@
   deno task dev
   ```
 
-  Open `http://localhost:8000` in a browser (or use the preview tool). Log in, then verify:
+  Open `http://localhost:8000` in a browser (or use the preview tool). Log in,
+  then verify:
 
   - [ ] AppBar shows "Lists" as the section title on `/lists`
   - [ ] Tapping ≡ reveals "My Lists", "Item Catalogue", "Categories"
@@ -556,7 +572,8 @@
   - [ ] TabBar is fixed at the bottom with the 🛒 Lists tab highlighted
   - [ ] Tapping outside the sub-nav closes it
   - [ ] Logout link is visible and works
-  - [ ] Page content is not hidden behind the TabBar (scroll to bottom of a list page)
+  - [ ] Page content is not hidden behind the TabBar (scroll to bottom of a list
+        page)
   - [ ] Login page shows no AppBar or TabBar
 
 - [ ] **Step 5: Run all tests**
@@ -578,4 +595,6 @@
 
 ## Done
 
-All navigation chrome has been replaced. The old flat header is gone. Phase 2 (drawer migration) is not in scope — see the spec for the trigger condition and migration approach.
+All navigation chrome has been replaced. The old flat header is gone. Phase 2
+(drawer migration) is not in scope — see the spec for the trigger condition and
+migration approach.

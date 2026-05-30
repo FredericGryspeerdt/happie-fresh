@@ -71,16 +71,12 @@ export default function AppBar(
                       ? "text-blue-600 font-medium"
                       : "text-gray-700"
                   }`}
-                  aria-current={item.route === activeRoute
-                    ? "page"
-                    : undefined}
+                  aria-current={item.route === activeRoute ? "page" : undefined}
                   onClick={() => {
                     open.value = false;
                   }}
                 >
-                  {item.route === activeRoute
-                    ? `› ${item.label}`
-                    : item.label}
+                  {item.route === activeRoute ? `› ${item.label}` : item.label}
                 </a>
               </li>
             ))}
