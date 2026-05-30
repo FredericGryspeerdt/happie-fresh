@@ -33,6 +33,8 @@ export default function BottomSheet(
     if (!sheet) return;
     currentDelta.current = e.touches[0].clientY - dragStartY.current;
     if (currentDelta.current > 0) {
+      // Prevent the page behind the sheet from scrolling while dragging.
+      e.preventDefault();
       sheet.style.transition = "none";
       sheet.style.transform = `translateY(${currentDelta.current}px)`;
     }
