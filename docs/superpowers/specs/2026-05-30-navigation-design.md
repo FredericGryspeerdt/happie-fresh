@@ -107,14 +107,14 @@ Active state is resolved server-side in `_app.tsx` and passed as props to `AppBa
 3. `_app.tsx` resolves new active tab; `TabBar` re-renders with updated highlight
 
 **Accessing a sub-feature**
-1. User taps ≡ in `SectionHeader`
-2. `SectionSubNav` slides down showing sub-features; active sub-feature is highlighted
-3. User taps a sub-feature → `SectionSubNav` closes, browser navigates to that route
+1. User taps ≡ in `AppBar`
+2. Sub-nav panel slides down showing sub-features; active sub-feature is highlighted
+3. User taps a sub-feature → sub-nav panel closes, browser navigates to that route
 
 **Direct URL / deep link**
 1. User opens e.g. `/categories/manage` directly
 2. `_app.tsx` matches it to the "Shopping Lists" tab via `routes` prefix
-3. `TabBar` highlights "Shopping Lists"; `SectionSubNav` (if opened) highlights "Categories"
+3. `TabBar` highlights "Shopping Lists"; `AppBar` sub-nav (if opened) highlights "Categories"
 
 ## Phase 2 Migration (future, not in scope)
 
