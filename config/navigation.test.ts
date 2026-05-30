@@ -20,3 +20,11 @@ Deno.test("resolveActiveTab — /lists/some-id matches shopping-lists via prefix
 Deno.test("resolveActiveTab — /login matches no tab", () => {
   assertEquals(resolveActiveTab("/login"), undefined);
 });
+
+Deno.test("resolveActiveTab — /itemsExtra does not match (false-positive guard)", () => {
+  assertEquals(resolveActiveTab("/itemsExtra"), undefined);
+});
+
+Deno.test("resolveActiveTab — /categories exact match returns shopping-lists", () => {
+  assertEquals(resolveActiveTab("/categories")?.id, "shopping-lists");
+});
