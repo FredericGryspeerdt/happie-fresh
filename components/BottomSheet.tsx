@@ -23,6 +23,18 @@ export default function BottomSheet(
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [open, onClose]);
 
+  // Prevent the page from scrolling while the sheet is open (covers backdrop
+  // drags and any area not handled by the sheet's own touchmove listener).
+  // documentElement is used instead of body for broader iOS Safari support.
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.documentElement.style.overflow;
+    document.documentElement.style.overflow = "hidden";
+    return () => {
+      document.documentElement.style.overflow = prev;
+    };
+  }, [open]);
+
   const handleTouchStart = (e: TouchEvent) => {
     dragStartY.current = e.touches[0].clientY;
     currentDelta.current = 0;
