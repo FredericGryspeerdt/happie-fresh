@@ -30,7 +30,7 @@ export default define.page<typeof handler>(function ListDetail({ data }) {
     <main class="max-w-md mx-auto p-4">
       <div class="flex items-center gap-3 mb-4">
         <a
-          href="/lists"
+          href="/shopping"
           class="text-blue-500 text-sm font-medium hover:underline"
         >
           ← Lists
