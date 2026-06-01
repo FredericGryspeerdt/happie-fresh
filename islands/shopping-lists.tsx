@@ -80,7 +80,7 @@ export default function ShoppingLists(
                     fallback={
                       <>
                         <a
-                          href={`/lists/${list.id}`}
+                          href={`/shopping/${list.id}`}
                           class="flex-1 font-medium text-gray-800 text-lg"
                         >
                           {list.name}
