@@ -9,7 +9,7 @@ import { CreateItemDto } from "@/models/item/item.interface.ts";
 export const api = {
   items: {
     create: async (item: CreateItemDto): Promise<ItemInterface | null> => {
-      const res = await fetch("/api/items", {
+      const res = await fetch("/api/shopping/catalogue", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(item),
@@ -18,7 +18,7 @@ export const api = {
       return res.json();
     },
     getAll: async (): Promise<ItemInterface[]> => {
-      const res = await fetch("/api/items");
+      const res = await fetch("/api/shopping/catalogue");
       if (!res.ok) return [];
       return res.json();
     },
@@ -27,7 +27,7 @@ export const api = {
       name: string,
       categoryId?: string,
     ): Promise<Required<ItemInterface> | null> => {
-      const res = await fetch("/api/items", {
+      const res = await fetch("/api/shopping/catalogue", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id, name, categoryId }),
@@ -36,7 +36,7 @@ export const api = {
       return res.json();
     },
     delete: async (id: string): Promise<void> => {
-      await fetch("/api/items", {
+      await fetch("/api/shopping/catalogue", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id }),
@@ -45,19 +45,19 @@ export const api = {
   },
   categories: {
     getAll: async (): Promise<CategoryInterface[]> => {
-      const res = await fetch("/api/categories");
+      const res = await fetch("/api/shopping/categories");
       if (!res.ok) return [];
       return res.json();
     },
   },
   shoppingLists: {
     getAll: async (): Promise<ShoppingListInterface[]> => {
-      const res = await fetch("/api/shopping-lists");
+      const res = await fetch("/api/shopping/lists");
       if (!res.ok) return [];
       return res.json();
     },
     create: async (name: string): Promise<ShoppingListInterface | null> => {
-      const res = await fetch("/api/shopping-lists", {
+      const res = await fetch("/api/shopping/lists", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name }),
@@ -69,7 +69,7 @@ export const api = {
       id: string,
       name: string,
     ): Promise<ShoppingListInterface | null> => {
-      const res = await fetch(`/api/shopping-lists/${id}`, {
+      const res = await fetch(`/api/shopping/lists/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name }),
@@ -78,12 +78,14 @@ export const api = {
       return res.json();
     },
     delete: async (id: string): Promise<void> => {
-      await fetch(`/api/shopping-lists/${id}`, { method: "DELETE" });
+      await fetch(`/api/shopping/lists/${id}`, { method: "DELETE" });
     },
   },
   shoppingList: {
-    getItems: async (listId: string): Promise<ShoppingListItemInterface[]> => {
-      const res = await fetch(`/api/shopping-lists/${listId}/items`);
+    getItems: async (
+      listId: string,
+    ): Promise<ShoppingListItemInterface[]> => {
+      const res = await fetch(`/api/shopping/lists/${listId}/items`);
       if (!res.ok) return [];
       return res.json();
     },
@@ -91,7 +93,7 @@ export const api = {
       listId: string,
       itemId: string,
     ): Promise<ShoppingListItemInterface | null> => {
-      const res = await fetch(`/api/shopping-lists/${listId}/items`, {
+      const res = await fetch(`/api/shopping/lists/${listId}/items`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ itemId }),
@@ -104,14 +106,14 @@ export const api = {
       id: string,
       patch: Partial<ShoppingListItemInterface>,
     ): Promise<void> => {
-      await fetch(`/api/shopping-lists/${listId}/items`, {
+      await fetch(`/api/shopping/lists/${listId}/items`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id, ...patch }),
       });
     },
     removeItem: async (listId: string, id: string): Promise<void> => {
-      await fetch(`/api/shopping-lists/${listId}/items`, {
+      await fetch(`/api/shopping/lists/${listId}/items`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id }),
