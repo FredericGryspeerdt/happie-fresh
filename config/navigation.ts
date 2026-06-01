@@ -14,15 +14,15 @@ export interface NavItem {
 
 export const NAV_CONFIG: NavItem[] = [
   {
-    id: "shopping-lists",
-    label: "Lists",
+    id: "shopping",
+    label: "Shopping",
     icon: "🛒",
-    defaultRoute: "/lists",
-    routes: ["/lists", "/items", "/categories"],
+    defaultRoute: "/shopping",
+    routes: ["/shopping"],
     subNav: [
-      { label: "My Lists", route: "/lists" },
-      { label: "Item Catalogue", route: "/items" },
-      { label: "Categories", route: "/categories/manage" },
+      { label: "My Lists", route: "/shopping" },
+      { label: "Item Catalogue", route: "/shopping/catalogue" },
+      { label: "Categories", route: "/shopping/categories" },
     ],
   },
 ];
