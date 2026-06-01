@@ -272,7 +272,7 @@ export default function CategoryManagement(
       {/* Back Link */}
       <div class="text-center">
         <a
-          href="/home"
+          href="/shopping"
           class="inline-block px-6 py-2 text-blue-600 hover:text-blue-700 hover:underline"
         >
           ← Back to Shopping List
