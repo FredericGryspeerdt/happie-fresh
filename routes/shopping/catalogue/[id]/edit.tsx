@@ -20,7 +20,7 @@ export const handler: Handlers<Data> = {
     return await ctx.render({ item: dbItem.value });
   },
   async POST(_ctx) {
-    const req = ctx.req;
+    const req = _ctx.req;
     const form = await req.formData();
     const name = form.get("name")?.toString();
     // validate the form
@@ -33,7 +33,7 @@ export const handler: Handlers<Data> = {
 
     // Redirect user to item detail page.
     const headers = new Headers();
-    headers.set("location", `/items/detail/${newItem.id}`);
+    headers.set("location", `/shopping/catalogue/${newItem.id}`);
 
     return new Response(null, {
       status: 303,
