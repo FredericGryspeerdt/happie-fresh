@@ -1,10 +1,19 @@
 # URL Restructuring Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use
+> superpowers:subagent-driven-development (recommended) or
+> superpowers:executing-plans to implement this plan task-by-task. Steps use
+> checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Move all shopping feature routes under the `/shopping` prefix and all shopping API routes under `/api/shopping/`, aligning URL structure with the navigation hierarchy.
+**Goal:** Move all shopping feature routes under the `/shopping` prefix and all
+shopping API routes under `/api/shopping/`, aligning URL structure with the
+navigation hierarchy.
 
-**Architecture:** Hard cut-over — no redirects. Route files are moved to new paths, relative imports are upgraded to `@/` aliases where needed, and three non-route files (`config/navigation.ts`, `services/api.ts`, `routes/index.tsx`) are updated to use the new paths. Navigation config tests are updated first (TDD) before touching the config itself.
+**Architecture:** Hard cut-over — no redirects. Route files are moved to new
+paths, relative imports are upgraded to `@/` aliases where needed, and three
+non-route files (`config/navigation.ts`, `services/api.ts`, `routes/index.tsx`)
+are updated to use the new paths. Navigation config tests are updated first
+(TDD) before touching the config itself.
 
 **Tech Stack:** Deno, Fresh 2, Preact, Tailwind CSS v4
 
@@ -12,31 +21,32 @@
 
 ## File Map
 
-| Action | Before | After |
-|--------|--------|-------|
-| Move + update | `routes/lists/index.tsx` | `routes/shopping/index.tsx` |
-| Move + update | `routes/lists/[id]/index.tsx` | `routes/shopping/[id]/index.tsx` |
-| Move | `routes/items/index.tsx` | `routes/shopping/catalogue/index.tsx` |
-| Move | `routes/items/new.tsx` | `routes/shopping/catalogue/new.tsx` |
-| Move | `routes/items/detail/[id]/index.tsx` | `routes/shopping/catalogue/[id]/index.tsx` |
-| Move + update | `routes/items/detail/[id]/edit.tsx` | `routes/shopping/catalogue/[id]/edit.tsx` |
-| Move | `routes/items/overview.tsx` | `routes/shopping/catalogue/overview.tsx` |
-| Move | `routes/categories/manage.tsx` | `routes/shopping/categories/index.tsx` |
-| Move + fix imports | `routes/api/shopping-lists.ts` | `routes/api/shopping/lists.ts` |
-| Move + fix imports | `routes/api/shopping-lists/[id]/index.ts` | `routes/api/shopping/lists/[id]/index.ts` |
-| Move + fix imports | `routes/api/shopping-lists/[id]/items.ts` | `routes/api/shopping/lists/[id]/items.ts` |
-| Move + fix imports | `routes/api/items.ts` | `routes/api/shopping/catalogue.ts` |
-| Move + fix imports | `routes/api/categories.ts` | `routes/api/shopping/categories.ts` |
-| Modify | `config/navigation.ts` | same path |
-| Modify | `config/navigation.test.ts` | same path |
-| Modify | `services/api.ts` | same path |
-| Modify | `routes/index.tsx` | same path |
+| Action             | Before                                    | After                                      |
+| ------------------ | ----------------------------------------- | ------------------------------------------ |
+| Move + update      | `routes/lists/index.tsx`                  | `routes/shopping/index.tsx`                |
+| Move + update      | `routes/lists/[id]/index.tsx`             | `routes/shopping/[id]/index.tsx`           |
+| Move               | `routes/items/index.tsx`                  | `routes/shopping/catalogue/index.tsx`      |
+| Move               | `routes/items/new.tsx`                    | `routes/shopping/catalogue/new.tsx`        |
+| Move               | `routes/items/detail/[id]/index.tsx`      | `routes/shopping/catalogue/[id]/index.tsx` |
+| Move + update      | `routes/items/detail/[id]/edit.tsx`       | `routes/shopping/catalogue/[id]/edit.tsx`  |
+| Move               | `routes/items/overview.tsx`               | `routes/shopping/catalogue/overview.tsx`   |
+| Move               | `routes/categories/manage.tsx`            | `routes/shopping/categories/index.tsx`     |
+| Move + fix imports | `routes/api/shopping-lists.ts`            | `routes/api/shopping/lists.ts`             |
+| Move + fix imports | `routes/api/shopping-lists/[id]/index.ts` | `routes/api/shopping/lists/[id]/index.ts`  |
+| Move + fix imports | `routes/api/shopping-lists/[id]/items.ts` | `routes/api/shopping/lists/[id]/items.ts`  |
+| Move + fix imports | `routes/api/items.ts`                     | `routes/api/shopping/catalogue.ts`         |
+| Move + fix imports | `routes/api/categories.ts`                | `routes/api/shopping/categories.ts`        |
+| Modify             | `config/navigation.ts`                    | same path                                  |
+| Modify             | `config/navigation.test.ts`               | same path                                  |
+| Modify             | `services/api.ts`                         | same path                                  |
+| Modify             | `routes/index.tsx`                        | same path                                  |
 
 ---
 
 ## Task 1: Update navigation config (TDD)
 
 **Files:**
+
 - Modify: `config/navigation.test.ts`
 - Modify: `config/navigation.ts`
 
@@ -83,7 +93,9 @@
   deno test config/navigation.test.ts
   ```
 
-  Expected: 6 failures (all tests using `"shopping"` as the expected id fail because `NAV_CONFIG` still has `id: "shopping-lists"` and `routes: ["/lists", "/items", "/categories"]`).
+  Expected: 6 failures (all tests using `"shopping"` as the expected id fail
+  because `NAV_CONFIG` still has `id: "shopping-lists"` and
+  `routes: ["/lists", "/items", "/categories"]`).
 
 - [ ] **Step 3: Update `config/navigation.ts`**
 
@@ -148,6 +160,7 @@
 ## Task 2: Move shopping list page routes
 
 **Files:**
+
 - Create: `routes/shopping/index.tsx`
 - Create: `routes/shopping/[id]/index.tsx`
 - Delete: `routes/lists/index.tsx`
@@ -155,7 +168,8 @@
 
 - [ ] **Step 1: Create `routes/shopping/index.tsx`**
 
-  Content is identical to `routes/lists/index.tsx` — no internal URL references to update:
+  Content is identical to `routes/lists/index.tsx` — no internal URL references
+  to update:
 
   ```tsx
   import { page } from "fresh";
@@ -257,6 +271,7 @@
 ## Task 3: Move catalogue page routes
 
 **Files:**
+
 - Create: `routes/shopping/catalogue/index.tsx`
 - Create: `routes/shopping/catalogue/new.tsx`
 - Create: `routes/shopping/catalogue/[id]/index.tsx`
@@ -287,7 +302,9 @@
       <main class="max-w-4xl mx-auto p-4">
         <div class="mb-6">
           <h1 class="text-2xl font-bold mb-2">Item Catalog</h1>
-          <p class="text-gray-600">Manage your shopping items and categories.</p>
+          <p class="text-gray-600">
+            Manage your shopping items and categories.
+          </p>
         </div>
         <ItemCatalog items={data.items} categories={data.categories} />
       </main>
@@ -297,7 +314,8 @@
 
 - [ ] **Step 2: Create `routes/shopping/catalogue/new.tsx`**
 
-  Content identical to `routes/items/new.tsx` — the redirect target `detail/${id}` is relative so it keeps working:
+  Content identical to `routes/items/new.tsx` — the redirect target
+  `detail/${id}` is relative so it keeps working:
 
   ```tsx
   import { PageProps } from "fresh";
@@ -392,7 +410,8 @@
 
 - [ ] **Step 4: Create `routes/shopping/catalogue/[id]/edit.tsx`**
 
-  Update the redirect URL from `/items/detail/${newItem.id}` to `/shopping/catalogue/${newItem.id}`:
+  Update the redirect URL from `/items/detail/${newItem.id}` to
+  `/shopping/catalogue/${newItem.id}`:
 
   ```tsx
   import { PageProps } from "fresh";
@@ -456,7 +475,8 @@
 
 - [ ] **Step 5: Create `routes/shopping/catalogue/overview.tsx`**
 
-  Content identical to `routes/items/overview.tsx` — relative hrefs keep working:
+  Content identical to `routes/items/overview.tsx` — relative hrefs keep
+  working:
 
   ```tsx
   import { PageProps } from "fresh";
@@ -471,7 +491,9 @@
   export const handler: Handlers<Data> = {
     async GET(ctx) {
       const kv = await getKv();
-      const dbItems: Deno.KvListIterator<ItemInterface> = kv.list<ItemInterface>(
+      const dbItems: Deno.KvListIterator<ItemInterface> = kv.list<
+        ItemInterface
+      >(
         { prefix: ["items"] },
       );
       const items = [];
@@ -523,6 +545,7 @@
 ## Task 4: Move categories page route
 
 **Files:**
+
 - Create: `routes/shopping/categories/index.tsx`
 - Delete: `routes/categories/manage.tsx`
 
@@ -581,18 +604,25 @@
 ## Task 5: Move API routes
 
 **Files:**
+
 - Create: `routes/api/shopping/lists.ts`
 - Create: `routes/api/shopping/lists/[id]/index.ts`
 - Create: `routes/api/shopping/lists/[id]/items.ts`
 - Create: `routes/api/shopping/catalogue.ts`
 - Create: `routes/api/shopping/categories.ts`
-- Delete: `routes/api/shopping-lists.ts`, `routes/api/shopping-lists/[id]/index.ts`, `routes/api/shopping-lists/[id]/items.ts`, `routes/api/items.ts`, `routes/api/categories.ts`
+- Delete: `routes/api/shopping-lists.ts`,
+  `routes/api/shopping-lists/[id]/index.ts`,
+  `routes/api/shopping-lists/[id]/items.ts`, `routes/api/items.ts`,
+  `routes/api/categories.ts`
 
-**Note:** `routes/api/items.ts` and `routes/api/categories.ts` use relative imports (`../../database/...`) that break at the new deeper path. Switch them to `@/` alias imports.
+**Note:** `routes/api/items.ts` and `routes/api/categories.ts` use relative
+imports (`../../database/...`) that break at the new deeper path. Switch them to
+`@/` alias imports.
 
 - [ ] **Step 1: Create `routes/api/shopping/lists.ts`**
 
-  Content identical to `routes/api/shopping-lists.ts` (already uses `@/` imports):
+  Content identical to `routes/api/shopping-lists.ts` (already uses `@/`
+  imports):
 
   ```ts
   import { ShoppingListRepo } from "@/database/index.ts";
@@ -633,7 +663,8 @@
 
 - [ ] **Step 2: Create `routes/api/shopping/lists/[id]/index.ts`**
 
-  Content identical to `routes/api/shopping-lists/[id]/index.ts` (already uses `@/` imports):
+  Content identical to `routes/api/shopping-lists/[id]/index.ts` (already uses
+  `@/` imports):
 
   ```ts
   import { type Context } from "fresh";
@@ -680,7 +711,8 @@
 
 - [ ] **Step 3: Create `routes/api/shopping/lists/[id]/items.ts`**
 
-  Content identical to `routes/api/shopping-lists/[id]/items.ts` (already uses `@/` imports):
+  Content identical to `routes/api/shopping-lists/[id]/items.ts` (already uses
+  `@/` imports):
 
   ```ts
   import { type Context } from "fresh";
@@ -751,7 +783,8 @@
 
 - [ ] **Step 4: Create `routes/api/shopping/catalogue.ts`**
 
-  Same logic as `routes/api/items.ts`, but switch to `@/` imports (the old relative `../../database/item.repo.ts` would be wrong at the new path):
+  Same logic as `routes/api/items.ts`, but switch to `@/` imports (the old
+  relative `../../database/item.repo.ts` would be wrong at the new path):
 
   ```ts
   import { type Context } from "fresh";
@@ -904,6 +937,7 @@
 ## Task 6: Update services/api.ts and routes/index.tsx
 
 **Files:**
+
 - Modify: `services/api.ts`
 - Modify: `routes/index.tsx`
 
@@ -1062,7 +1096,8 @@
   deno test
   ```
 
-  Expected: `ok | 50 passed | 0 failed` (the navigation config tests now pass with the new routes; all other tests are unaffected).
+  Expected: `ok | 50 passed | 0 failed` (the navigation config tests now pass
+  with the new routes; all other tests are unaffected).
 
 - [ ] **Step 4: Run type check**
 
@@ -1083,4 +1118,6 @@
 
 ## Done
 
-All routes now live under `/shopping` (page) and `/api/shopping/` (API). The old `/lists`, `/items`, `/categories`, and `/api/shopping-lists`, `/api/items`, `/api/categories` paths no longer exist.
+All routes now live under `/shopping` (page) and `/api/shopping/` (API). The old
+`/lists`, `/items`, `/categories`, and `/api/shopping-lists`, `/api/items`,
+`/api/categories` paths no longer exist.
