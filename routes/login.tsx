@@ -45,7 +45,7 @@ export const handler = define.handlers<Data>({
       secure: true,
     });
 
-    headers.set("location", "/lists");
+    headers.set("location", "/shopping");
     return new Response(null, {
       status: 303,
       headers,

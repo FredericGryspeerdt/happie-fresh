@@ -51,7 +51,7 @@ export default function CategoryManagement(
   const saveEdit = async (id: string) => {
     if (!editingLabel.value.trim()) return;
 
-    const res = await fetch("/api/categories", {
+    const res = await fetch("/api/shopping/categories", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id, label: editingLabel.value.trim() }),
@@ -71,7 +71,7 @@ export default function CategoryManagement(
       return;
     }
 
-    const res = await fetch("/api/categories", {
+    const res = await fetch("/api/shopping/categories", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id }),
@@ -85,7 +85,7 @@ export default function CategoryManagement(
   const createCategory = async (label: string) => {
     if (!label.trim()) return;
 
-    const res = await fetch("/api/categories", {
+    const res = await fetch("/api/shopping/categories", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ label: label.trim() }),
@@ -109,7 +109,7 @@ export default function CategoryManagement(
 
     const updates = newOrder.map((cat, idx) => ({ id: cat.id!, order: idx }));
 
-    const res = await fetch("/api/categories", {
+    const res = await fetch("/api/shopping/categories", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(updates),
@@ -131,7 +131,7 @@ export default function CategoryManagement(
 
     const updates = newOrder.map((cat, idx) => ({ id: cat.id!, order: idx }));
 
-    const res = await fetch("/api/categories", {
+    const res = await fetch("/api/shopping/categories", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(updates),
