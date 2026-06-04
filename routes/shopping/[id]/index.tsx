@@ -16,6 +16,11 @@ export const handler = define.handlers({
     if (!list) {
       return new Response("Not found", { status: 404 });
     }
+    ctx.state.appBar = {
+      mode: "detail",
+      title: list.name,
+      backUrl: "/shopping",
+    };
     const [items, shoppingList, categories] = await Promise.all([
       ItemRepo.readAll(),
       ShoppingListItemRepo.getAll(listId),
@@ -28,15 +33,6 @@ export const handler = define.handlers({
 export default define.page<typeof handler>(function ListDetail({ data }) {
   return (
     <main class="max-w-md mx-auto p-4">
-      <div class="flex items-center gap-3 mb-4">
-        <a
-          href="/lists"
-          class="text-blue-500 text-sm font-medium hover:underline"
-        >
-          ← Lists
-        </a>
-        <h1 class="text-xl font-bold text-gray-900">{data.list.name}</h1>
-      </div>
       <ItemsIsland
         listId={data.list.id}
         items={data.items}

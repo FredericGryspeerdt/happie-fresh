@@ -1,12 +1,11 @@
-import { Context } from "fresh";
-import { ItemRepo } from "../../database/item.repo.ts";
+import { type Context } from "fresh";
+import { ItemRepo } from "@/database/item.repo.ts";
 
 export const handler = {
   async POST(_ctx: Context<unknown>) {
     const req = _ctx.req;
     const item = await req.json();
     if (item.id) {
-      // If an ID is provided, update the existing item
       const existingItem = await ItemRepo.getById(item.id);
       if (!existingItem) {
         return new Response("Item not found", { status: 404 });
