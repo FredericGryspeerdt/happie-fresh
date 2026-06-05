@@ -3,6 +3,27 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with
 code in this repository.
 
+## Product Vision
+
+**Happie** is a household manager — a shared platform that helps families
+collaborate on the daily ins and outs of living together. The target audience is
+households with parents and children. The core ethos is making routine household
+tasks feel collaborative and shared, rather than a burden on one person.
+
+The **shopping list** is the first module, but the platform is designed to grow.
+Future modules could include meal planning, shared to-do lists, smart home
+integrations, and more. Avoid designs that are tightly coupled to the shopping
+list domain — new features should feel like cohesive modules within a broader
+household platform.
+
+UX must be accessible to all ages (including children): clear language, simple
+interactions, and a warm approachable tone — not clinical or productivity-tool-ish.
+
+The app is **mobile-first** and designed to work as a Progressive Web App (PWA),
+but must also work well on desktop. Mobile is the priority because much of the
+functionality is meant to be used on the go — e.g. checking off items while
+shopping, or quickly adding something to a list from wherever you are.
+
 ## Build & Development Commands
 
 - `deno task dev` — Start dev server (Vite + HMR, requires `--unstable-kv`)
