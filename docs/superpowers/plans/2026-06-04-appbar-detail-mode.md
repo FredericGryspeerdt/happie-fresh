@@ -1,10 +1,19 @@
 # AppBar Detail Mode Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use
+> superpowers:subagent-driven-development (recommended) or
+> superpowers:executing-plans to implement this plan task-by-task. Steps use
+> checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Give the AppBar a detail mode that shows a back button + list name on shopping list detail pages, and move logout from the AppBar header into the section sub-nav.
+**Goal:** Give the AppBar a detail mode that shows a back button + list name on
+shopping list detail pages, and move logout from the AppBar header into the
+section sub-nav.
 
-**Architecture:** `StateInterface` gains an optional `appBar` field that route handlers populate. `_app.tsx` reads it to choose between section mode (existing) and detail mode (new). The `AppBar` island gets a discriminated union prop type — section mode keeps the ≡ toggle with logout in the sub-nav panel; detail mode renders only ← + title.
+**Architecture:** `StateInterface` gains an optional `appBar` field that route
+handlers populate. `_app.tsx` reads it to choose between section mode (existing)
+and detail mode (new). The `AppBar` island gets a discriminated union prop type
+— section mode keeps the ≡ toggle with logout in the sub-nav panel; detail mode
+renders only ← + title.
 
 **Tech Stack:** Deno, Fresh 2, Preact, `@preact/signals`, Tailwind CSS v4
 
@@ -12,19 +21,20 @@
 
 ## File Map
 
-| Action | File |
-|--------|------|
-| Modify | `utils/define.ts` — add `AppBarDetail`, add `appBar?` to `StateInterface` |
+| Action | File                                                                                   |
+| ------ | -------------------------------------------------------------------------------------- |
+| Modify | `utils/define.ts` — add `AppBarDetail`, add `appBar?` to `StateInterface`              |
 | Modify | `islands/AppBar.tsx` — discriminated union props, detail mode render, logout → sub-nav |
-| Modify | `islands/AppBar.test.tsx` — update section tests for `mode`, add detail mode tests |
-| Modify | `routes/shopping/[id]/index.tsx` — set `ctx.state.appBar`, remove in-page back link |
-| Modify | `routes/_app.tsx` — import `StateInterface`, branch on `state.appBar` |
+| Modify | `islands/AppBar.test.tsx` — update section tests for `mode`, add detail mode tests     |
+| Modify | `routes/shopping/[id]/index.tsx` — set `ctx.state.appBar`, remove in-page back link    |
+| Modify | `routes/_app.tsx` — import `StateInterface`, branch on `state.appBar`                  |
 
 ---
 
 ## Task 1: Extend StateInterface
 
 **Files:**
+
 - Modify: `utils/define.ts`
 
 No unit tests — this is a type-only change verified by `deno task check`.
@@ -62,7 +72,8 @@ No unit tests — this is a type-only change verified by `deno task check`.
   deno task check
   ```
 
-  Expected: 9 pre-existing lint warnings in `islands/` and `utils/root-page.ts`, no new errors.
+  Expected: 9 pre-existing lint warnings in `islands/` and `utils/root-page.ts`,
+  no new errors.
 
 - [ ] **Step 3: Commit**
 
@@ -76,18 +87,19 @@ No unit tests — this is a type-only change verified by `deno task check`.
 ## Task 2: Update AppBar island (TDD)
 
 **Files:**
+
 - Modify: `islands/AppBar.test.tsx`
 - Modify: `islands/AppBar.tsx`
 
 - [ ] **Step 1: Replace `islands/AppBar.test.tsx` with updated tests**
 
-  The existing 5 tests are replaced with 9 tests (5 updated section-mode + 4 new detail-mode). Key change: all section-mode tests gain `mode: "section"`. The logout test changes from "renders in header" to "not in closed-state render" (logout moved to sub-nav panel which is closed in SSR).
+  The existing 5 tests are replaced with 9 tests (5 updated section-mode + 4 new
+  detail-mode). Key change: all section-mode tests gain `mode: "section"`. The
+  logout test changes from "renders in header" to "not in closed-state render"
+  (logout moved to sub-nav panel which is closed in SSR).
 
   ```tsx
-  import {
-    assertFalse,
-    assertStringIncludes,
-  } from "jsr:@std/assert@^1.0.19";
+  import { assertFalse, assertStringIncludes } from "jsr:@std/assert@^1.0.19";
   import { render } from "npm:preact-render-to-string@^6.6.3";
   import { h } from "preact";
   import AppBar from "./AppBar.tsx";
@@ -236,17 +248,17 @@ No unit tests — this is a type-only change verified by `deno task check`.
 
   type AppBarProps =
     | {
-        mode: "section";
-        activeTabLabel: string;
-        subNavItems: SubNavItem[];
-        activeRoute: string;
-        logoutRoute?: string;
-      }
+      mode: "section";
+      activeTabLabel: string;
+      subNavItems: SubNavItem[];
+      activeRoute: string;
+      logoutRoute?: string;
+    }
     | {
-        mode: "detail";
-        title: string;
-        backUrl: string;
-      };
+      mode: "detail";
+      title: string;
+      backUrl: string;
+    };
 
   export default function AppBar(props: AppBarProps) {
     const open = useSignal(false);
@@ -377,13 +389,16 @@ No unit tests — this is a type-only change verified by `deno task check`.
 ## Task 3: Update list detail route
 
 **Files:**
+
 - Modify: `routes/shopping/[id]/index.tsx`
 
 No unit tests — type-checked by `deno task check`.
 
 - [ ] **Step 1: Replace `routes/shopping/[id]/index.tsx`**
 
-  Changes: handler sets `ctx.state.appBar` before calling `page()`. Page component removes the `← Lists` back link and the `<h1>` title (AppBar now owns both).
+  Changes: handler sets `ctx.state.appBar` before calling `page()`. Page
+  component removes the `← Lists` back link and the `<h1>` title (AppBar now
+  owns both).
 
   ```tsx
   import { page } from "fresh";
@@ -438,7 +453,8 @@ No unit tests — type-checked by `deno task check`.
   deno task check
   ```
 
-  Expected: no new errors. `ctx.state.appBar` is now typed correctly because `StateInterface` has `appBar?: AppBarDetail`.
+  Expected: no new errors. `ctx.state.appBar` is now typed correctly because
+  `StateInterface` has `appBar?: AppBarDetail`.
 
 - [ ] **Step 3: Commit**
 
@@ -452,11 +468,13 @@ No unit tests — type-checked by `deno task check`.
 ## Task 4: Update _app.tsx
 
 **Files:**
+
 - Modify: `routes/_app.tsx`
 
 - [ ] **Step 1: Replace `routes/_app.tsx`**
 
-  Changes: import `StateInterface` from `@/utils/define.ts` (removes local `State` interface), branch on `state.appBar` to choose AppBar mode.
+  Changes: import `StateInterface` from `@/utils/define.ts` (removes local
+  `State` interface), branch on `state.appBar` to choose AppBar mode.
 
   ```tsx
   import { type PageProps } from "fresh";
@@ -495,21 +513,23 @@ No unit tests — type-checked by `deno task check`.
         <body class="pb-16">
           {state?.userId && (
             <>
-              {state.appBar ? (
-                <AppBar
-                  mode="detail"
-                  title={state.appBar.title}
-                  backUrl={state.appBar.backUrl}
-                />
-              ) : (
-                <AppBar
-                  mode="section"
-                  activeTabLabel={activeTab?.label ?? "Happie"}
-                  subNavItems={activeTab?.subNav ?? []}
-                  activeRoute={url.pathname}
-                  logoutRoute="/logout"
-                />
-              )}
+              {state.appBar
+                ? (
+                  <AppBar
+                    mode="detail"
+                    title={state.appBar.title}
+                    backUrl={state.appBar.backUrl}
+                  />
+                )
+                : (
+                  <AppBar
+                    mode="section"
+                    activeTabLabel={activeTab?.label ?? "Happie"}
+                    subNavItems={activeTab?.subNav ?? []}
+                    activeRoute={url.pathname}
+                    logoutRoute="/logout"
+                  />
+                )}
               <TabBar
                 items={NAV_CONFIG}
                 activeTabId={activeTab?.id}
@@ -529,7 +549,8 @@ No unit tests — type-checked by `deno task check`.
   deno test
   ```
 
-  Expected: `ok | 54 passed | 0 failed` (50 existing + 4 new AppBar detail-mode tests).
+  Expected: `ok | 54 passed | 0 failed` (50 existing + 4 new AppBar detail-mode
+  tests).
 
 - [ ] **Step 3: Run type check**
 
@@ -550,4 +571,5 @@ No unit tests — type-checked by `deno task check`.
 
 ## Done
 
-On list detail pages the AppBar now shows ← + list name. On all other pages it shows the section title + ≡ sub-nav with logout at the bottom of the panel.
+On list detail pages the AppBar now shows ← + list name. On all other pages it
+shows the section title + ≡ sub-nav with logout at the bottom of the panel.

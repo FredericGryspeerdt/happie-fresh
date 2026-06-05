@@ -4,17 +4,17 @@ import type { SubNavItem } from "@/config/navigation.ts";
 
 type AppBarProps =
   | {
-      mode: "section";
-      activeTabLabel: string;
-      subNavItems: SubNavItem[];
-      activeRoute: string;
-      logoutRoute?: string;
-    }
+    mode: "section";
+    activeTabLabel: string;
+    subNavItems: SubNavItem[];
+    activeRoute: string;
+    logoutRoute?: string;
+  }
   | {
-      mode: "detail";
-      title: string;
-      backUrl: string;
-    };
+    mode: "detail";
+    title: string;
+    backUrl: string;
+  };
 
 export default function AppBar(props: AppBarProps) {
   const open = useSignal(false);
@@ -93,9 +93,7 @@ export default function AppBar(props: AppBarProps) {
                     open.value = false;
                   }}
                 >
-                  {item.route === activeRoute
-                    ? `› ${item.label}`
-                    : item.label}
+                  {item.route === activeRoute ? `› ${item.label}` : item.label}
                 </a>
               </li>
             ))}
