@@ -17,7 +17,8 @@ list domain — new features should feel like cohesive modules within a broader
 household platform.
 
 UX must be accessible to all ages (including children): clear language, simple
-interactions, and a warm approachable tone — not clinical or productivity-tool-ish.
+interactions, and a warm approachable tone — not clinical or
+productivity-tool-ish.
 
 The app is **mobile-first** and designed to work as a Progressive Web App (PWA),
 but must also work well on desktop. Mobile is the priority because much of the

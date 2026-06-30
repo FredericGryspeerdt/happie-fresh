@@ -2,7 +2,7 @@ import { CategoryInterface } from "@/models/index.ts";
 import { useCategoryManagement } from "@/hooks/index.ts";
 import { useSearchBox } from "@/hooks/useSearchBox.ts";
 import SearchBox from "./search-box.tsx";
-import { useComputed, useSignal, useSignalEffect } from "@preact/signals";
+import { useComputed } from "@preact/signals";
 import { List } from "../components/list.tsx";
 import { useSignalRef } from "@preact/signals/utils";
 
@@ -171,6 +171,7 @@ export default function CategoryManagement(
       {/* Reorder Buttons */}
       <div class="flex flex-col gap-1">
         <button
+          type="button"
           onClick={() =>
             moveUp(index)}
           disabled={index === 0}
@@ -180,6 +181,7 @@ export default function CategoryManagement(
           ▲
         </button>
         <button
+          type="button"
           onClick={() =>
             moveDown(index)}
           disabled={index === categories.value.length - 1}
@@ -215,12 +217,14 @@ export default function CategoryManagement(
           ? (
             <>
               <button
+                type="button"
                 onClick={() => saveEdit(category.id!)}
                 class="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 text-sm"
               >
                 Save
               </button>
               <button
+                type="button"
                 onClick={cancelEdit}
                 class="px-3 py-1 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 text-sm"
               >
@@ -231,12 +235,14 @@ export default function CategoryManagement(
           : (
             <>
               <button
+                type="button"
                 onClick={() => startEdit(category)}
                 class="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
               >
                 Edit
               </button>
               <button
+                type="button"
                 onClick={() => deleteCategory(category.id!)}
                 class="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-sm"
               >
