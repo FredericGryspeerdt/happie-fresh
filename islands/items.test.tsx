@@ -5,7 +5,13 @@ import Items from "./items.tsx";
 
 Deno.test("Items — renders Plan and Shop mode toggle", () => {
   const html = render(
-    h(Items, { listId: "l1", items: [], shoppingList: [], categories: [] }),
+    h(Items, {
+      listId: "l1",
+      listName: "Test list",
+      items: [],
+      shoppingList: [],
+      categories: [],
+    }),
   );
   assertStringIncludes(html, "Plan");
   assertStringIncludes(html, "Shop");

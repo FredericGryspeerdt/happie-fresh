@@ -25,14 +25,20 @@ import { Snackbar } from "@/components/md3/Snackbar.tsx";
 
 interface ItemsProps {
   listId: string;
+  listName: string;
   items: Required<ItemInterface>[];
   shoppingList: ShoppingListItemInterface[];
   categories: CategoryInterface[];
 }
 
 export default function Items(
-  { listId, items: catalog, shoppingList, categories: initialCategories }:
-    ItemsProps,
+  {
+    listId,
+    listName,
+    items: catalog,
+    shoppingList,
+    categories: initialCategories,
+  }: ItemsProps,
 ) {
   // useMemo with [] ensures useShoppingList is called only once.
   // useShoppingList uses plain signal() (not useSignal), so calling it on every
@@ -178,7 +184,7 @@ export default function Items(
           name="dots"
           aria-label="List options"
           onClick={() => {
-            renameValue.value = "";
+            renameValue.value = listName;
             mgmtOpen.value = true;
           }}
         />
