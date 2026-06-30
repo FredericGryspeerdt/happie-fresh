@@ -11,7 +11,7 @@ export function Sheet({ open, onClose, title, children }: SheetProps) {
   const sheetRef = useRef<HTMLDivElement>(null);
   const dragStartY = useRef(0);
   const currentDelta = useRef(0);
-  useEffect(() => { // Escape to close — copied from BottomSheet.tsx:17-24
+  useEffect(() => { // Escape to close — ported from the previous BottomSheet implementation
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -19,7 +19,7 @@ export function Sheet({ open, onClose, title, children }: SheetProps) {
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [open, onClose]);
-  useEffect(() => { // scroll-lock — copied from BottomSheet.tsx:29-36
+  useEffect(() => { // scroll-lock — ported from the previous BottomSheet implementation
     if (!open) return;
     const prev = document.documentElement.style.overflow;
     document.documentElement.style.overflow = "hidden";
