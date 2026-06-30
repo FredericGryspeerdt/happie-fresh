@@ -4,13 +4,14 @@ import { Pressable } from "./Pressable.tsx";
 import { Icon, type IconName } from "./Icon.tsx";
 import { cn } from "./tokens.ts";
 
-type Variant = "filled" | "tonal" | "elevated" | "outlined" | "text";
+type Variant = "filled" | "tonal" | "elevated" | "outlined" | "text" | "error";
 const VARIANT: Record<Variant, string> = {
   filled: "bg-primary text-on-primary",
   tonal: "bg-secondary-container text-on-secondary-container",
   elevated: "bg-surface-clow text-primary md-elevation-1",
   outlined: "bg-transparent text-primary border border-outline-variant",
   text: "bg-transparent text-primary",
+  error: "bg-error text-on-error",
 };
 
 interface ButtonProps {

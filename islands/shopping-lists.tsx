@@ -26,6 +26,7 @@ function relativeTime(msOrString: number | string): string {
   const ms = typeof msOrString === "string"
     ? new Date(msOrString).getTime()
     : msOrString;
+  if (isNaN(ms)) return "recently";
   const diff = Date.now() - ms;
   const minutes = Math.floor(diff / 60_000);
   if (minutes < 2) return "just now";
@@ -369,9 +370,8 @@ export default function ShoppingLists({ initialLists }: ShoppingListsProps) {
               deleted. This cannot be undone.
             </p>
             <Button
-              variant="filled"
+              variant="error"
               full
-              class="bg-error text-on-error"
               onClick={handleDeleteConfirm}
             >
               Delete
