@@ -23,7 +23,7 @@ export default function MoreSheet({ open, onClose }: MoreSheetProps) {
     snack.value = { msg: `${label} — coming soon` };
     setTimeout(() => snack.value = null, 2200);
   };
-  const chevron = <Icon name="chevron" size={18} />;
+  const chevron = () => <Icon name="chevron" size={18} />;
   return (
     <>
       <Sheet open={open} onClose={onClose} title="The household">
@@ -36,7 +36,7 @@ export default function MoreSheet({ open, onClose }: MoreSheetProps) {
         <ListItem
           leading={badge("cart")}
           headline="Shopping"
-          trailing={chevron}
+          trailing={chevron()}
           onClick={() => {
             onClose();
             globalThis.location.href = "/shopping";
@@ -45,19 +45,19 @@ export default function MoreSheet({ open, onClose }: MoreSheetProps) {
         <ListItem
           leading={badge("checklist")}
           headline="To-dos"
-          trailing={chevron}
+          trailing={chevron()}
           onClick={() => soon("To-dos")}
         />
         <ListItem
           leading={badge("plate")}
           headline="Menu planner"
-          trailing={chevron}
+          trailing={chevron()}
           onClick={() => soon("Menu planner")}
         />
         <ListItem
           leading={badge("card")}
           headline="Loyalty cards"
-          trailing={chevron}
+          trailing={chevron()}
           onClick={() => soon("Loyalty cards")}
         />
         <div
@@ -69,19 +69,19 @@ export default function MoreSheet({ open, onClose }: MoreSheetProps) {
         <ListItem
           leading={badge("people")}
           headline="Members"
-          trailing={chevron}
+          trailing={chevron()}
           onClick={() => soon("Members")}
         />
         <ListItem
           leading={badge("cog")}
           headline="Settings"
-          trailing={chevron}
+          trailing={chevron()}
           onClick={() => soon("Settings")}
         />
         <ListItem
           leading={badge("swap")}
           headline="Switch household"
-          trailing={chevron}
+          trailing={chevron()}
           onClick={() => soon("Switch household")}
         />
         <a
