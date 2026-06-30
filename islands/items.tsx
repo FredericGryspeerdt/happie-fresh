@@ -17,7 +17,11 @@ import { Chip } from "@/components/md3/Chip.tsx";
 import { Button } from "@/components/md3/Button.tsx";
 import { ListItem } from "@/components/md3/ListItem.tsx";
 import { Icon } from "@/components/md3/Icon.tsx";
+import { IconButton } from "@/components/md3/IconButton.tsx";
 import { Pressable } from "@/components/md3/Pressable.tsx";
+import { Progress } from "@/components/md3/Progress.tsx";
+import { RoundCheck } from "@/components/md3/RoundCheck.tsx";
+import { Snackbar } from "@/components/md3/Snackbar.tsx";
 
 interface ItemsProps {
   listId: string;
@@ -38,9 +42,13 @@ export default function Items(
     addToList,
     addToCatalog,
     removeListItem,
+    checkItem,
+    uncheckItem,
     refresh,
     getItemName,
     groupedList,
+    list,
+    checkedItems,
     selectedCategoryId,
     listItemsMap,
     categories,
@@ -52,6 +60,42 @@ export default function Items(
 
   // ── mode toggle ──────────────────────────────────────────────────────────
   const mode = useSignal<"plan" | "shop">("plan");
+
+  // ── shop mode: pending check items (optimistic UI) ───────────────────────
+  const pendingItemIds = useSignal<Set<string>>(new Set());
+
+  // ── shop mode: check item wrapper ────────────────────────────────────────
+  const handleCheckItem = async (id: string) => {
+    pendingItemIds.value = new Set([...pendingItemIds.value, id]);
+    try {
+      await checkItem(id);
+    } finally {
+      const next = new Set(pendingItemIds.value);
+      next.delete(id);
+      pendingItemIds.value = next;
+    }
+  };
+
+  // ── shop mode: "In cart" collapsible ─────────────────────────────────────
+  const showDone = useSignal(false);
+
+  // ── list management sheet ────────────────────────────────────────────────
+  const mgmtOpen = useSignal(false);
+  const renameValue = useSignal("");
+  const snackData = useSignal<{ msg: string } | null>(null);
+  const snackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showSnack = (msg: string) => {
+    snackData.value = { msg };
+    if (snackTimer.current) clearTimeout(snackTimer.current);
+    snackTimer.current = setTimeout(() => {
+      snackData.value = null;
+    }, 3000);
+  };
+
+  useEffect(() => () => {
+    if (snackTimer.current) clearTimeout(snackTimer.current);
+  }, []);
 
   // ── sheet signals ────────────────────────────────────────────────────────
   const addOpen = useSignal(false);
@@ -116,17 +160,29 @@ export default function Items(
   // ─────────────────────────────────────────────────────────────────────────
   return (
     <div class="flex flex-col gap-4 pb-24">
-      {/* Mode toggle */}
-      <Segmented
-        options={[
-          ["plan", "edit", "Plan"],
-          ["shop", "cart", "Shop"],
-        ]}
-        value={mode.value}
-        onChange={(m) => {
-          mode.value = m as "plan" | "shop";
-        }}
-      />
+      {/* Mode toggle + management overflow button */}
+      <div class="flex items-center gap-2">
+        <div class="flex-1">
+          <Segmented
+            options={[
+              ["plan", "edit", "Plan"],
+              ["shop", "cart", "Shop"],
+            ]}
+            value={mode.value}
+            onChange={(m) => {
+              mode.value = m as "plan" | "shop";
+            }}
+          />
+        </div>
+        <IconButton
+          name="dots"
+          aria-label="List options"
+          onClick={() => {
+            renameValue.value = "";
+            mgmtOpen.value = true;
+          }}
+        />
+      </div>
 
       {/* ── Plan mode ── */}
       {mode.value === "plan" && (
@@ -209,12 +265,266 @@ export default function Items(
         </div>
       )}
 
-      {/* ── Shop mode placeholder (next task fills this in) ── */}
-      {mode.value === "shop" && (
-        <p class="md-body-large text-on-surface-variant text-center py-16">
-          Shop mode — built in the next step
-        </p>
-      )}
+      {/* ── Shop mode ── */}
+      {mode.value === "shop" && (() => {
+        const done = checkedItems.value.length;
+        const total = list.value.length + checkedItems.value.length;
+        const allDone = done === total && total > 0;
+
+        return (
+          <div class="flex flex-col gap-3">
+            {/* Progress card */}
+            <Card variant="filled" pad={16}>
+              <div class="flex items-baseline justify-between gap-2 mb-2.5">
+                <span class="md-title-medium text-on-surface whitespace-nowrap">
+                  {done} / {total} in cart
+                </span>
+                {/* NOTE: Wake Lock API is not implemented in this spike — this is a static label only */}
+                <span class="inline-flex items-center gap-1 md-label-small text-on-surface-variant whitespace-nowrap shrink-0">
+                  <Icon name="bolt" size={13} /> Screen awake
+                </span>
+              </div>
+              <Progress value={done} total={total} height={8} />
+            </Card>
+
+            {/* All-done celebration */}
+            {allDone && (
+              <Card
+                variant="filled"
+                pad={20}
+                class="bg-tertiary-container text-center"
+              >
+                <div class="text-[34px] leading-none mb-1">🎉</div>
+                <div class="md-title-large text-on-tertiary-container mt-1">
+                  All done — nice work!
+                </div>
+                <div class="md-body-medium text-on-tertiary-container opacity-85 mt-1">
+                  Everything's in the cart.
+                </div>
+              </Card>
+            )}
+
+            {/* Remaining items grouped by aisle */}
+            {!allDone && (
+              <For each={groupedList}>
+                {(group) => (
+                  <div class="flex flex-col gap-2">
+                    {/* Aisle header */}
+                    <div class="flex items-center justify-between mx-1 mt-1">
+                      <span class="md-title-small text-primary uppercase tracking-[0.05em]">
+                        {group.category?.label ?? "Uncategorized"}
+                      </span>
+                      <span class="md-label-medium text-on-surface-variant whitespace-nowrap shrink-0">
+                        {group.items.length} left
+                      </span>
+                    </div>
+
+                    {/* Item rows */}
+                    <div class="flex flex-col gap-2">
+                      {group.items.map((li: ShoppingListItemInterface) => (
+                        <Pressable
+                          key={li.id}
+                          as="div"
+                          onClick={() => handleCheckItem(li.id!)}
+                          class="flex items-center gap-4 bg-surface-chigh rounded-2xl px-4"
+                          style={{
+                            minHeight: 60,
+                            paddingTop: 14,
+                            paddingBottom: 14,
+                          }}
+                        >
+                          <RoundCheck checked={false} />
+                          <div class="flex-1 min-w-0">
+                            <div class="md-body-large text-on-surface overflow-hidden text-ellipsis whitespace-nowrap">
+                              {getItemName(li.itemId)}
+                            </div>
+                            {li.note && (
+                              <div class="md-body-small text-on-surface-variant overflow-hidden text-ellipsis whitespace-nowrap">
+                                📝 {li.note}
+                              </div>
+                            )}
+                          </div>
+                          {(li.quantity ?? 1) > 1 && (
+                            <span class="md-label-large bg-secondary-container text-on-secondary-container rounded-full px-2.5 py-0.5 shrink-0">
+                              ×{li.quantity}
+                            </span>
+                          )}
+                        </Pressable>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </For>
+            )}
+
+            {/* "In cart" collapsible */}
+            {checkedItems.value.length > 0 && (
+              <div class="flex flex-col gap-2">
+                {/* Toggle header */}
+                <Pressable
+                  as="div"
+                  onClick={() => {
+                    showDone.value = !showDone.value;
+                  }}
+                  class="flex items-center gap-2.5 px-1 py-2 mt-1"
+                >
+                  <span class="md-title-small text-on-surface-variant">
+                    In cart · {checkedItems.value.length}
+                  </span>
+                  <div class="flex-1 h-px bg-surface-chigh" />
+                  <span
+                    class="text-on-surface-variant shrink-0"
+                    style={{
+                      transform: showDone.value
+                        ? "rotate(90deg)"
+                        : "rotate(0deg)",
+                      transition: "transform .15s",
+                      display: "inline-flex",
+                    }}
+                  >
+                    <Icon name="chevron" size={20} />
+                  </span>
+                </Pressable>
+
+                {/* Checked items */}
+                {showDone.value && checkedItems.value.map(
+                  (li: ShoppingListItemInterface) => (
+                    <Pressable
+                      key={li.id}
+                      as="div"
+                      onClick={() => uncheckItem(li.id!)}
+                      class="flex items-center gap-4 bg-surface rounded-2xl px-4 opacity-60"
+                      style={{
+                        minHeight: 60,
+                        paddingTop: 14,
+                        paddingBottom: 14,
+                      }}
+                    >
+                      <RoundCheck checked />
+                      <div class="flex-1 min-w-0">
+                        <div class="md-body-large text-on-surface line-through overflow-hidden text-ellipsis whitespace-nowrap">
+                          {getItemName(li.itemId)}
+                        </div>
+                      </div>
+                    </Pressable>
+                  ),
+                )}
+              </div>
+            )}
+
+            {total === 0 && (
+              <p class="md-body-large text-on-surface-variant text-center py-8">
+                Switch to Plan to add items.
+              </p>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* ══════════════════════ List-management sheet ══════════════════════ */}
+      <Sheet
+        open={mgmtOpen.value}
+        onClose={() => {
+          mgmtOpen.value = false;
+        }}
+        title="List options"
+      >
+        <div class="flex flex-col gap-1 pb-1">
+          {/* Rename */}
+          <div class="px-1 py-2">
+            <div class="md-body-large text-on-surface mb-2">Rename list</div>
+            <div class="flex gap-2">
+              <input
+                value={renameValue.value}
+                onInput={(e) => {
+                  renameValue.value = (e.target as HTMLInputElement).value;
+                }}
+                onKeyDown={async (e) => {
+                  if (e.key === "Enter" && renameValue.value.trim()) {
+                    await api.shoppingLists.rename(
+                      listId,
+                      renameValue.value.trim(),
+                    );
+                    mgmtOpen.value = false;
+                    // The route SSR renders the list name into the shell TopAppBar;
+                    // reload to reflect the new name there.
+                    globalThis.location.reload();
+                  }
+                }}
+                placeholder="List name"
+                class="flex-1 md-body-large text-on-surface bg-surface-chigh border-0 rounded-[var(--md-shape-full)] py-3 px-4 outline-none"
+              />
+              <Button
+                variant="filled"
+                onClick={async () => {
+                  const name = renameValue.value.trim();
+                  if (!name) return;
+                  await api.shoppingLists.rename(listId, name);
+                  mgmtOpen.value = false;
+                  globalThis.location.reload();
+                }}
+              >
+                Save
+              </Button>
+            </div>
+          </div>
+
+          <div class="h-px bg-surface-chigh mx-1 my-1" />
+
+          {/* Share — coming soon */}
+          <ListItem
+            headline="Share list"
+            supporting="Invite household members"
+            leading={
+              <span class="w-10 h-10 rounded-full bg-surface-chigh text-on-surface-variant grid place-items-center">
+                <Icon name="share" size={20} />
+              </span>
+            }
+            onClick={() => {
+              showSnack("Sharing is coming soon");
+            }}
+          />
+
+          {/* Clear checked */}
+          <ListItem
+            headline="Clear checked items"
+            supporting={checkedItems.value.length
+              ? `${checkedItems.value.length} checked off`
+              : "Nothing checked yet"}
+            leading={
+              <span class="w-10 h-10 rounded-full bg-surface-chigh text-on-surface-variant grid place-items-center">
+                <Icon name="check" size={20} />
+              </span>
+            }
+            onClick={async () => {
+              const ids = checkedItems.value.map((li) => li.id!).filter(
+                Boolean,
+              );
+              mgmtOpen.value = false;
+              for (const id of ids) {
+                await removeListItem(id);
+              }
+            }}
+          />
+
+          <div class="h-px bg-surface-chigh mx-1 my-1" />
+
+          {/* Delete list */}
+          <ListItem
+            headline={<span class="text-error">Delete list</span>}
+            leading={
+              <span class="w-10 h-10 rounded-full bg-error-container text-error grid place-items-center">
+                <Icon name="trash" size={20} />
+              </span>
+            }
+            onClick={async () => {
+              mgmtOpen.value = false;
+              await api.shoppingLists.delete(listId);
+              globalThis.location.href = "/shopping";
+            }}
+          />
+        </div>
+      </Sheet>
 
       {/* ══════════════════════ Add-item sheet ══════════════════════ */}
       <Sheet
@@ -472,6 +782,8 @@ export default function Items(
           );
         })()}
       </Sheet>
+      {/* ══════════════════════ Snackbar ══════════════════════ */}
+      <Snackbar data={snackData.value} />
     </div>
   );
 }
