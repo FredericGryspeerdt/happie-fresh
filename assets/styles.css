@@ -1,10 +1,239 @@
 @import "tailwindcss";
-.fresh-gradient {
-  background-color: rgb(134, 239, 172);
-  background-image: linear-gradient(
-    to right bottom,
-    rgb(219, 234, 254),
-    rgb(187, 247, 208),
-    rgb(254, 249, 195)
-  );
+
+/* MD3 scheme baked from seed #FFC21E — regenerate with scripts/gen-md3-theme.ts */
+:root {
+  --md-primary: oklch(46% 0.1587 84.7);
+  --md-on-primary: #ffffff;
+  --md-primary-container: oklch(90% 0.1096 84.7);
+  --md-on-primary-container: oklch(26% 0.1378 84.7);
+  --md-secondary: oklch(46% 0.0446 84.7);
+  --md-on-secondary: #ffffff;
+  --md-secondary-container: oklch(91% 0.0303 84.7);
+  --md-on-secondary-container: oklch(26% 0.0387 84.7);
+  --md-tertiary: oklch(46% 0.0843 134.7);
+  --md-on-tertiary: #ffffff;
+  --md-tertiary-container: oklch(90% 0.0582 134.7);
+  --md-on-tertiary-container: oklch(26% 0.0732 134.7);
+  --md-error: oklch(50% 0.18 27);
+  --md-on-error: #ffffff;
+  --md-error-container: oklch(92% 0.05 25);
+  --md-on-error-container: oklch(30% 0.12 27);
+  --md-success: oklch(52% 0.1197 150.0);
+  --md-success-container: oklch(92% 0.0330 150.0);
+  --md-on-success-container: oklch(28% 0.0791 150.0);
+  --md-background: oklch(99% 0.0034 84.7);
+  --md-surface: oklch(99% 0.0034 84.7);
+  --md-surface-dim: oklch(89% 0.0042 84.7);
+  --md-surface-bright: oklch(99% 0.0034 84.7);
+  --md-surface-clow: oklch(97% 0.0036 84.7);
+  --md-surface-clowest: #ffffff;
+  --md-surface-c: oklch(95% 0.0037 84.7);
+  --md-surface-chigh: oklch(93% 0.0039 84.7);
+  --md-surface-chighest: oklch(91% 0.0040 84.7);
+  --md-on-surface: oklch(17% 0.0046 84.7);
+  --md-on-surface-variant: oklch(38% 0.0172 84.7);
+  --md-outline: oklch(52% 0.0180 84.7);
+  --md-outline-variant: oklch(83% 0.0138 84.7);
+  --md-inverse-surface: oklch(24% 0.0051 84.7);
+  --md-inverse-on-surface: oklch(95% 0.0037 84.7);
+  --md-inverse-primary: oklch(80% 0.1282 84.7);
+
+  /* shape scale */
+  --md-shape-xs: 4px;
+  --md-shape-sm: 8px;
+  --md-shape-md: 12px;
+  --md-shape-lg: 16px;
+  --md-shape-xl: 28px;
+  --md-shape-full: 999px;
+  /* motion */
+  --md-emphasized: cubic-bezier(0.2, 0, 0, 1);
+  --md-emphasized-decel: cubic-bezier(0.05, 0.7, 0.1, 1);
+  --md-emphasized-accel: cubic-bezier(0.3, 0, 0.8, 0.15);
+  --md-spring: cubic-bezier(0.2, 0.9, 0.25, 1.2);
+}
+
+/* Surface MD3 tokens to Tailwind v4 as color utilities */
+@theme {
+  --color-primary: var(--md-primary);
+  --color-on-primary: var(--md-on-primary);
+  --color-primary-container: var(--md-primary-container);
+  --color-on-primary-container: var(--md-on-primary-container);
+  --color-secondary: var(--md-secondary);
+  --color-on-secondary: var(--md-on-secondary);
+  --color-secondary-container: var(--md-secondary-container);
+  --color-on-secondary-container: var(--md-on-secondary-container);
+  --color-tertiary: var(--md-tertiary);
+  --color-on-tertiary: var(--md-on-tertiary);
+  --color-tertiary-container: var(--md-tertiary-container);
+  --color-on-tertiary-container: var(--md-on-tertiary-container);
+  --color-error: var(--md-error);
+  --color-on-error: var(--md-on-error);
+  --color-error-container: var(--md-error-container);
+  --color-on-error-container: var(--md-on-error-container);
+  --color-background: var(--md-background);
+  --color-surface: var(--md-surface);
+  --color-surface-dim: var(--md-surface-dim);
+  --color-surface-clowest: var(--md-surface-clowest);
+  --color-surface-clow: var(--md-surface-clow);
+  --color-surface-c: var(--md-surface-c);
+  --color-surface-chigh: var(--md-surface-chigh);
+  --color-surface-chighest: var(--md-surface-chighest);
+  --color-on-surface: var(--md-on-surface);
+  --color-on-surface-variant: var(--md-on-surface-variant);
+  --color-outline: var(--md-outline);
+  --color-outline-variant: var(--md-outline-variant);
+  --color-inverse-surface: var(--md-inverse-surface);
+  --color-inverse-on-surface: var(--md-inverse-on-surface);
+  --color-inverse-primary: var(--md-inverse-primary);
+}
+
+/* MD3 type scale (md3-tokens.jsx:149-167) */
+.md-display-large {
+  font-family: "Roboto Flex", Roboto, system-ui, sans-serif;
+  font-size: 44px;
+  line-height: 52px;
+  font-weight: 400;
+  letter-spacing: -0.25px;
+}
+.md-headline-large {
+  font-family: "Roboto Flex", Roboto, system-ui, sans-serif;
+  font-size: 30px;
+  line-height: 38px;
+  font-weight: 400;
+}
+.md-headline-small {
+  font-family: "Roboto Flex", Roboto, system-ui, sans-serif;
+  font-size: 23px;
+  line-height: 30px;
+  font-weight: 400;
+}
+.md-title-large {
+  font-family: "Roboto Flex", Roboto, system-ui, sans-serif;
+  font-size: 21px;
+  line-height: 28px;
+  font-weight: 400;
+}
+.md-title-medium {
+  font-family: "Roboto Flex", Roboto, system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 500;
+  letter-spacing: 0.15px;
+}
+.md-title-small {
+  font-family: "Roboto Flex", Roboto, system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  letter-spacing: 0.1px;
+}
+.md-body-large {
+  font-family: "Roboto Flex", Roboto, system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 400;
+  letter-spacing: 0.15px;
+}
+.md-body-medium {
+  font-family: "Roboto Flex", Roboto, system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 400;
+  letter-spacing: 0.2px;
+}
+.md-body-small {
+  font-family: "Roboto Flex", Roboto, system-ui, sans-serif;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 400;
+  letter-spacing: 0.3px;
+}
+.md-label-large {
+  font-family: "Roboto Flex", Roboto, system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  letter-spacing: 0.1px;
+}
+.md-label-medium {
+  font-family: "Roboto Flex", Roboto, system-ui, sans-serif;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+.md-label-small {
+  font-family: "Roboto Flex", Roboto, system-ui, sans-serif;
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+.md-brand {
+  font-family: "Baloo 2", system-ui;
+  font-weight: 700;
+}
+
+/* state layer + ripple (md3-ui.jsx:8-16) */
+@keyframes md-ripple {
+  from {
+    transform: scale(0);
+    opacity: 0.30;
+  }
+  to {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+.md-press {
+  position: relative;
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  touch-action: manipulation;
+}
+.md-state {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.11s linear;
+  pointer-events: none;
+  border-radius: inherit;
+  background: currentColor;
+}
+@media (hover: hover) {
+  .md-press:hover > .md-state {
+    opacity: 0.08;
+  }
+}
+.md-press:active > .md-state {
+  opacity: 0.10;
+}
+.md-rip {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  background: currentColor;
+  opacity: 0.22;
+  animation: md-ripple 0.5s cubic-bezier(0.2, 0, 0, 1) forwards;
+}
+
+/* MD3 elevation */
+.md-elevation-1 {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.14), 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+.md-elevation-3 {
+  box-shadow: 0 3px 5px rgba(0, 0, 0, 0.2), 0 1px 18px rgba(0, 0, 0, 0.08);
+}
+
+body {
+  background: var(--md-background);
+  color: var(--md-on-surface);
+}
+* {
+  box-sizing: border-box;
+}
+::-webkit-scrollbar {
+  width: 0;
+  height: 0;
 }

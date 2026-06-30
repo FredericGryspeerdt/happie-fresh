@@ -19,6 +19,16 @@ export default function App(
           content="width=device-width, initial-scale=1.0"
         />
         <title>happie-fresh</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link
+          rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossorigin="anonymous"
+        />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Roboto+Flex:opsz,wght@8..144,400;8..144,500;8..144,600;8..144,700&family=Roboto:wght@400;500;700&display=swap"
+          rel="stylesheet"
+        />
         <link
           crossorigin="use-credentials"
           rel="manifest"
