@@ -46,6 +46,7 @@ export function Sheet({ open, onClose, title, children }: SheetProps) {
     if (!el) return;
     el.style.transition = "";
     el.style.transform = "";
+    currentDelta.current = 0;
   };
   const onTouchEnd = () => {
     if (currentDelta.current > 80) {
