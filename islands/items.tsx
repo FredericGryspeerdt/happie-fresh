@@ -17,7 +17,7 @@ import { Chip } from "@/components/md3/Chip.tsx";
 import { Button } from "@/components/md3/Button.tsx";
 import { ListItem } from "@/components/md3/ListItem.tsx";
 import { Icon } from "@/components/md3/Icon.tsx";
-import { IconButton } from "@/components/md3/IconButton.tsx";
+import { appBarAction } from "@/utils/app-bar.ts";
 import { Pressable } from "@/components/md3/Pressable.tsx";
 import { Progress } from "@/components/md3/Progress.tsx";
 import { RoundCheck } from "@/components/md3/RoundCheck.tsx";
@@ -103,6 +103,23 @@ export default function Items(
     if (snackTimer.current) clearTimeout(snackTimer.current);
   }, []);
 
+  // ── register the "list options" overflow into the shell's TopAppBar ───────
+  // The top app bar is rendered by the shell (AppChrome), a separate island;
+  // we hand it a trailing action via a shared module-scope signal.
+  useEffect(() => {
+    appBarAction.value = {
+      icon: "dots",
+      label: "List options",
+      onClick: () => {
+        renameValue.value = listName;
+        mgmtOpen.value = true;
+      },
+    };
+    return () => {
+      appBarAction.value = null;
+    };
+  }, []);
+
   // ── sheet signals ────────────────────────────────────────────────────────
   const addOpen = useSignal(false);
   const editingId = useSignal<string | null>(null);
@@ -166,29 +183,17 @@ export default function Items(
   // ─────────────────────────────────────────────────────────────────────────
   return (
     <div class="flex flex-col gap-4 pb-24">
-      {/* Mode toggle + management overflow button */}
-      <div class="flex items-center gap-2">
-        <div class="flex-1">
-          <Segmented
-            options={[
-              ["plan", "edit", "Plan"],
-              ["shop", "cart", "Shop"],
-            ]}
-            value={mode.value}
-            onChange={(m) => {
-              mode.value = m as "plan" | "shop";
-            }}
-          />
-        </div>
-        <IconButton
-          name="dots"
-          aria-label="List options"
-          onClick={() => {
-            renameValue.value = listName;
-            mgmtOpen.value = true;
-          }}
-        />
-      </div>
+      {/* Mode toggle (Plan / Shop) — list options live in the top app bar */}
+      <Segmented
+        options={[
+          ["plan", "edit", "Plan"],
+          ["shop", "cart", "Shop"],
+        ]}
+        value={mode.value}
+        onChange={(m) => {
+          mode.value = m as "plan" | "shop";
+        }}
+      />
 
       {/* ── Plan mode ── */}
       {mode.value === "plan" && (

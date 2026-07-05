@@ -5,11 +5,9 @@ import { Card } from "@/components/md3/Card.tsx";
 import { Progress } from "@/components/md3/Progress.tsx";
 import { Sheet } from "@/components/md3/Sheet.tsx";
 import { Button } from "@/components/md3/Button.tsx";
-import { IconButton } from "@/components/md3/IconButton.tsx";
 import { Icon } from "@/components/md3/Icon.tsx";
 import { Segmented } from "@/components/md3/Segmented.tsx";
 import { ComingSoon } from "@/components/md3/ComingSoon.tsx";
-import { Pressable } from "@/components/md3/Pressable.tsx";
 import Fab from "@/islands/shell/Fab.tsx";
 
 type ShoppingListWithCounts = ShoppingListInterface & {
@@ -47,10 +45,7 @@ export default function ShoppingLists({ initialLists }: ShoppingListsProps) {
   const lists = useSignal<ShoppingListWithCounts[]>(initialLists);
   const newName = useSignal("");
   const tab = useSignal<"lists" | "catalogue">("lists");
-  const pendingDelete = useSignal<{ id: string; name: string } | null>(null);
-  const renaming = useSignal<{ id: string; name: string } | null>(null);
   const newOpen = useSignal(false);
-  const mgmtTarget = useSignal<ShoppingListWithCounts | null>(null);
   const loading = useSignal(false);
 
   const createList = async () => {
@@ -69,35 +64,9 @@ export default function ShoppingLists({ initialLists }: ShoppingListsProps) {
     }
   };
 
-  const confirmRename = async (id: string) => {
-    const name = renaming.value?.name.trim();
-    if (!name) return;
-    const updated = await api.shoppingLists.rename(id, name);
-    if (updated) {
-      lists.value = lists.value.map((l) =>
-        l.id === id ? { ...l, ...updated } : l
-      );
-    }
-    renaming.value = null;
-    mgmtTarget.value = null;
-  };
-
-  const handleDeleteConfirm = async () => {
-    if (!pendingDelete.value) return;
-    const { id } = pendingDelete.value;
-    pendingDelete.value = null;
-    await api.shoppingLists.delete(id);
-    lists.value = lists.value.filter((l) => l.id !== id);
-  };
-
-  const openMgmt = (list: ShoppingListWithCounts) => {
-    mgmtTarget.value = list;
-    renaming.value = null;
-  };
-
   return (
     <>
-      {/* Segmented control */}
+      {/* Lists / Catalogue selector */}
       <div class="px-4 pt-4 pb-2">
         <Segmented
           options={SEGMENTED_OPTIONS}
@@ -175,44 +144,16 @@ export default function ShoppingLists({ initialLists }: ShoppingListsProps) {
                       <span class="md-label-large bg-secondary-container text-on-secondary-container rounded-[var(--md-shape-full)] shrink-0 px-3 py-1">
                         {list.total}
                       </span>
-                      {/* Overflow button */}
-                      <IconButton
-                        name="dots"
-                        aria-label={`Manage ${list.name}`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openMgmt(list);
-                        }}
-                      />
                     </div>
                     <Progress value={list.done} total={list.total} />
                   </div>
                 </Card>
               ))
             )}
-
-          {/* Dashed "New list" card */}
-          {lists.value.length > 0 && (
-            <Pressable
-              as="div"
-              onClick={() => {
-                newOpen.value = true;
-              }}
-              class="flex items-center justify-center gap-2 text-on-surface-variant"
-              style={{
-                border: "2px dashed var(--md-outline-variant)",
-                borderRadius: 20,
-                height: 60,
-              }}
-            >
-              <Icon name="plus" size={20} />
-              <span class="md-label-large">New list</span>
-            </Pressable>
-          )}
         </div>
       )}
 
-      {/* FAB */}
+      {/* FAB — the only way to create a list */}
       <div
         class="fixed right-4 z-30"
         style={{ bottom: "calc(96px + env(safe-area-inset-bottom))" }}
@@ -258,135 +199,6 @@ export default function ShoppingLists({ initialLists }: ShoppingListsProps) {
             Add
           </Button>
         </div>
-      </Sheet>
-
-      {/* Management sheet (rename / delete) */}
-      <Sheet
-        open={mgmtTarget.value !== null}
-        onClose={() => {
-          mgmtTarget.value = null;
-          renaming.value = null;
-        }}
-        title={mgmtTarget.value?.name ?? ""}
-      >
-        {mgmtTarget.value && (
-          <div class="flex flex-col gap-2 pb-4">
-            {/* Rename row */}
-            {renaming.value
-              ? (
-                <div class="flex flex-col gap-3 mb-2">
-                  <input
-                    type="text"
-                    class="border border-outline-variant rounded-[var(--md-shape-md)] px-4 py-3 md-body-large text-on-surface bg-surface focus:outline-none focus:ring-2 focus:ring-primary"
-                    value={renaming.value.name}
-                    onInput={(e) => {
-                      if (renaming.value) {
-                        renaming.value = {
-                          ...renaming.value,
-                          name: e.currentTarget.value,
-                        };
-                      }
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && mgmtTarget.value) {
-                        confirmRename(mgmtTarget.value.id);
-                      }
-                      if (e.key === "Escape") renaming.value = null;
-                    }}
-                  />
-                  <div class="flex gap-2">
-                    <Button
-                      variant="filled"
-                      full
-                      onClick={() =>
-                        mgmtTarget.value && confirmRename(mgmtTarget.value.id)}
-                    >
-                      Save
-                    </Button>
-                    <Button
-                      variant="outlined"
-                      full
-                      onClick={() => {
-                        renaming.value = null;
-                      }}
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                </div>
-              )
-              : (
-                <Pressable
-                  as="div"
-                  onClick={() => {
-                    if (mgmtTarget.value) {
-                      renaming.value = {
-                        id: mgmtTarget.value.id,
-                        name: mgmtTarget.value.name,
-                      };
-                    }
-                  }}
-                  class="flex items-center gap-4 py-4 text-on-surface md-body-large"
-                >
-                  <Icon name="edit" size={22} />
-                  <span>Rename</span>
-                </Pressable>
-              )}
-
-            {/* Delete row */}
-            <Pressable
-              as="div"
-              onClick={() => {
-                if (mgmtTarget.value) {
-                  pendingDelete.value = {
-                    id: mgmtTarget.value.id,
-                    name: mgmtTarget.value.name,
-                  };
-                  mgmtTarget.value = null;
-                  renaming.value = null;
-                }
-              }}
-              class="flex items-center gap-4 py-4 text-error md-body-large"
-            >
-              <Icon name="trash" size={22} />
-              <span>Delete</span>
-            </Pressable>
-          </div>
-        )}
-      </Sheet>
-
-      {/* Delete confirm sheet */}
-      <Sheet
-        open={pendingDelete.value !== null}
-        onClose={() => {
-          pendingDelete.value = null;
-        }}
-        title="Delete list?"
-      >
-        {pendingDelete.value && (
-          <div class="flex flex-col gap-3 pb-4">
-            <p class="md-body-medium text-on-surface-variant">
-              "{pendingDelete.value.name}" and all its items will be permanently
-              deleted. This cannot be undone.
-            </p>
-            <Button
-              variant="error"
-              full
-              onClick={handleDeleteConfirm}
-            >
-              Delete
-            </Button>
-            <Button
-              variant="outlined"
-              full
-              onClick={() => {
-                pendingDelete.value = null;
-              }}
-            >
-              Cancel
-            </Button>
-          </div>
-        )}
       </Sheet>
     </>
   );

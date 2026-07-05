@@ -3,6 +3,8 @@ import TopAppBar from "./TopAppBar.tsx";
 import NavigationBar from "./NavigationBar.tsx";
 import MoreSheet from "./MoreSheet.tsx";
 import { NAV_CONFIG } from "@/config/navigation.ts";
+import { appBarAction } from "@/utils/app-bar.ts";
+import { IconButton } from "@/components/md3/IconButton.tsx";
 
 interface AppChromeProps {
   activeId?: string;
@@ -17,7 +19,21 @@ export default function AppChrome(
   return (
     <>
       {appBar
-        ? <TopAppBar title={appBar.title} backUrl={appBar.backUrl} />
+        ? (
+          <TopAppBar
+            title={appBar.title}
+            backUrl={appBar.backUrl}
+            trailing={appBarAction.value
+              ? (
+                <IconButton
+                  name={appBarAction.value.icon}
+                  aria-label={appBarAction.value.label}
+                  onClick={appBarAction.value.onClick}
+                />
+              )
+              : undefined}
+          />
+        )
         : <TopAppBar title={sectionTitle} />}
       <NavigationBar
         items={NAV_CONFIG}

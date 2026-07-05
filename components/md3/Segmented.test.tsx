@@ -3,7 +3,7 @@ import { render } from "npm:preact-render-to-string@^6.6.3";
 import { h } from "preact";
 import { Segmented } from "./Segmented.tsx";
 
-Deno.test("Segmented — selected option uses secondary-container and a check icon", () => {
+Deno.test("Segmented — selected option uses an amber primary-container fill and a check icon", () => {
   const html = render(h(Segmented, {
     options: [["plan", "edit", "Plan"], ["shop", "cart", "Shop"]],
     value: "plan",
@@ -11,5 +11,6 @@ Deno.test("Segmented — selected option uses secondary-container and a check ic
   }));
   assertStringIncludes(html, "Plan");
   assertStringIncludes(html, "Shop");
-  assertStringIncludes(html, "bg-secondary-container");
+  // Active segment must have a clearly-visible amber fill (design feedback).
+  assertStringIncludes(html, "bg-primary-container");
 });

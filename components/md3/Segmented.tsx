@@ -23,7 +23,7 @@ export function Segmented({ options, value, onChange }: SegmentedProps) {
             class={cn(
               "flex-1 flex items-center justify-center gap-2 md-label-large",
               on
-                ? "bg-secondary-container text-on-secondary-container"
+                ? "bg-primary-container text-on-primary-container"
                 : "text-on-surface",
               i ? "border-l border-outline" : "",
             )}
