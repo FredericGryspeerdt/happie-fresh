@@ -66,12 +66,7 @@ export function Pressable(
         onClick?.(e);
       }}
       style={{
-        border: "none",
-        background: "transparent",
-        font: "inherit",
         cursor: disabled ? "default" : "pointer",
-        padding: 0,
-        color: "inherit",
         ...style,
       }}
       {...rest}

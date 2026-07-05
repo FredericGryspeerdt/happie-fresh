@@ -185,12 +185,25 @@
     opacity: 0;
   }
 }
-.md-press {
-  position: relative;
-  overflow: hidden;
-  -webkit-tap-highlight-color: transparent;
-  user-select: none;
-  touch-action: manipulation;
+/* Layered so caller utilities (bg-*, px-*, text-*) override these resets.
+   Unlayered custom classes (md-label-*, etc.) and the utilities layer both
+   win over @layer components; this only resets the UA button/anchor defaults. */
+@layer components {
+  .md-press {
+    position: relative;
+    overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    touch-action: manipulation;
+    background-color: transparent;
+    border: 0;
+    margin: 0;
+    padding: 0;
+    font: inherit;
+    color: inherit;
+    text-align: inherit;
+    text-decoration: none;
+  }
 }
 .md-state {
   position: absolute;
