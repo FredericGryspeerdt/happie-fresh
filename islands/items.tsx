@@ -59,6 +59,8 @@ export default function Items(
     listItemsMap,
     categories,
     items,
+    lastSaved,
+    flushListItem,
   } = useMemo(
     () => useShoppingList(listId, catalog, shoppingList, initialCategories),
     [], // intentionally empty — signals are initialized once from SSR data
@@ -124,19 +126,14 @@ export default function Items(
   const addOpen = useSignal(false);
   const editingId = useSignal<string | null>(null);
 
-  // ── item-editor: "Saved" flash ───────────────────────────────────────────
-  const savedAt = useSignal(0);
-  const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const flash = () => {
-    savedAt.value = Date.now();
-    if (flashTimer.current) clearTimeout(flashTimer.current);
-    flashTimer.current = setTimeout(() => {
-      savedAt.value = 0;
-    }, 1400);
-  };
-  useEffect(() => () => {
-    if (flashTimer.current) clearTimeout(flashTimer.current);
-  }, []);
+  // ── item-editor: honest "Saved" indicator ───────────────────────────────
+  // Driven directly by `lastSaved` (bumped only when a debounced list-item write
+  // actually flushes to the API — see useShoppingList), read at the top level of
+  // render so this island re-renders on each flush. We snapshot lastSaved when the
+  // editor opens so the pill shows only for writes made this editing session, not
+  // per keystroke. (A signal written from inside a useSignalEffect did NOT
+  // re-render this island, so the pill is driven by this top-level read instead.)
+  const savedBaseline = useRef(0);
 
   // ── search / filter for add-item sheet ──────────────────────────────────
   const filterFn = (searchString: string, item: ItemInterface) => {
@@ -177,8 +174,12 @@ export default function Items(
     const name = getItemName(li.itemId);
     await api.items.update(li.itemId!, name, newCategoryId);
     await refresh();
-    flash();
   };
+
+  // Top-level read → re-renders on each flush. Show the pill only for flushes
+  // since the editor opened, and key it by savedTick so it re-animates each time.
+  const savedTick = lastSaved.value;
+  const showSaved = savedTick > savedBaseline.current;
 
   // ─────────────────────────────────────────────────────────────────────────
   return (
@@ -232,6 +233,7 @@ export default function Items(
                         <Pressable
                           as="div"
                           onClick={() => {
+                            savedBaseline.current = lastSaved.value;
                             editingId.value = li.id ?? null;
                           }}
                           class="flex-1 min-w-0 cursor-pointer"
@@ -681,8 +683,9 @@ export default function Items(
       <Sheet
         open={editingId.value !== null}
         onClose={() => {
+          const id = editingId.value;
+          if (id) flushListItem(id);
           editingId.value = null;
-          savedAt.value = 0;
         }}
         title={editingId.value ? getItemName(editingListItem()?.itemId) : ""}
       >
@@ -696,12 +699,15 @@ export default function Items(
 
           return (
             <div class="flex flex-col gap-1.5 pb-1">
-              {/* Saved pill — reserves row height, mounts only while flashing */}
+              {
+                /* Saved pill — reserves row height; CSS-fades in/out, keyed by
+                  savedTick so it replays on each flush */
+              }
               <div class="h-6 flex justify-end items-center px-1">
-                {savedAt.value > 0 && (
+                {showSaved && (
                   <span
-                    key={savedAt.value}
-                    class="inline-flex items-center gap-1 md-label-medium text-on-tertiary-container bg-tertiary-container rounded-full px-2.5 py-0.5 pointer-events-none"
+                    key={savedTick}
+                    class="md-saved-flash inline-flex items-center gap-1 md-label-medium text-on-tertiary-container bg-tertiary-container rounded-full px-2.5 py-0.5 pointer-events-none"
                   >
                     <Icon name="check" size={14} /> Saved
                   </span>
@@ -713,10 +719,7 @@ export default function Items(
                 <span class="md-body-large text-on-surface">Quantity</span>
                 <Stepper
                   value={li.quantity ?? 1}
-                  onChange={(v) => {
-                    updateListItem(li.id!, { quantity: v });
-                    flash();
-                  }}
+                  onChange={(v) => updateListItem(li.id!, { quantity: v })}
                 />
               </div>
               <div class="h-px bg-surface-chigh mx-1" />
@@ -750,12 +753,10 @@ export default function Items(
                 <div class="md-body-large text-on-surface mb-2">Note</div>
                 <textarea
                   value={li.note ?? ""}
-                  onInput={(e) => {
+                  onInput={(e) =>
                     updateListItem(li.id!, {
                       note: (e.target as HTMLTextAreaElement).value,
-                    });
-                    flash();
-                  }}
+                    })}
                   rows={2}
                   placeholder="e.g. the red ones, big pack, any brand…"
                   class="w-full md-body-large text-on-surface bg-surface-chigh border-0 rounded-[var(--md-shape-lg)] py-3 px-4 outline-none resize-none"
@@ -767,8 +768,9 @@ export default function Items(
                 variant="filled"
                 full
                 onClick={() => {
+                  const id = editingId.value;
+                  if (id) flushListItem(id);
                   editingId.value = null;
-                  savedAt.value = 0;
                 }}
                 class="mt-2.5"
               >
@@ -782,7 +784,6 @@ export default function Items(
                 onClick={async () => {
                   const id = li.id!;
                   editingId.value = null;
-                  savedAt.value = 0;
                   await removeListItem(id);
                 }}
                 class="mt-2"
