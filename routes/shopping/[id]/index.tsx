@@ -35,6 +35,7 @@ export default define.page<typeof handler>(function ListDetail({ data }) {
     <main class="max-w-md mx-auto p-4">
       <ItemsIsland
         listId={data.list.id}
+        listName={data.list.name}
         items={data.items}
         shoppingList={data.shoppingList}
         categories={data.categories}

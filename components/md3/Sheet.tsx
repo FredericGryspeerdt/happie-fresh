@@ -1,0 +1,110 @@
+// components/md3/Sheet.tsx
+import { useEffect, useRef } from "preact/hooks";
+import type { ComponentChildren } from "preact";
+interface SheetProps {
+  open: boolean;
+  onClose: () => void;
+  title?: string;
+  children: ComponentChildren;
+}
+export function Sheet({ open, onClose, title, children }: SheetProps) {
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const dragStartY = useRef(0);
+  const currentDelta = useRef(0);
+  useEffect(() => { // Escape to close — ported from the previous BottomSheet implementation
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+  useEffect(() => { // scroll-lock — ported from the previous BottomSheet implementation
+    if (!open) return;
+    const prev = document.documentElement.style.overflow;
+    document.documentElement.style.overflow = "hidden";
+    return () => {
+      document.documentElement.style.overflow = prev;
+    };
+  }, [open]);
+  const onTouchStart = (e: TouchEvent) => {
+    dragStartY.current = e.touches[0].clientY;
+    currentDelta.current = 0;
+  };
+  const onTouchMove = (e: TouchEvent) => {
+    const el = sheetRef.current;
+    if (!el) return;
+    currentDelta.current = e.touches[0].clientY - dragStartY.current;
+    if (currentDelta.current > 0) {
+      e.preventDefault();
+      el.style.transition = "none";
+      el.style.transform = `translateY(${currentDelta.current}px)`;
+    }
+  };
+  const reset = () => {
+    const el = sheetRef.current;
+    if (!el) return;
+    el.style.transition = "";
+    el.style.transform = "";
+    currentDelta.current = 0;
+  };
+  const onTouchEnd = () => {
+    if (currentDelta.current > 80) {
+      reset();
+      onClose();
+    } else reset();
+    currentDelta.current = 0;
+  };
+  return (
+    <div
+      class="fixed inset-0 z-[200] flex flex-col justify-end"
+      style={{ pointerEvents: open ? "auto" : "none" }}
+    >
+      <div
+        onClick={onClose}
+        aria-hidden="true"
+        class="absolute inset-0"
+        style={{
+          background: "rgba(0,0,0,.32)",
+          opacity: open ? 1 : 0,
+          transition: "opacity .3s var(--md-emphasized)",
+        }}
+      />
+      <div
+        ref={sheetRef}
+        role="dialog"
+        aria-modal="true"
+        class="relative bg-surface-clow px-6 pb-8 flex flex-col"
+        style={{
+          borderRadius: "var(--md-shape-xl) var(--md-shape-xl) 0 0",
+          maxHeight: "84%",
+          transform: open ? "translateY(0)" : "translateY(110%)",
+          transition: "transform .4s var(--md-emphasized-decel)",
+          boxShadow: "0 -8px 40px rgba(0,0,0,.22)",
+        }}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        onTouchCancel={reset}
+      >
+        <div class="pt-4 pb-3 flex justify-center shrink-0">
+          <div
+            class="rounded-full bg-on-surface-variant"
+            style={{ width: 32, height: 4, opacity: 0.4 }}
+          />
+        </div>
+        {title && (
+          <div class="md-title-large text-on-surface mb-2 shrink-0">
+            {title}
+          </div>
+        )}
+        <div
+          class="overflow-y-auto -mx-6 px-6 pt-1"
+          style={{ overscrollBehavior: "contain" }}
+        >
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+}

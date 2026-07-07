@@ -2,6 +2,10 @@ export type DebouncedMergeScheduler<TPatch extends object> = {
   schedule: (id: string, patch: Partial<TPatch>) => void;
   cancel: (id: string) => void;
   cancelAll: () => void;
+  /** Immediately flush the pending merged patch for `id` (if any), skipping the delay. */
+  flush: (id: string) => void;
+  /** Immediately flush every pending patch. */
+  flushAll: () => void;
 };
 
 interface SchedulerOptions<TPatch extends object> {
@@ -47,5 +51,17 @@ export function createDebouncedMergeScheduler<
     }
   };
 
-  return { schedule, cancel, cancelAll };
+  const flush = (id: string) => {
+    const entry = timers.get(id);
+    if (!entry) return;
+    clearTimeout(entry.timer);
+    timers.delete(id);
+    options.flush(id, entry.patch);
+  };
+
+  const flushAll = () => {
+    for (const id of [...timers.keys()]) flush(id);
+  };
+
+  return { schedule, cancel, cancelAll, flush, flushAll };
 }

@@ -1,23 +1,52 @@
 import { useSignal } from "@preact/signals";
-import { For, Show } from "@preact/signals/utils";
 import { ShoppingListInterface } from "@/models/index.ts";
 import { api } from "@/services/api.ts";
-import BottomSheet from "@/components/BottomSheet.tsx";
+import { Card } from "@/components/md3/Card.tsx";
+import { Progress } from "@/components/md3/Progress.tsx";
+import { Sheet } from "@/components/md3/Sheet.tsx";
+import { Button } from "@/components/md3/Button.tsx";
+import { Icon } from "@/components/md3/Icon.tsx";
+import { Segmented } from "@/components/md3/Segmented.tsx";
+import { ComingSoon } from "@/components/md3/ComingSoon.tsx";
+import Fab from "@/islands/shell/Fab.tsx";
+
+type ShoppingListWithCounts = ShoppingListInterface & {
+  total: number;
+  done: number;
+};
 
 interface ShoppingListsProps {
-  initialLists: ShoppingListInterface[];
+  initialLists: ShoppingListWithCounts[];
 }
 
-export default function ShoppingLists(
-  { initialLists }: ShoppingListsProps,
-) {
-  const lists = useSignal<ShoppingListInterface[]>(initialLists);
+/** Returns a human-readable relative time string from a Unix-ms or ISO-string timestamp. */
+function relativeTime(msOrString: number | string): string {
+  const ms = typeof msOrString === "string"
+    ? new Date(msOrString).getTime()
+    : msOrString;
+  if (isNaN(ms)) return "recently";
+  const diff = Date.now() - ms;
+  const minutes = Math.floor(diff / 60_000);
+  if (minutes < 2) return "just now";
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  if (hours < 48) return "yesterday";
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}
+
+const SEGMENTED_OPTIONS: [string, "cart" | "tag", string][] = [
+  ["lists", "cart", "Lists"],
+  ["catalogue", "tag", "Catalogue"],
+];
+
+export default function ShoppingLists({ initialLists }: ShoppingListsProps) {
+  const lists = useSignal<ShoppingListWithCounts[]>(initialLists);
   const newName = useSignal("");
-  const editingId = useSignal<string | null>(null);
-  const editName = useSignal("");
+  const tab = useSignal<"lists" | "catalogue">("lists");
+  const newOpen = useSignal(false);
   const loading = useSignal(false);
-  const pendingDelete = useSignal<{ id: string; name: string } | null>(null);
-  const pendingDeleteName = useSignal<string>("");
 
   const createList = async () => {
     const name = newName.value.trim();
@@ -26,193 +55,151 @@ export default function ShoppingLists(
     try {
       const created = await api.shoppingLists.create(name);
       if (created) {
-        lists.value = [...lists.value, created];
+        lists.value = [...lists.value, { ...created, total: 0, done: 0 }];
         newName.value = "";
+        newOpen.value = false;
       }
     } finally {
       loading.value = false;
     }
   };
 
-  const startRename = (list: ShoppingListInterface) => {
-    editingId.value = list.id;
-    editName.value = list.name;
-  };
-
-  const confirmRename = async (id: string) => {
-    const name = editName.value.trim();
-    if (!name) return;
-    const updated = await api.shoppingLists.rename(id, name);
-    if (updated) {
-      lists.value = lists.value.map((l) => l.id === id ? updated : l);
-    }
-    editingId.value = null;
-  };
-
-  const handleDeleteConfirm = async () => {
-    if (!pendingDelete.value) return;
-    const { id } = pendingDelete.value;
-    pendingDelete.value = null;
-    await api.shoppingLists.delete(id);
-    lists.value = lists.value.filter((l) => l.id !== id);
-  };
-
   return (
     <>
-      <div class="space-y-4">
-        <Show
-          when={() => lists.value.length > 0}
-          fallback={
-            <p class="text-gray-500 text-center py-8">
-              No shopping lists yet. Create your first one below.
-            </p>
-          }
-        >
-          <ul class="space-y-2">
-            <For each={lists}>
-              {(list) => (
-                <li
-                  key={list.id}
-                  class="flex items-center gap-2 p-4 bg-white border border-gray-100 rounded-xl shadow-sm"
-                >
-                  <Show
-                    when={() => editingId.value === list.id}
-                    fallback={
-                      <>
-                        <a
-                          href={`/shopping/${list.id}`}
-                          class="flex-1 font-medium text-gray-800 text-lg"
-                        >
-                          {list.name}
-                        </a>
-                        <button
-                          type="button"
-                          class="p-2 text-gray-400 hover:text-gray-600 transition-colors"
-                          onClick={() => startRename(list)}
-                          aria-label={`Rename ${list.name}`}
-                        >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke-width="2"
-                            stroke="currentColor"
-                            class="w-4 h-4"
-                          >
-                            <path
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                              d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Z"
-                            />
-                          </svg>
-                        </button>
-                        <button
-                          type="button"
-                          class="p-2 text-gray-400 hover:text-red-500 transition-colors"
-                          onClick={() => {
-                            pendingDeleteName.value = list.name;
-                            pendingDelete.value = {
-                              id: list.id,
-                              name: list.name,
-                            };
-                          }}
-                          aria-label={`Delete ${list.name}`}
-                        >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke-width="2"
-                            stroke="currentColor"
-                            class="w-4 h-4"
-                          >
-                            <path
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                              d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"
-                            />
-                          </svg>
-                        </button>
-                      </>
-                    }
-                  >
-                    <input
-                      type="text"
-                      class="flex-1 border border-blue-300 rounded-lg px-3 py-1 text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      value={editName.value}
-                      onInput={(e) => editName.value = e.currentTarget.value}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") confirmRename(list.id);
-                        if (e.key === "Escape") editingId.value = null;
-                      }}
-                      autoFocus
-                    />
-                    <button
-                      type="button"
-                      class="px-3 py-1 bg-blue-500 text-white rounded-lg text-sm font-medium"
-                      onClick={() => confirmRename(list.id)}
-                    >
-                      Save
-                    </button>
-                    <button
-                      type="button"
-                      class="px-3 py-1 bg-gray-100 text-gray-600 rounded-lg text-sm"
-                      onClick={() => editingId.value = null}
-                    >
-                      Cancel
-                    </button>
-                  </Show>
-                </li>
-              )}
-            </For>
-          </ul>
-        </Show>
+      {/* Lists / Catalogue selector */}
+      <div class="px-4 pt-4 pb-2">
+        <Segmented
+          options={SEGMENTED_OPTIONS}
+          value={tab.value}
+          onChange={(k) => {
+            tab.value = k as "lists" | "catalogue";
+          }}
+        />
+      </div>
 
-        <div class="flex gap-2">
+      {/* Catalogue tab */}
+      {tab.value === "catalogue" && (
+        <ComingSoon
+          icon="tag"
+          title="Catalogue"
+          blurb="Browse and manage your household's item library — coming soon."
+        />
+      )}
+
+      {/* Lists tab */}
+      {tab.value === "lists" && (
+        <div class="px-4 pb-[calc(96px+env(safe-area-inset-bottom))] flex flex-col gap-3 pt-2">
+          {lists.value.length === 0
+            ? (
+              /* Empty state */
+              <div class="flex flex-col items-center gap-4 text-center py-12">
+                <div class="w-[72px] h-[72px] rounded-full bg-secondary-container grid place-items-center text-on-secondary-container">
+                  <Icon name="cart" size={32} />
+                </div>
+                <div>
+                  <div class="md-title-medium text-on-surface">
+                    No lists yet
+                  </div>
+                  <div class="md-body-medium text-on-surface-variant mt-1">
+                    Tap the + button to start your first shopping list.
+                  </div>
+                </div>
+                <Button
+                  variant="filled"
+                  onClick={() => {
+                    newOpen.value = true;
+                  }}
+                >
+                  New list
+                </Button>
+              </div>
+            )
+            : (
+              lists.value.map((list) => (
+                <Card
+                  key={list.id}
+                  variant="filled"
+                  radius={20}
+                  onClick={() => {
+                    globalThis.location.href = `/shopping/${list.id}`;
+                  }}
+                >
+                  <div class="flex flex-col gap-3">
+                    <div class="flex items-center gap-3">
+                      {/* Cart icon circle */}
+                      <div class="w-[44px] h-[44px] rounded-full bg-tertiary-container text-on-tertiary-container grid place-items-center shrink-0">
+                        <Icon name="cart" size={22} />
+                      </div>
+                      {/* Name + meta */}
+                      <div class="flex-1 min-w-0">
+                        <div class="md-title-medium text-on-surface truncate">
+                          {list.name}
+                        </div>
+                        <div class="md-body-small text-on-surface-variant">
+                          {list.done}/{list.total} done &middot;{" "}
+                          {relativeTime(list.createdAt)}
+                        </div>
+                      </div>
+                      {/* Count badge */}
+                      <span class="md-label-large bg-secondary-container text-on-secondary-container rounded-[var(--md-shape-full)] shrink-0 px-3 py-1">
+                        {list.total}
+                      </span>
+                    </div>
+                    <Progress value={list.done} total={list.total} />
+                  </div>
+                </Card>
+              ))
+            )}
+        </div>
+      )}
+
+      {/* FAB — the only way to create a list */}
+      <div
+        class="fixed right-4 z-30"
+        style={{ bottom: "calc(96px + env(safe-area-inset-bottom))" }}
+      >
+        <Fab
+          icon="plus"
+          label="New list"
+          aria-label="New list"
+          onClick={() => {
+            newOpen.value = true;
+          }}
+        />
+      </div>
+
+      {/* New list sheet */}
+      <Sheet
+        open={newOpen.value}
+        onClose={() => {
+          newOpen.value = false;
+          newName.value = "";
+        }}
+        title="New list"
+      >
+        <div class="flex flex-col gap-4 pb-2">
           <input
             type="text"
-            placeholder="New list name"
-            class="flex-1 border border-gray-300 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="List name"
+            class="border border-outline-variant rounded-[var(--md-shape-md)] px-4 py-3 md-body-large text-on-surface bg-surface focus:outline-none focus:ring-2 focus:ring-primary"
             value={newName.value}
-            onInput={(e) => newName.value = e.currentTarget.value}
-            onKeyDown={(e) => e.key === "Enter" && createList()}
-            disabled={loading.value}
+            onInput={(e) => {
+              newName.value = e.currentTarget.value;
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") createList();
+            }}
           />
-          <button
-            type="button"
-            class="px-5 py-3 bg-blue-500 text-white font-medium rounded-xl shadow-sm active:scale-95 transition-transform disabled:opacity-50"
+          <Button
+            variant="filled"
+            full
             onClick={createList}
             disabled={loading.value}
           >
             Add
-          </button>
+          </Button>
         </div>
-      </div>
-
-      <BottomSheet
-        open={pendingDelete.value !== null}
-        onClose={() => pendingDelete.value = null}
-      >
-        <p class="text-lg font-semibold text-gray-900 mb-1">Delete list?</p>
-        <p class="text-sm text-gray-500 mb-6">
-          "{pendingDeleteName.value}" and all its items will be permanently
-          deleted. This cannot be undone.
-        </p>
-        <button
-          type="button"
-          class="w-full py-3 bg-red-500 text-white font-semibold rounded-xl mb-3 active:bg-red-600 transition-colors"
-          onClick={handleDeleteConfirm}
-        >
-          Delete
-        </button>
-        <button
-          type="button"
-          class="w-full py-3 bg-gray-100 text-gray-700 font-medium rounded-xl active:bg-gray-200 transition-colors"
-          onClick={() => pendingDelete.value = null}
-        >
-          Cancel
-        </button>
-      </BottomSheet>
+      </Sheet>
     </>
   );
 }
