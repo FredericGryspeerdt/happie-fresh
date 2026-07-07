@@ -449,7 +449,7 @@ Expected: FAIL — module not found.
 - [ ] **Step 3: Implement `islands/catalogue.tsx`**
 
 ```tsx
-import { useMemo } from "preact/hooks";
+import { useEffect, useMemo } from "preact/hooks";
 import { useSignal } from "@preact/signals";
 import type { CategoryInterface, ItemInterface } from "@/models/index.ts";
 import { useCatalogue } from "@/hooks/useCatalogue.ts";
@@ -759,8 +759,9 @@ function EditItemSheet(
   },
 ) {
   const name = useSignal(item?.name ?? "");
-  // reset the field whenever a different item opens
-  if (item && name.value === "" && item.name !== "") name.value = item.name;
+  useEffect(() => {
+    name.value = item?.name ?? "";
+  }, [item?.id]);
   const v = name.value.trim();
   const dupe = !!v && item !== null &&
     v.toLowerCase() !== item.name.toLowerCase() && names.has(v.toLowerCase());
@@ -833,6 +834,15 @@ function AddItemSheet(
   const newOpen = useSignal(false);
   const newName = useSignal("");
   const added = useSignal<string[]>([]);
+  useEffect(() => {
+    if (open) {
+      chosen.value = presetCat ?? cats[0]?.id;
+      name.value = "";
+      added.value = [];
+      newOpen.value = false;
+      newName.value = "";
+    }
+  }, [open]);
   const n = name.value.trim();
   const dupe = !!n && names.has(n.toLowerCase());
   return (
@@ -1015,9 +1025,9 @@ function CategoryMenuSheet(
   },
 ) {
   const label = useSignal(category?.label ?? "");
-  if (category && label.value === "" && category.label !== "") {
-    label.value = category.label;
-  }
+  useEffect(() => {
+    label.value = category?.label ?? "";
+  }, [category?.id]);
   const v = label.value.trim();
   return (
     <Sheet open={category !== null} onClose={onClose} title="Category">
