@@ -49,10 +49,14 @@ export default function Catalogue(
     [], // intentionally empty — signals are initialized once from SSR data
   );
 
-  const firstAlpha =
-    [...initialCategories].sort((a, b) =>
-      a.label.toLowerCase().localeCompare(b.label.toLowerCase())
-    )[0]?.id ?? UNCAT;
+  // Computed once (empty deps) — only seeds `selected`'s initial value on mount.
+  const firstAlpha = useMemo(
+    () =>
+      [...initialCategories].sort((a, b) =>
+        a.label.toLowerCase().localeCompare(b.label.toLowerCase())
+      )[0]?.id ?? UNCAT,
+    [],
+  );
 
   const query = useSignal("");
   const selected = useSignal<string>(firstAlpha);
@@ -72,7 +76,7 @@ export default function Catalogue(
   const selectedCatId = selectedIsUncat ? undefined : selected.value;
   const selectedLabel = selectedIsUncat
     ? "Uncategorized"
-    : cats.find((c) => c.id === selected.value)?.label ?? "";
+    : cats.find((c) => c.id === selected.value)?.label ?? "Uncategorized";
   const visibleItems = itemsForCategory(selectedCatId);
 
   const allMatches = searching
@@ -509,9 +513,9 @@ function AddItemSheet(
               Added just now · {added.value.length}
             </div>
             <div class="flex flex-wrap gap-2">
-              {added.value.map((a, i) => (
+              {added.value.map((a) => (
                 <span
-                  key={i}
+                  key={a}
                   class="inline-flex items-center gap-1.5 md-label-large bg-secondary-container text-on-secondary-container rounded-[var(--md-shape-full)] px-3 py-1.5"
                 >
                   <Icon name="check" size={14} stroke={2.5} /> {a}

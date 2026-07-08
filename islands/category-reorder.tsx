@@ -21,8 +21,9 @@ export default function CategoryReorder({ initialCategories }: Props) {
     arr[j] = tmp;
     const reindexed = arr.map((c, i) => ({ ...c, order: i }));
     cats.value = reindexed; // optimistic
+    // order === array index (assigned just above), so use `i` directly.
     await api.categories.reorder(
-      reindexed.map((c) => ({ id: c.id, order: c.order! })),
+      reindexed.map((c, i) => ({ id: c.id, order: i })),
     );
   };
 
