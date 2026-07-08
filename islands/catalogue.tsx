@@ -10,6 +10,7 @@ import { Button } from "@/components/md3/Button.tsx";
 import { IconButton } from "@/components/md3/IconButton.tsx";
 import { Icon } from "@/components/md3/Icon.tsx";
 import { Pressable } from "@/components/md3/Pressable.tsx";
+import { FabMenu } from "@/components/md3/FabMenu.tsx";
 
 const SEGMENTED_OPTIONS: [string, "cart" | "tag", string][] = [
   ["lists", "cart", "Lists"],
@@ -64,6 +65,8 @@ export default function Catalogue(
   const addOpen = useSignal(false);
   const pickerOpen = useSignal(false);
   const menuCat = useSignal<CategoryInterface | null>(null);
+  // When true, the add sheet opens directly in "new category" mode (FAB action).
+  const addNewCat = useSignal(false);
 
   // top-level signal reads → island subscribes to these
   const cats = sortedCategories.value;
@@ -71,6 +74,10 @@ export default function Catalogue(
   const showUncat = hasUncategorized.value;
   const q = query.value.trim().toLowerCase();
   const searching = q.length > 0;
+
+  // Hide the FAB while any sheet is open — the sheet is then the active surface.
+  const anySheetOpen = editing.value !== null || addOpen.value ||
+    pickerOpen.value || menuCat.value !== null;
 
   const selectedIsUncat = selected.value === UNCAT;
   const selectedCatId = selectedIsUncat ? undefined : selected.value;
@@ -151,7 +158,10 @@ export default function Catalogue(
                   <Button
                     variant="tonal"
                     icon="plus"
-                    onClick={() => (addOpen.value = true)}
+                    onClick={() => {
+                      addNewCat.value = false;
+                      addOpen.value = true;
+                    }}
                   >
                     Add to catalogue
                   </Button>
@@ -229,7 +239,10 @@ export default function Catalogue(
               <div class="grid grid-cols-2 gap-2.5">
                 {visibleItems.map(itemTile)}
                 <Pressable
-                  onClick={() => (addOpen.value = true)}
+                  onClick={() => {
+                    addNewCat.value = false;
+                    addOpen.value = true;
+                  }}
                   color="var(--md-primary)"
                   class={`flex items-center justify-center gap-2 border-[1.5px] border-dashed border-outline rounded-[var(--md-shape-md)] px-4 py-3.5 text-primary md-label-large min-h-[52px] ${
                     visibleItems.length === 0 ? "col-span-2" : ""
@@ -268,6 +281,7 @@ export default function Catalogue(
         cats={cats}
         names={names}
         presetCat={selectedCatId}
+        startNewCategory={addNewCat.value}
         onClose={() => (addOpen.value = false)}
         onAdd={(name, categoryId) => addItem(name, categoryId)}
         onCreateCategory={(label) => createCategory(label)}
@@ -313,6 +327,31 @@ export default function Catalogue(
           menuCat.value = null;
         }}
       />
+
+      {/* Context FAB — add an item or a new category (prototype md3-app.jsx) */}
+      {!anySheetOpen && (
+        <FabMenu
+          label="Add item or category"
+          actions={[
+            {
+              icon: "plus",
+              label: "Add item",
+              onClick: () => {
+                addNewCat.value = false;
+                addOpen.value = true;
+              },
+            },
+            {
+              icon: "tag",
+              label: "New category",
+              onClick: () => {
+                addNewCat.value = true;
+                addOpen.value = true;
+              },
+            },
+          ]}
+        />
+      )}
     </>
   );
 }
@@ -390,11 +429,21 @@ function EditItemSheet(
 
 /* ── Add items to the catalogue (rapid-fire) ── */
 function AddItemSheet(
-  { open, cats, names, presetCat, onClose, onAdd, onCreateCategory }: {
+  {
+    open,
+    cats,
+    names,
+    presetCat,
+    startNewCategory,
+    onClose,
+    onAdd,
+    onCreateCategory,
+  }: {
     open: boolean;
     cats: CategoryInterface[];
     names: Set<string>;
     presetCat?: string;
+    startNewCategory?: boolean;
     onClose: () => void;
     onAdd: (name: string, categoryId?: string) => void;
     onCreateCategory: (label: string) => Promise<CategoryInterface | null>;
@@ -410,7 +459,7 @@ function AddItemSheet(
       chosen.value = presetCat ?? cats[0]?.id;
       name.value = "";
       added.value = [];
-      newOpen.value = false;
+      newOpen.value = !!startNewCategory;
       newName.value = "";
     }
   }, [open]);

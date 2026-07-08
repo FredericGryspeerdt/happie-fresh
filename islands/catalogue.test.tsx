@@ -19,6 +19,7 @@ Deno.test("Catalogue — renders segmented, categories, selected items, add tile
   assertStringIncludes(html, "Bakery"); // alphabetical-first → selected by default
   assertStringIncludes(html, "Bread"); // item in the selected (Bakery) category
   assertStringIncludes(html, "Add item");
+  assertStringIncludes(html, "Add item or category"); // FAB speed-dial primary
 });
 
 Deno.test("Catalogue — shows an Uncategorized chip when uncategorized items exist", () => {
