@@ -82,22 +82,32 @@ export function Sheet({ open, onClose, title, children }: SheetProps) {
           transition: "transform .4s var(--md-emphasized-decel)",
           boxShadow: "0 -8px 40px rgba(0,0,0,.22)",
         }}
-        onTouchStart={onTouchStart}
-        onTouchMove={onTouchMove}
-        onTouchEnd={onTouchEnd}
-        onTouchCancel={reset}
       >
-        <div class="pt-4 pb-3 flex justify-center shrink-0">
-          <div
-            class="rounded-full bg-on-surface-variant"
-            style={{ width: 32, height: 4, opacity: 0.4 }}
-          />
-        </div>
-        {title && (
-          <div class="md-title-large text-on-surface mb-2 shrink-0">
-            {title}
+        {
+          /* Drag zone: handle + title. Dragging here dismisses; the scrollable
+            body below is free to scroll (fixes an upward scroll being read as
+            a drag-down-to-dismiss). */
+        }
+        <div
+          class="shrink-0"
+          style={{ touchAction: "none" }}
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
+          onTouchCancel={reset}
+        >
+          <div class="pt-4 pb-3 flex justify-center">
+            <div
+              class="rounded-full bg-on-surface-variant"
+              style={{ width: 32, height: 4, opacity: 0.4 }}
+            />
           </div>
-        )}
+          {title && (
+            <div class="md-title-large text-on-surface mb-2">
+              {title}
+            </div>
+          )}
+        </div>
         <div
           class="overflow-y-auto -mx-6 px-6 pt-1"
           style={{ overscrollBehavior: "contain" }}

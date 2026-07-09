@@ -125,6 +125,9 @@ export default function Items(
   // ── sheet signals ────────────────────────────────────────────────────────
   const addOpen = useSignal(false);
   const editingId = useSignal<string | null>(null);
+  // add-item: searchable category picker mode (replaces the sheet body while open)
+  const catPicking = useSignal(false);
+  const catQuery = useSignal("");
 
   // ── item-editor: honest "Saved" indicator ───────────────────────────────
   // Driven directly by `lastSaved` (bumped only when a debounced list-item write
@@ -154,6 +157,17 @@ export default function Items(
     selectedCategoryId.value = "";
     reset();
   };
+
+  // ── add-item: category selection (compact button + searchable picker) ─────
+  const selectedCatLabel =
+    categories.value.find((c) => c.id === selectedCategoryId.value)?.label ??
+      "Uncategorized";
+  const catQ = catQuery.value.trim().toLowerCase();
+  const catMatches = [...categories.value]
+    .sort((a, b) =>
+      (a.label ?? "").toLowerCase().localeCompare((b.label ?? "").toLowerCase())
+    )
+    .filter((c) => !catQ || (c.label ?? "").toLowerCase().includes(catQ));
 
   // ── item-editor: get current list item being edited ──────────────────────
   const editingListItem = () =>
@@ -544,139 +558,185 @@ export default function Items(
         open={addOpen.value}
         onClose={() => {
           addOpen.value = false;
+          catPicking.value = false;
+          catQuery.value = "";
           reset();
         }}
-        title="Add items"
+        title={catPicking.value ? "Choose category" : "Add items"}
       >
-        {/* Search input */}
-        <div class="relative mb-3">
-          <span class="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant">
-            <Icon name="search" size={20} />
-          </span>
-          <input
-            ref={inputRef}
-            value={query.value}
-            onInput={(e) => {
-              query.value = (e.target as HTMLInputElement).value;
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && query.value.trim()) {
-                const q = query.value.trim();
-                const exact = items.value.some((i) =>
-                  i.name?.toLowerCase() === q.toLowerCase()
-                );
-                if (!exact) handleCreateItem(q);
-              }
-            }}
-            placeholder="Search or add an item…"
-            class="w-full md-body-large text-on-surface bg-surface-chigh border-0 rounded-[var(--md-shape-full)] py-3.5 pl-11 pr-4 outline-none"
-          />
-        </div>
-
-        {/* "Add '<query>'" card — shown when non-empty query and no exact match */}
-        {(() => {
-          const q = query.value.trim();
-          const exact = q
-            ? items.value.some((i) => i.name?.toLowerCase() === q.toLowerCase())
-            : true;
-          if (!q || exact) return null;
-          return (
-            <div class="bg-primary-container text-on-primary-container rounded-[var(--md-shape-lg)] p-3.5 mb-3 flex flex-col gap-3">
-              <div class="flex items-center gap-3.5">
-                <span class="w-9 h-9 rounded-full bg-on-primary-container text-primary-container grid place-items-center shrink-0">
-                  <Icon name="plus" size={20} />
-                </span>
-                <div class="flex-1 min-w-0">
-                  <div class="md-body-large">Add "{q}"</div>
-                  <div class="md-body-small opacity-80">
-                    New item — pick a category
-                  </div>
-                </div>
-              </div>
-
-              {/* Category chips */}
-              <div class="flex gap-2 flex-wrap">
-                <Chip
-                  selected={!selectedCategoryId.value}
-                  onClick={() => {
-                    selectedCategoryId.value = "";
-                  }}
-                >
-                  Uncategorized
-                </Chip>
-                <For each={categories}>
-                  {(cat) => (
-                    <Chip
-                      selected={selectedCategoryId.value === cat.id}
-                      onClick={() => {
-                        selectedCategoryId.value = cat.id ?? "";
-                      }}
-                    >
-                      {cat.label}
-                    </Chip>
-                  )}
-                </For>
-              </div>
-
-              <Button
-                variant="filled"
-                full
-                onClick={() => handleCreateItem(q)}
-                style={{
-                  background: "var(--md-on-primary-container)",
-                  color: "var(--md-primary-container)",
+        {catPicking.value && (
+          <div class="flex flex-col gap-1">
+            <div class="flex items-center gap-2 bg-surface-chigh rounded-[var(--md-shape-full)] h-12 px-4 mb-1">
+              <Icon name="search" size={20} class="text-on-surface-variant" />
+              <input
+                value={catQuery.value}
+                onInput={(e) => {
+                  catQuery.value = (e.target as HTMLInputElement).value;
                 }}
-              >
-                Add to {categories.value.find((c) =>
-                  c.id === selectedCategoryId.value
-                )?.label ?? "Uncategorized"}
-              </Button>
+                placeholder="Find a category"
+                class="flex-1 min-w-0 bg-transparent border-0 outline-none md-body-large text-on-surface"
+              />
             </div>
-          );
-        })()}
+            {(!catQ || "uncategorized".includes(catQ)) && (
+              <ListItem
+                headline="Uncategorized"
+                onClick={() => {
+                  selectedCategoryId.value = "";
+                  catPicking.value = false;
+                  catQuery.value = "";
+                }}
+                trailing={!selectedCategoryId.value
+                  ? <Icon name="check" size={20} class="text-primary" />
+                  : undefined}
+              />
+            )}
+            {catMatches.map((cat) => (
+              <ListItem
+                key={cat.id}
+                headline={cat.label ?? ""}
+                onClick={() => {
+                  selectedCategoryId.value = cat.id ?? "";
+                  catPicking.value = false;
+                  catQuery.value = "";
+                }}
+                trailing={selectedCategoryId.value === cat.id
+                  ? <Icon name="check" size={20} class="text-primary" />
+                  : undefined}
+              />
+            ))}
+            {catQ && catMatches.length === 0 && (
+              <p class="md-body-medium text-on-surface-variant px-1 py-3.5">
+                No category matches "{catQuery.value.trim()}".
+              </p>
+            )}
+          </div>
+        )}
+        {!catPicking.value && (
+          <>
+            {/* Search input */}
+            <div class="relative mb-3">
+              <span class="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant">
+                <Icon name="search" size={20} />
+              </span>
+              <input
+                ref={inputRef}
+                value={query.value}
+                onInput={(e) => {
+                  query.value = (e.target as HTMLInputElement).value;
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && query.value.trim()) {
+                    const q = query.value.trim();
+                    const exact = items.value.some((i) =>
+                      i.name?.toLowerCase() === q.toLowerCase()
+                    );
+                    if (!exact) handleCreateItem(q);
+                  }
+                }}
+                placeholder="Search or add an item…"
+                class="w-full md-body-large text-on-surface bg-surface-chigh border-0 rounded-[var(--md-shape-full)] py-3.5 pl-11 pr-4 outline-none"
+              />
+            </div>
 
-        {/* Catalogue list */}
-        <div class="flex flex-col">
-          {!query.value.trim() && (
-            <div class="md-label-medium text-on-surface-variant uppercase tracking-widest mb-1 px-1">
-              From your catalogue
-            </div>
-          )}
-          <For each={results}>
-            {(item) => {
-              const added = listItemsMap.value.has(item.id ?? "");
+            {/* "Add '<query>'" card — shown when non-empty query and no exact match */}
+            {(() => {
+              const q = query.value.trim();
+              const exact = q
+                ? items.value.some((i) =>
+                  i.name?.toLowerCase() === q.toLowerCase()
+                )
+                : true;
+              if (!q || exact) return null;
               return (
-                <ListItem
-                  key={item.id}
-                  headline={item.name ?? ""}
-                  supporting={categories.value.find((c) =>
-                    c.id === item.categoryId
-                  )?.label ?? ""}
-                  onClick={added
-                    ? undefined
-                    : () => item.id && handleAddToList(item.id)}
-                  trailing={added
-                    ? (
-                      <span class="inline-flex items-center gap-1 text-primary md-label-medium">
-                        <Icon name="check" size={18} /> Added
-                      </span>
-                    )
-                    : (
-                      <span class="text-primary">
-                        <Icon name="plus" size={22} />
-                      </span>
-                    )}
-                />
+                <div class="bg-primary-container text-on-primary-container rounded-[var(--md-shape-lg)] p-3.5 mb-3 flex flex-col gap-3">
+                  <div class="flex items-center gap-3.5">
+                    <span class="w-9 h-9 rounded-full bg-on-primary-container text-primary-container grid place-items-center shrink-0">
+                      <Icon name="plus" size={20} />
+                    </span>
+                    <div class="flex-1 min-w-0">
+                      <div class="md-body-large">Add "{q}"</div>
+                      <div class="md-body-small opacity-80">
+                        New item — pick a category
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Category — opens the searchable picker */}
+                  <Pressable
+                    onClick={() => {
+                      catQuery.value = "";
+                      catPicking.value = true;
+                    }}
+                    color="var(--md-on-primary-container)"
+                    class="flex items-center justify-between gap-2 w-full rounded-[var(--md-shape-md)] border border-on-primary-container/40 px-3.5 py-2.5"
+                  >
+                    <span class="md-body-medium opacity-80">Category</span>
+                    <span class="inline-flex items-center gap-1 md-label-large">
+                      {selectedCatLabel} <Icon name="chevron" size={18} />
+                    </span>
+                  </Pressable>
+
+                  <Button
+                    variant="filled"
+                    full
+                    onClick={() => handleCreateItem(q)}
+                    style={{
+                      background: "var(--md-on-primary-container)",
+                      color: "var(--md-primary-container)",
+                    }}
+                  >
+                    Add to {categories.value.find((c) =>
+                      c.id === selectedCategoryId.value
+                    )?.label ?? "Uncategorized"}
+                  </Button>
+                </div>
               );
-            }}
-          </For>
-          {query.value.trim() && results.value.length === 0 && (
-            <p class="md-body-medium text-on-surface-variant px-1 py-3.5">
-              No catalogue match — use "Add "{query.value.trim()}"" above to
-              create it.
-            </p>
-          )}
-        </div>
+            })()}
+
+            {/* Catalogue list */}
+            <div class="flex flex-col">
+              {!query.value.trim() && (
+                <div class="md-label-medium text-on-surface-variant uppercase tracking-widest mb-1 px-1">
+                  From your catalogue
+                </div>
+              )}
+              <For each={results}>
+                {(item) => {
+                  const added = listItemsMap.value.has(item.id ?? "");
+                  return (
+                    <ListItem
+                      key={item.id}
+                      headline={item.name ?? ""}
+                      supporting={categories.value.find((c) =>
+                        c.id === item.categoryId
+                      )?.label ?? ""}
+                      onClick={added
+                        ? undefined
+                        : () => item.id && handleAddToList(item.id)}
+                      trailing={added
+                        ? (
+                          <span class="inline-flex items-center gap-1 text-primary md-label-medium">
+                            <Icon name="check" size={18} /> Added
+                          </span>
+                        )
+                        : (
+                          <span class="text-primary">
+                            <Icon name="plus" size={22} />
+                          </span>
+                        )}
+                    />
+                  );
+                }}
+              </For>
+              {query.value.trim() && results.value.length === 0 && (
+                <p class="md-body-medium text-on-surface-variant px-1 py-3.5">
+                  No catalogue match — use "Add "{query.value.trim()}"" above to
+                  create it.
+                </p>
+              )}
+            </div>
+          </>
+        )}
       </Sheet>
 
       {/* ══════════════════════ Item-editor sheet ══════════════════════ */}
