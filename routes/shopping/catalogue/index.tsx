@@ -1,24 +1,25 @@
 import { page } from "fresh";
 import { CategoryRepo, ItemRepo } from "@/database/index.ts";
-import ItemCatalog from "@/islands/item-catalog.tsx";
+import Catalogue from "@/islands/catalogue.tsx";
 import { define } from "@/utils/index.ts";
 
 export const handler = define.handlers({
   async GET(_ctx) {
-    const items = await ItemRepo.readAll();
-    const categories = await CategoryRepo.getAll();
+    const [items, categories] = await Promise.all([
+      ItemRepo.readAll(),
+      CategoryRepo.getAll(),
+    ]);
     return page({ items, categories });
   },
 });
 
-export default define.page<typeof handler>(function Items({ data }) {
+export default define.page<typeof handler>(function CataloguePage({ data }) {
   return (
-    <main class="max-w-4xl mx-auto p-4">
-      <div class="mb-6">
-        <h1 class="text-2xl font-bold mb-2">Item Catalog</h1>
-        <p class="text-gray-600">Manage your shopping items and categories.</p>
-      </div>
-      <ItemCatalog items={data.items} categories={data.categories} />
+    <main class="max-w-md mx-auto">
+      <Catalogue
+        initialItems={data.items}
+        initialCategories={data.categories}
+      />
     </main>
   );
 });

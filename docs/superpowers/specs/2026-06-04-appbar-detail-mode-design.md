@@ -1,17 +1,20 @@
 # AppBar Detail Mode Design
 
-**Date:** 2026-06-04
-**Status:** Approved
+**Date:** 2026-06-04 **Status:** Approved
 
 ## Overview
 
-The `AppBar` island gains a **detail mode** that replaces the section title + ≡ toggle with a back button + page title when the user drills into a detail page (e.g. a specific shopping list). Logout is moved from the AppBar header into the section sub-nav as the last item.
+The `AppBar` island gains a **detail mode** that replaces the section title + ≡
+toggle with a back button + page title when the user drills into a detail page
+(e.g. a specific shopping list). Logout is moved from the AppBar header into the
+section sub-nav as the last item.
 
 ## AppBar Modes
 
 ### Section mode (unchanged pages)
 
-Rendered on all section-level pages: `/shopping`, `/shopping/catalogue`, `/shopping/categories`.
+Rendered on all section-level pages: `/shopping`, `/shopping/catalogue`,
+`/shopping/categories`.
 
 ```
 ┌──────────────────────────────────┐
@@ -35,7 +38,8 @@ Sub-nav (opened by ≡):
 
 ### Detail mode (new)
 
-Rendered on `/shopping/[id]`. Back button navigates to `/shopping`. Title shows the list name. No ≡ toggle, no logout.
+Rendered on `/shopping/[id]`. Back button navigates to `/shopping`. Title shows
+the list name. No ≡ toggle, no logout.
 
 ```
 ┌──────────────────────────────────┐
@@ -45,7 +49,9 @@ Rendered on `/shopping/[id]`. Back button navigates to `/shopping`. Title shows 
 
 ## Data Flow
 
-Route handlers set an optional `appBar` object on `ctx.state`. `_app.tsx` reads it to decide which AppBar mode to render. Pages that do not set `ctx.state.appBar` get section mode automatically.
+Route handlers set an optional `appBar` object on `ctx.state`. `_app.tsx` reads
+it to decide which AppBar mode to render. Pages that do not set
+`ctx.state.appBar` get section mode automatically.
 
 ### `utils/define.ts` — extend `StateInterface`
 
@@ -80,26 +86,36 @@ ctx.state.appBar = {
 };
 ```
 
-The existing `← Lists` back link inside the page component is removed — the AppBar now owns back navigation.
+The existing `← Lists` back link inside the page component is removed — the
+AppBar now owns back navigation.
 
 ### `routes/_app.tsx` — branch on appBar state
 
 ```tsx
 // Import StateInterface from utils
-{state?.appBar ? (
-  <AppBar mode="detail" title={state.appBar.title} backUrl={state.appBar.backUrl} />
-) : (
-  <AppBar
-    mode="section"
-    activeTabLabel={activeTab?.label ?? "Happie"}
-    subNavItems={activeTab?.subNav ?? []}
-    activeRoute={url.pathname}
-    logoutRoute="/logout"
-  />
-)}
+{
+  state?.appBar
+    ? (
+      <AppBar
+        mode="detail"
+        title={state.appBar.title}
+        backUrl={state.appBar.backUrl}
+      />
+    )
+    : (
+      <AppBar
+        mode="section"
+        activeTabLabel={activeTab?.label ?? "Happie"}
+        subNavItems={activeTab?.subNav ?? []}
+        activeRoute={url.pathname}
+        logoutRoute="/logout"
+      />
+    );
+}
 ```
 
-`_app.tsx` switches its local `State` interface to import `StateInterface` from `@/utils/define.ts`.
+`_app.tsx` switches its local `State` interface to import `StateInterface` from
+`@/utils/define.ts`.
 
 ## AppBar Component Changes
 
@@ -108,28 +124,27 @@ The existing `← Lists` back link inside the page component is removed — the 
 ```ts
 type AppBarProps =
   | {
-      mode: "section";
-      activeTabLabel: string;
-      subNavItems: SubNavItem[];
-      activeRoute: string;
-      logoutRoute?: string;
-    }
+    mode: "section";
+    activeTabLabel: string;
+    subNavItems: SubNavItem[];
+    activeRoute: string;
+    logoutRoute?: string;
+  }
   | {
-      mode: "detail";
-      title: string;
-      backUrl: string;
-    };
+    mode: "detail";
+    title: string;
+    backUrl: string;
+  };
 ```
 
 ### Section mode render (modified)
 
-Logout moves from the header to the bottom of the sub-nav list, separated by a visual divider. The `logoutRoute` prop drives it as before.
+Logout moves from the header to the bottom of the sub-nav list, separated by a
+visual divider. The `logoutRoute` prop drives it as before.
 
 ```tsx
 <ul class="py-2">
-  {subNavItems.map((item) => (
-    <li key={item.route}>...</li>
-  ))}
+  {subNavItems.map((item) => <li key={item.route}>...</li>)}
   {logoutRoute && (
     <>
       <li role="separator" class="my-2 border-t border-gray-100" />
@@ -140,7 +155,7 @@ Logout moves from the header to the bottom of the sub-nav list, separated by a v
       </li>
     </>
   )}
-</ul>
+</ul>;
 ```
 
 ### Detail mode render (new branch)
@@ -151,23 +166,26 @@ Logout moves from the header to the bottom of the sub-nav list, separated by a v
     <a href={backUrl} class="text-blue-600 text-xl" aria-label="Back">←</a>
     <span class="flex-1 font-bold text-xl truncate">{title}</span>
   </header>
-</div>
+</div>;
 ```
 
-`useSignal` and `useEffect` always execute (hooks run on every render), but in detail mode no toggle button exists so `open.value` stays `false` and the `useEffect` early-return guard prevents any listener from being registered.
+`useSignal` and `useEffect` always execute (hooks run on every render), but in
+detail mode no toggle button exists so `open.value` stays `false` and the
+`useEffect` early-return guard prevents any listener from being registered.
 
 ## Files Changed
 
-| File | Change |
-|------|--------|
-| `utils/define.ts` | Add `AppBarDetail` interface, add `appBar?: AppBarDetail` to `StateInterface` |
-| `islands/AppBar.tsx` | Discriminated union props, detail mode render, logout moved to sub-nav |
-| `islands/AppBar.test.tsx` | Update tests: logout in sub-nav, add detail mode tests |
-| `routes/shopping/[id]/index.tsx` | Set `ctx.state.appBar`, remove `← Lists` link from page content |
-| `routes/_app.tsx` | Switch to `StateInterface`, branch on `state.appBar` |
+| File                             | Change                                                                        |
+| -------------------------------- | ----------------------------------------------------------------------------- |
+| `utils/define.ts`                | Add `AppBarDetail` interface, add `appBar?: AppBarDetail` to `StateInterface` |
+| `islands/AppBar.tsx`             | Discriminated union props, detail mode render, logout moved to sub-nav        |
+| `islands/AppBar.test.tsx`        | Update tests: logout in sub-nav, add detail mode tests                        |
+| `routes/shopping/[id]/index.tsx` | Set `ctx.state.appBar`, remove `← Lists` link from page content               |
+| `routes/_app.tsx`                | Switch to `StateInterface`, branch on `state.appBar`                          |
 
 ## Out of Scope
 
-- Detail mode for catalogue or categories pages (no nested detail pages exist yet)
+- Detail mode for catalogue or categories pages (no nested detail pages exist
+  yet)
 - Transition animations between section and detail AppBar
 - Any other route setting `ctx.state.appBar` (only list detail for now)

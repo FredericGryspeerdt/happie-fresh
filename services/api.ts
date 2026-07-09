@@ -49,6 +49,43 @@ export const api = {
       if (!res.ok) return [];
       return res.json();
     },
+    create: async (label: string): Promise<CategoryInterface | null> => {
+      const res = await fetch("/api/shopping/categories", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ label }),
+      });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    update: async (
+      id: string,
+      patch: { label?: string; order?: number },
+    ): Promise<CategoryInterface | null> => {
+      const res = await fetch("/api/shopping/categories", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, ...patch }),
+      });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    reorder: async (
+      updates: Array<{ id: string; order: number }>,
+    ): Promise<void> => {
+      await fetch("/api/shopping/categories", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+      });
+    },
+    delete: async (id: string): Promise<void> => {
+      await fetch("/api/shopping/categories", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+    },
   },
   shoppingLists: {
     getAll: async (): Promise<ShoppingListInterface[]> => {

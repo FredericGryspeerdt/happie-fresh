@@ -31,6 +31,9 @@ export function useShoppingList(
   const categories = signal<CategoryInterface[]>(initialCategories);
   const selectedCategoryId = signal<string>("");
   const pendingCount = signal<number>(0);
+  // Bumped whenever a debounced list-item write actually flushes to the API,
+  // so the UI can show a "Saved" indicator tied to the real write (not keystrokes).
+  const lastSaved = signal<number>(0);
 
   const patchScheduler = createDebouncedMergeScheduler<
     ShoppingListItemInterface
@@ -38,8 +41,12 @@ export function useShoppingList(
     delayMs: 500,
     flush: async (id, patch) => {
       await api.shoppingList.updateItem(listId, id, patch);
+      lastSaved.value = lastSaved.value + 1;
     },
   });
+
+  /** Immediately flush the pending debounced write for a list item (e.g. on editor close). */
+  const flushListItem = (id: string) => patchScheduler.flush(id);
 
   const updateListItem = (
     id: string,
@@ -232,5 +239,7 @@ export function useShoppingList(
     categories,
     selectedCategoryId,
     listItemsMap,
+    lastSaved,
+    flushListItem,
   };
 }

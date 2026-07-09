@@ -1,32 +1,49 @@
 import { useEffect, useMemo, useRef } from "preact/hooks";
 import { useSignal } from "@preact/signals";
-import { For, Show } from "@preact/signals/utils";
+import { For } from "@preact/signals/utils";
 import {
   CategoryInterface,
   ItemInterface,
   ShoppingListItemInterface,
 } from "@/models/index.ts";
 import { useSearchBox, useShoppingList } from "@/hooks/index.ts";
-import SearchBox from "./search-box.tsx";
-import ShoppingListItem from "@/components/shopping-list-item.tsx";
-import DoneListItem from "@/components/done-list-item.tsx";
+import { api } from "@/services/api.ts";
+import { Segmented } from "@/components/md3/Segmented.tsx";
+import { SearchBar } from "@/components/md3/SearchBar.tsx";
+import { Sheet } from "@/components/md3/Sheet.tsx";
+import { Card } from "@/components/md3/Card.tsx";
+import { Stepper } from "@/components/md3/Stepper.tsx";
+import { Chip } from "@/components/md3/Chip.tsx";
+import { Button } from "@/components/md3/Button.tsx";
+import { ListItem } from "@/components/md3/ListItem.tsx";
+import { Icon } from "@/components/md3/Icon.tsx";
+import { appBarAction } from "@/utils/app-bar.ts";
+import { Pressable } from "@/components/md3/Pressable.tsx";
+import { Progress } from "@/components/md3/Progress.tsx";
+import { RoundCheck } from "@/components/md3/RoundCheck.tsx";
+import { Snackbar } from "@/components/md3/Snackbar.tsx";
 
 interface ItemsProps {
   listId: string;
+  listName: string;
   items: Required<ItemInterface>[];
   shoppingList: ShoppingListItemInterface[];
   categories: CategoryInterface[];
 }
 
 export default function Items(
-  { listId, items: catalog, shoppingList, categories: initialCategories }:
-    ItemsProps,
+  {
+    listId,
+    listName,
+    items: catalog,
+    shoppingList,
+    categories: initialCategories,
+  }: ItemsProps,
 ) {
   // useMemo with [] ensures useShoppingList is called only once.
   // useShoppingList uses plain signal() (not useSignal), so calling it on every
   // re-render would recreate all signals from SSR props, discarding local state.
   const {
-    exitingItems,
     updateListItem,
     addToList,
     addToCatalog,
@@ -36,57 +53,26 @@ export default function Items(
     refresh,
     getItemName,
     groupedList,
+    list,
+    checkedItems,
     selectedCategoryId,
     listItemsMap,
     categories,
-    list,
-    checkedItems,
-    pendingCount,
+    items,
+    lastSaved,
+    flushListItem,
   } = useMemo(
     () => useShoppingList(listId, catalog, shoppingList, initialCategories),
     [], // intentionally empty — signals are initialized once from SSR data
   );
 
-  const activeTab = useSignal<"list" | "done">("list");
-  const lastAddedId = useSignal<string | null>(null);
+  // ── mode toggle ──────────────────────────────────────────────────────────
+  const mode = useSignal<"plan" | "shop">("plan");
+
+  // ── shop mode: pending check items (optimistic UI) ───────────────────────
   const pendingItemIds = useSignal<Set<string>>(new Set());
-  const latestItemRef = useRef<HTMLLIElement | null>(null);
 
-  useEffect(() => {
-    if (lastAddedId.value && latestItemRef.current) {
-      latestItemRef.current.scrollIntoView({
-        behavior: "smooth",
-        block: "center",
-      });
-      lastAddedId.value = null;
-    }
-  }, [lastAddedId.value]);
-
-  const filterFn = (searchString: string, item: ItemInterface) => {
-    if (searchString.trim() === "") return false;
-    return !!item?.name?.toLowerCase().includes(searchString.toLowerCase());
-  };
-
-  const { query, results, inputRef, reset } = useSearchBox(catalog, filterFn);
-
-  const handleCreateItem = async (searchString: string) => {
-    const id = await addToCatalog(
-      searchString,
-      selectedCategoryId.value || undefined,
-    );
-    selectedCategoryId.value = "";
-    reset();
-    if (id) lastAddedId.value = id;
-  };
-
-  const handleAddToList = async (itemId: string) => {
-    const id = await addToList(itemId);
-    if (id) {
-      lastAddedId.value = id;
-      reset();
-    }
-  };
-
+  // ── shop mode: check item wrapper ────────────────────────────────────────
   const handleCheckItem = async (id: string) => {
     pendingItemIds.value = new Set([...pendingItemIds.value, id]);
     try {
@@ -98,206 +84,718 @@ export default function Items(
     }
   };
 
-  const renderListItem = (item: Required<ItemInterface>) => {
-    const isInList = listItemsMap.value.has(item.id!);
-    return (
-      <li
-        key={item.id}
-        class={`flex items-center justify-between p-4 border rounded-xl shadow-sm active:bg-gray-50 transition-colors ${
-          isInList
-            ? "bg-green-50/50 border-green-200"
-            : "bg-white border-gray-100"
-        }`}
-      >
-        <div class="flex items-center gap-2">
-          <span
-            class={`font-medium text-lg ${
-              isInList ? "text-green-900" : "text-gray-800"
-            }`}
-          >
-            {item.name}
-          </span>
-          {isInList && (
-            <span class="px-2 py-0.5 text-xs font-bold uppercase tracking-wide text-green-700 bg-green-200/50 rounded-full">
-              Added
-            </span>
-          )}
-        </div>
-        <button
-          type="button"
-          class={`w-10 h-10 flex items-center justify-center rounded-full active:scale-95 transition-all ${
-            isInList
-              ? "bg-green-200 text-green-800 active:bg-green-300"
-              : "bg-blue-100 text-blue-700 active:bg-blue-200"
-          }`}
-          onClick={() => item.id && handleAddToList(item.id)}
-          aria-label={`Add ${item.name} to list`}
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke-width="2.5"
-            stroke="currentColor"
-            class="w-6 h-6"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M12 4.5v15m7.5-7.5h-15"
-            />
-          </svg>
-        </button>
-      </li>
-    );
+  // ── shop mode: "In cart" collapsible ─────────────────────────────────────
+  const showDone = useSignal(false);
+
+  // ── list management sheet ────────────────────────────────────────────────
+  const mgmtOpen = useSignal(false);
+  const renameValue = useSignal("");
+  const snackData = useSignal<{ msg: string } | null>(null);
+  const snackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showSnack = (msg: string) => {
+    snackData.value = { msg };
+    if (snackTimer.current) clearTimeout(snackTimer.current);
+    snackTimer.current = setTimeout(() => {
+      snackData.value = null;
+    }, 3000);
   };
 
-  const renderFallback = (searchString: string) => (
-    <div class="mt-4 p-4 bg-gray-50 rounded-xl flex flex-col gap-3 border border-dashed border-gray-300">
-      <span class="text-gray-600 text-center">
-        No matches found for "{searchString}"
-      </span>
-      <select
-        value={selectedCategoryId.value}
-        onChange={(e) => selectedCategoryId.value = e.currentTarget.value}
-        class="p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-      >
-        <option value="">Uncategorized</option>
-        <For each={categories}>
-          {(cat) => <option value={cat.id}>{cat.label}</option>}
-        </For>
-      </select>
-      <button
-        type="button"
-        class="px-6 py-3 bg-green-600 text-white font-medium rounded-xl shadow-sm active:scale-95 transition-transform"
-        onClick={() => handleCreateItem(searchString)}
-      >
-        Create & Add Item
-      </button>
-    </div>
-  );
+  useEffect(() => () => {
+    if (snackTimer.current) clearTimeout(snackTimer.current);
+  }, []);
 
+  // ── register the "list options" overflow into the shell's TopAppBar ───────
+  // The top app bar is rendered by the shell (AppChrome), a separate island;
+  // we hand it a trailing action via a shared module-scope signal.
+  useEffect(() => {
+    appBarAction.value = {
+      icon: "dots",
+      label: "List options",
+      onClick: () => {
+        renameValue.value = listName;
+        mgmtOpen.value = true;
+      },
+    };
+    return () => {
+      appBarAction.value = null;
+    };
+  }, []);
+
+  // ── sheet signals ────────────────────────────────────────────────────────
+  const addOpen = useSignal(false);
+  const editingId = useSignal<string | null>(null);
+
+  // ── item-editor: honest "Saved" indicator ───────────────────────────────
+  // Driven directly by `lastSaved` (bumped only when a debounced list-item write
+  // actually flushes to the API — see useShoppingList), read at the top level of
+  // render so this island re-renders on each flush. We snapshot lastSaved when the
+  // editor opens so the pill shows only for writes made this editing session, not
+  // per keystroke. (A signal written from inside a useSignalEffect did NOT
+  // re-render this island, so the pill is driven by this top-level read instead.)
+  const savedBaseline = useRef(0);
+
+  // ── search / filter for add-item sheet ──────────────────────────────────
+  const filterFn = (searchString: string, item: ItemInterface) => {
+    if (searchString.trim() === "") return false;
+    return !!item?.name?.toLowerCase().includes(searchString.toLowerCase());
+  };
+
+  const { query, results, inputRef, reset } = useSearchBox(catalog, filterFn);
+
+  // ── add-item handlers ────────────────────────────────────────────────────
+  const handleAddToList = async (itemId: string) => {
+    await addToList(itemId);
+    // keep sheet open so multiple items can be added quickly
+  };
+
+  const handleCreateItem = async (searchString: string) => {
+    await addToCatalog(searchString, selectedCategoryId.value || undefined);
+    selectedCategoryId.value = "";
+    reset();
+  };
+
+  // ── item-editor: get current list item being edited ──────────────────────
+  const editingListItem = () =>
+    editingId.value
+      ? (groupedList.value.flatMap((g) => g.items).find((li) =>
+        li.id === editingId.value
+      ) ?? null)
+      : null;
+
+  // ── item-editor: category change ─────────────────────────────────────────
+  // Category lives on the catalog item (item.categoryId), not on the list item.
+  // To change it we must call api.items.update() then refresh() to pull the new
+  // categoryId back into the items signal — updateListItem only patches list-level
+  // fields (qty, note, checked) and does not touch catalog metadata.
+  const handleCategoryChange = async (newCategoryId: string) => {
+    const li = editingListItem();
+    if (!li) return;
+    const name = getItemName(li.itemId);
+    await api.items.update(li.itemId!, name, newCategoryId);
+    await refresh();
+  };
+
+  // Top-level read → re-renders on each flush. Show the pill only for flushes
+  // since the editor opened, and key it by savedTick so it re-animates each time.
+  const savedTick = lastSaved.value;
+  const showSaved = savedTick > savedBaseline.current;
+
+  // ─────────────────────────────────────────────────────────────────────────
   return (
-    <div class="space-y-8 pb-24">
-      <section class="sticky top-0 z-10 bg-white/80 backdrop-blur-md py-4 -mx-4 px-4 border-b border-gray-100 shadow-sm">
-        <div class="flex items-center gap-2">
-          <div class="flex-1">
-            <SearchBox
-              query={query}
-              results={results}
-              inputRef={inputRef}
-              renderItem={renderListItem}
-              renderEmpty={renderFallback}
-            />
-          </div>
-          <button
-            type="button"
-            class="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 active:bg-gray-200 transition-all shrink-0"
-            onClick={refresh}
-            aria-label="Refresh list"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke-width="2"
-              stroke="currentColor"
-              class={`w-5 h-5 transition-transform ${
-                pendingCount.value > 0 ? "animate-spin" : ""
-              }`}
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"
-              />
-            </svg>
-          </button>
-        </div>
-      </section>
+    <div class="flex flex-col gap-4 pb-24">
+      {/* Mode toggle (Plan / Shop) — list options live in the top app bar */}
+      <Segmented
+        options={[
+          ["plan", "edit", "Plan"],
+          ["shop", "cart", "Shop"],
+        ]}
+        value={mode.value}
+        onChange={(m) => {
+          mode.value = m as "plan" | "shop";
+        }}
+      />
 
-      <div class="flex border-b border-gray-200">
-        <button
-          type="button"
-          class={`flex-1 py-3 text-sm font-semibold transition-colors ${
-            activeTab.value === "list"
-              ? "border-b-2 border-blue-500 text-blue-600"
-              : "text-gray-500"
-          }`}
-          onClick={() => activeTab.value = "list"}
-        >
-          List ({list.value.length})
-        </button>
-        <button
-          type="button"
-          class={`flex-1 py-3 text-sm font-semibold transition-colors ${
-            activeTab.value === "done"
-              ? "border-b-2 border-blue-500 text-blue-600"
-              : "text-gray-500"
-          }`}
-          onClick={() => activeTab.value = "done"}
-        >
-          Done ({checkedItems.value.length})
-        </button>
-      </div>
-
-      <section class="pt-2">
-        <Show when={() => activeTab.value === "list"}>
-          <Show
-            when={() => groupedList.value.length > 0}
-            fallback={<p>Search and add items to your list.</p>}
-          >
-            <For each={groupedList}>
-              {(group) => (
-                <div class="mb-6">
-                  <h2 class="text-lg font-bold text-gray-700 mb-3 px-2">
-                    {group.category?.label || "Uncategorized"}
-                  </h2>
-                  <ul class="space-y-4">
-                    {group.items.map((li: ShoppingListItemInterface) => (
-                      <ShoppingListItem
-                        key={li.id}
-                        item={li}
-                        name={getItemName(li.itemId)}
-                        isExiting={exitingItems.value.includes(li.id)}
-                        isPending={pendingItemIds.value.has(li.id)}
-                        onCheck={handleCheckItem}
-                        onUpdate={updateListItem}
-                        ref={li.id === lastAddedId.value ? latestItemRef : null}
-                      />
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </For>
-          </Show>
-        </Show>
-
-        <Show when={() => activeTab.value === "done"}>
-          <Show
-            when={() => checkedItems.value.length > 0}
-            fallback={
-              <p class="text-gray-500 text-center py-8">
-                No done items yet.
-              </p>
+      {/* ── Plan mode ── */}
+      {mode.value === "plan" && (
+        <div class="flex flex-col gap-4">
+          {/* SearchBar opens the add-item sheet */}
+          <SearchBar
+            placeholder="Add item or search catalogue…"
+            onClick={() => {
+              addOpen.value = true;
+            }}
+            trailing={
+              <span class="text-primary">
+                <Icon name="plus" size={22} />
+              </span>
             }
-          >
-            <ul class="space-y-4">
-              <For each={checkedItems}>
-                {(li) => (
-                  <DoneListItem
-                    key={li.id}
-                    item={li}
-                    name={getItemName(li.itemId)}
-                    onReAdd={uncheckItem}
-                    onRemove={removeListItem}
-                  />
+          />
+
+          {/* Grouped list */}
+          <For each={groupedList}>
+            {(group) => (
+              <div class="flex flex-col gap-2">
+                {/* SubHeader */}
+                <div class="md-title-small text-primary uppercase tracking-wide px-1">
+                  {group.category?.label ?? "Uncategorized"}
+                </div>
+
+                {/* Card of rows */}
+                <Card variant="filled" pad={0} radius={16}>
+                  {group.items.map((
+                    li: ShoppingListItemInterface,
+                    idx: number,
+                  ) => (
+                    <div key={li.id}>
+                      <div class="flex items-center gap-3 px-4 py-3">
+                        {/* Pressable name/note area opens item-editor sheet */}
+                        <Pressable
+                          as="div"
+                          onClick={() => {
+                            savedBaseline.current = lastSaved.value;
+                            editingId.value = li.id ?? null;
+                          }}
+                          class="flex-1 min-w-0 cursor-pointer"
+                        >
+                          <div class="md-body-large text-on-surface overflow-hidden text-ellipsis whitespace-nowrap">
+                            {getItemName(li.itemId)}
+                          </div>
+                          {li.note && (
+                            <div class="md-body-small text-on-surface-variant overflow-hidden text-ellipsis whitespace-nowrap">
+                              📝 {li.note}
+                            </div>
+                          )}
+                        </Pressable>
+
+                        {/* Inline quantity stepper */}
+                        <Stepper
+                          value={li.quantity ?? 1}
+                          onChange={(v) =>
+                            updateListItem(li.id!, { quantity: v })}
+                        />
+                      </div>
+
+                      {/* 1px divider between rows, not after last */}
+                      {idx < group.items.length - 1 && (
+                        <div
+                          class="bg-surface-chigh mx-4"
+                          style={{ height: 1 }}
+                        />
+                      )}
+                    </div>
+                  ))}
+                </Card>
+              </div>
+            )}
+          </For>
+
+          {groupedList.value.length === 0 && (
+            <p class="md-body-large text-on-surface-variant text-center py-8">
+              Tap the search bar to add items.
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* ── Shop mode ── */}
+      {mode.value === "shop" && (() => {
+        const done = checkedItems.value.length;
+        const total = list.value.length + checkedItems.value.length;
+        const allDone = done === total && total > 0;
+
+        return (
+          <div class="flex flex-col gap-3">
+            {/* Progress card */}
+            <Card variant="filled" pad={16}>
+              <div class="flex items-baseline justify-between gap-2 mb-2.5">
+                <span class="md-title-medium text-on-surface whitespace-nowrap">
+                  {done} / {total} in cart
+                </span>
+                {/* NOTE: Wake Lock API is not implemented in this spike — this is a static label only */}
+                <span class="inline-flex items-center gap-1 md-label-small text-on-surface-variant whitespace-nowrap shrink-0">
+                  <Icon name="bolt" size={13} /> Screen awake
+                </span>
+              </div>
+              <Progress value={done} total={total} height={8} />
+            </Card>
+
+            {/* All-done celebration */}
+            {allDone && (
+              <Card
+                variant="filled"
+                pad={20}
+                class="bg-tertiary-container text-center"
+              >
+                <div class="text-[34px] leading-none mb-1">🎉</div>
+                <div class="md-title-large text-on-tertiary-container mt-1">
+                  All done — nice work!
+                </div>
+                <div class="md-body-medium text-on-tertiary-container opacity-85 mt-1">
+                  Everything's in the cart.
+                </div>
+              </Card>
+            )}
+
+            {/* Remaining items grouped by aisle */}
+            {!allDone && (
+              <For each={groupedList}>
+                {(group) => (
+                  <div class="flex flex-col gap-2">
+                    {/* Aisle header */}
+                    <div class="flex items-center justify-between mx-1 mt-1">
+                      <span class="md-title-small text-primary uppercase tracking-[0.05em]">
+                        {group.category?.label ?? "Uncategorized"}
+                      </span>
+                      <span class="md-label-medium text-on-surface-variant whitespace-nowrap shrink-0">
+                        {group.items.length} left
+                      </span>
+                    </div>
+
+                    {/* Item rows */}
+                    <div class="flex flex-col gap-2">
+                      {group.items.map((li: ShoppingListItemInterface) => (
+                        <Pressable
+                          key={li.id}
+                          as="div"
+                          onClick={() => handleCheckItem(li.id!)}
+                          class="flex items-center gap-4 bg-surface-chigh rounded-2xl px-4"
+                          style={{
+                            minHeight: 60,
+                            paddingTop: 14,
+                            paddingBottom: 14,
+                          }}
+                        >
+                          <RoundCheck checked={false} />
+                          <div class="flex-1 min-w-0">
+                            <div class="md-body-large text-on-surface overflow-hidden text-ellipsis whitespace-nowrap">
+                              {getItemName(li.itemId)}
+                            </div>
+                            {li.note && (
+                              <div class="md-body-small text-on-surface-variant overflow-hidden text-ellipsis whitespace-nowrap">
+                                📝 {li.note}
+                              </div>
+                            )}
+                          </div>
+                          {(li.quantity ?? 1) > 1 && (
+                            <span class="md-label-large bg-secondary-container text-on-secondary-container rounded-full px-2.5 py-0.5 shrink-0">
+                              ×{li.quantity}
+                            </span>
+                          )}
+                        </Pressable>
+                      ))}
+                    </div>
+                  </div>
                 )}
               </For>
-            </ul>
-          </Show>
-        </Show>
-      </section>
+            )}
+
+            {/* "In cart" collapsible */}
+            {checkedItems.value.length > 0 && (
+              <div class="flex flex-col gap-2">
+                {/* Toggle header */}
+                <Pressable
+                  as="div"
+                  onClick={() => {
+                    showDone.value = !showDone.value;
+                  }}
+                  class="flex items-center gap-2.5 px-1 py-2 mt-1"
+                >
+                  <span class="md-title-small text-on-surface-variant">
+                    In cart · {checkedItems.value.length}
+                  </span>
+                  <div class="flex-1 h-px bg-surface-chigh" />
+                  <span
+                    class="text-on-surface-variant shrink-0"
+                    style={{
+                      transform: showDone.value
+                        ? "rotate(90deg)"
+                        : "rotate(0deg)",
+                      transition: "transform .15s",
+                      display: "inline-flex",
+                    }}
+                  >
+                    <Icon name="chevron" size={20} />
+                  </span>
+                </Pressable>
+
+                {/* Checked items */}
+                {showDone.value && checkedItems.value.map(
+                  (li: ShoppingListItemInterface) => (
+                    <Pressable
+                      key={li.id}
+                      as="div"
+                      onClick={() => uncheckItem(li.id!)}
+                      class="flex items-center gap-4 bg-surface rounded-2xl px-4 opacity-60"
+                      style={{
+                        minHeight: 60,
+                        paddingTop: 14,
+                        paddingBottom: 14,
+                      }}
+                    >
+                      <RoundCheck checked />
+                      <div class="flex-1 min-w-0">
+                        <div class="md-body-large text-on-surface line-through overflow-hidden text-ellipsis whitespace-nowrap">
+                          {getItemName(li.itemId)}
+                        </div>
+                      </div>
+                    </Pressable>
+                  ),
+                )}
+              </div>
+            )}
+
+            {total === 0 && (
+              <p class="md-body-large text-on-surface-variant text-center py-8">
+                Switch to Plan to add items.
+              </p>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* ══════════════════════ List-management sheet ══════════════════════ */}
+      <Sheet
+        open={mgmtOpen.value}
+        onClose={() => {
+          mgmtOpen.value = false;
+        }}
+        title="List options"
+      >
+        <div class="flex flex-col gap-1 pb-1">
+          {/* Rename */}
+          <div class="px-1 py-2">
+            <div class="md-body-large text-on-surface mb-2">Rename list</div>
+            <div class="flex gap-2">
+              <input
+                value={renameValue.value}
+                onInput={(e) => {
+                  renameValue.value = (e.target as HTMLInputElement).value;
+                }}
+                onKeyDown={async (e) => {
+                  if (e.key === "Enter" && renameValue.value.trim()) {
+                    await api.shoppingLists.rename(
+                      listId,
+                      renameValue.value.trim(),
+                    );
+                    mgmtOpen.value = false;
+                    // The route SSR renders the list name into the shell TopAppBar;
+                    // reload to reflect the new name there.
+                    globalThis.location.reload();
+                  }
+                }}
+                placeholder="List name"
+                class="flex-1 md-body-large text-on-surface bg-surface-chigh border-0 rounded-[var(--md-shape-full)] py-3 px-4 outline-none"
+              />
+              <Button
+                variant="filled"
+                onClick={async () => {
+                  const name = renameValue.value.trim();
+                  if (!name) return;
+                  await api.shoppingLists.rename(listId, name);
+                  mgmtOpen.value = false;
+                  globalThis.location.reload();
+                }}
+              >
+                Save
+              </Button>
+            </div>
+          </div>
+
+          <div class="h-px bg-surface-chigh mx-1 my-1" />
+
+          {/* Share — coming soon */}
+          <ListItem
+            headline="Share list"
+            supporting="Invite household members"
+            leading={
+              <span class="w-10 h-10 rounded-full bg-surface-chigh text-on-surface-variant grid place-items-center">
+                <Icon name="share" size={20} />
+              </span>
+            }
+            onClick={() => {
+              showSnack("Sharing is coming soon");
+            }}
+          />
+
+          {/* Clear checked */}
+          <ListItem
+            headline="Clear checked items"
+            supporting={checkedItems.value.length
+              ? `${checkedItems.value.length} checked off`
+              : "Nothing checked yet"}
+            leading={
+              <span class="w-10 h-10 rounded-full bg-surface-chigh text-on-surface-variant grid place-items-center">
+                <Icon name="check" size={20} />
+              </span>
+            }
+            onClick={async () => {
+              const ids = checkedItems.value.map((li) => li.id!).filter(
+                Boolean,
+              );
+              mgmtOpen.value = false;
+              for (const id of ids) {
+                await removeListItem(id);
+              }
+            }}
+          />
+
+          <div class="h-px bg-surface-chigh mx-1 my-1" />
+
+          {/* Delete list */}
+          <ListItem
+            headline={<span class="text-error">Delete list</span>}
+            leading={
+              <span class="w-10 h-10 rounded-full bg-error-container text-error grid place-items-center">
+                <Icon name="trash" size={20} />
+              </span>
+            }
+            onClick={async () => {
+              mgmtOpen.value = false;
+              await api.shoppingLists.delete(listId);
+              globalThis.location.href = "/shopping";
+            }}
+          />
+        </div>
+      </Sheet>
+
+      {/* ══════════════════════ Add-item sheet ══════════════════════ */}
+      <Sheet
+        open={addOpen.value}
+        onClose={() => {
+          addOpen.value = false;
+          reset();
+        }}
+        title="Add items"
+      >
+        {/* Search input */}
+        <div class="relative mb-3">
+          <span class="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant">
+            <Icon name="search" size={20} />
+          </span>
+          <input
+            ref={inputRef}
+            value={query.value}
+            onInput={(e) => {
+              query.value = (e.target as HTMLInputElement).value;
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && query.value.trim()) {
+                const q = query.value.trim();
+                const exact = items.value.some((i) =>
+                  i.name?.toLowerCase() === q.toLowerCase()
+                );
+                if (!exact) handleCreateItem(q);
+              }
+            }}
+            placeholder="Search or add an item…"
+            class="w-full md-body-large text-on-surface bg-surface-chigh border-0 rounded-[var(--md-shape-full)] py-3.5 pl-11 pr-4 outline-none"
+          />
+        </div>
+
+        {/* "Add '<query>'" card — shown when non-empty query and no exact match */}
+        {(() => {
+          const q = query.value.trim();
+          const exact = q
+            ? items.value.some((i) => i.name?.toLowerCase() === q.toLowerCase())
+            : true;
+          if (!q || exact) return null;
+          return (
+            <div class="bg-primary-container text-on-primary-container rounded-[var(--md-shape-lg)] p-3.5 mb-3 flex flex-col gap-3">
+              <div class="flex items-center gap-3.5">
+                <span class="w-9 h-9 rounded-full bg-on-primary-container text-primary-container grid place-items-center shrink-0">
+                  <Icon name="plus" size={20} />
+                </span>
+                <div class="flex-1 min-w-0">
+                  <div class="md-body-large">Add "{q}"</div>
+                  <div class="md-body-small opacity-80">
+                    New item — pick a category
+                  </div>
+                </div>
+              </div>
+
+              {/* Category chips */}
+              <div class="flex gap-2 flex-wrap">
+                <Chip
+                  selected={!selectedCategoryId.value}
+                  onClick={() => {
+                    selectedCategoryId.value = "";
+                  }}
+                >
+                  Uncategorized
+                </Chip>
+                <For each={categories}>
+                  {(cat) => (
+                    <Chip
+                      selected={selectedCategoryId.value === cat.id}
+                      onClick={() => {
+                        selectedCategoryId.value = cat.id ?? "";
+                      }}
+                    >
+                      {cat.label}
+                    </Chip>
+                  )}
+                </For>
+              </div>
+
+              <Button
+                variant="filled"
+                full
+                onClick={() => handleCreateItem(q)}
+                style={{
+                  background: "var(--md-on-primary-container)",
+                  color: "var(--md-primary-container)",
+                }}
+              >
+                Add to {categories.value.find((c) =>
+                  c.id === selectedCategoryId.value
+                )?.label ?? "Uncategorized"}
+              </Button>
+            </div>
+          );
+        })()}
+
+        {/* Catalogue list */}
+        <div class="flex flex-col">
+          {!query.value.trim() && (
+            <div class="md-label-medium text-on-surface-variant uppercase tracking-widest mb-1 px-1">
+              From your catalogue
+            </div>
+          )}
+          <For each={results}>
+            {(item) => {
+              const added = listItemsMap.value.has(item.id ?? "");
+              return (
+                <ListItem
+                  key={item.id}
+                  headline={item.name ?? ""}
+                  supporting={categories.value.find((c) =>
+                    c.id === item.categoryId
+                  )?.label ?? ""}
+                  onClick={added
+                    ? undefined
+                    : () => item.id && handleAddToList(item.id)}
+                  trailing={added
+                    ? (
+                      <span class="inline-flex items-center gap-1 text-primary md-label-medium">
+                        <Icon name="check" size={18} /> Added
+                      </span>
+                    )
+                    : (
+                      <span class="text-primary">
+                        <Icon name="plus" size={22} />
+                      </span>
+                    )}
+                />
+              );
+            }}
+          </For>
+          {query.value.trim() && results.value.length === 0 && (
+            <p class="md-body-medium text-on-surface-variant px-1 py-3.5">
+              No catalogue match — use "Add "{query.value.trim()}"" above to
+              create it.
+            </p>
+          )}
+        </div>
+      </Sheet>
+
+      {/* ══════════════════════ Item-editor sheet ══════════════════════ */}
+      <Sheet
+        open={editingId.value !== null}
+        onClose={() => {
+          const id = editingId.value;
+          if (id) flushListItem(id);
+          editingId.value = null;
+        }}
+        title={editingId.value ? getItemName(editingListItem()?.itemId) : ""}
+      >
+        {(() => {
+          const li = editingListItem();
+          if (!li) return null;
+
+          // Find category currently on the catalog item
+          const catalogItem = items.value.find((i) => i.id === li.itemId);
+          const currentCategoryId = catalogItem?.categoryId ?? "";
+
+          return (
+            <div class="flex flex-col gap-1.5 pb-1">
+              {
+                /* Saved pill — reserves row height; CSS-fades in/out, keyed by
+                  savedTick so it replays on each flush */
+              }
+              <div class="h-6 flex justify-end items-center px-1">
+                {showSaved && (
+                  <span
+                    key={savedTick}
+                    class="md-saved-flash inline-flex items-center gap-1 md-label-medium text-on-tertiary-container bg-tertiary-container rounded-full px-2.5 py-0.5 pointer-events-none"
+                  >
+                    <Icon name="check" size={14} /> Saved
+                  </span>
+                )}
+              </div>
+
+              {/* Quantity */}
+              <div class="flex items-center justify-between px-1 py-1.5">
+                <span class="md-body-large text-on-surface">Quantity</span>
+                <Stepper
+                  value={li.quantity ?? 1}
+                  onChange={(v) => updateListItem(li.id!, { quantity: v })}
+                />
+              </div>
+              <div class="h-px bg-surface-chigh mx-1" />
+
+              {/* Category */}
+              <div class="px-1 py-1.5">
+                <div class="md-body-large text-on-surface mb-3">Category</div>
+                <div class="flex gap-2 flex-wrap">
+                  <Chip
+                    selected={!currentCategoryId}
+                    onClick={() => handleCategoryChange("")}
+                  >
+                    Uncategorized
+                  </Chip>
+                  <For each={categories}>
+                    {(cat) => (
+                      <Chip
+                        selected={currentCategoryId === cat.id}
+                        onClick={() => cat.id && handleCategoryChange(cat.id)}
+                      >
+                        {cat.label}
+                      </Chip>
+                    )}
+                  </For>
+                </div>
+              </div>
+              <div class="h-px bg-surface-chigh mx-1" />
+
+              {/* Note */}
+              <div class="px-1 py-1.5">
+                <div class="md-body-large text-on-surface mb-2">Note</div>
+                <textarea
+                  value={li.note ?? ""}
+                  onInput={(e) =>
+                    updateListItem(li.id!, {
+                      note: (e.target as HTMLTextAreaElement).value,
+                    })}
+                  rows={2}
+                  placeholder="e.g. the red ones, big pack, any brand…"
+                  class="w-full md-body-large text-on-surface bg-surface-chigh border-0 rounded-[var(--md-shape-lg)] py-3 px-4 outline-none resize-none"
+                />
+              </div>
+
+              {/* Done button */}
+              <Button
+                variant="filled"
+                full
+                onClick={() => {
+                  const id = editingId.value;
+                  if (id) flushListItem(id);
+                  editingId.value = null;
+                }}
+                class="mt-2.5"
+              >
+                Done
+              </Button>
+
+              {/* Remove from list */}
+              <Button
+                variant="error"
+                full
+                onClick={async () => {
+                  const id = li.id!;
+                  editingId.value = null;
+                  await removeListItem(id);
+                }}
+                class="mt-2"
+              >
+                Remove from list
+              </Button>
+            </div>
+          );
+        })()}
+      </Sheet>
+      {/* ══════════════════════ Snackbar ══════════════════════ */}
+      <Snackbar data={snackData.value} />
     </div>
   );
 }

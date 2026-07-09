@@ -19,3 +19,5 @@ kv.db
 kv.db-shm
 kv.db-wal
 
+
+.superpowers/
