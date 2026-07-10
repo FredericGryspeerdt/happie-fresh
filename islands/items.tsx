@@ -11,9 +11,9 @@ import { api } from "@/services/api.ts";
 import { Segmented } from "@/components/md3/Segmented.tsx";
 import { SearchBar } from "@/components/md3/SearchBar.tsx";
 import { Sheet } from "@/components/md3/Sheet.tsx";
+import { CategoryPickerList } from "@/components/md3/CategoryPickerList.tsx";
 import { Card } from "@/components/md3/Card.tsx";
 import { Stepper } from "@/components/md3/Stepper.tsx";
-import { Chip } from "@/components/md3/Chip.tsx";
 import { Button } from "@/components/md3/Button.tsx";
 import { ListItem } from "@/components/md3/ListItem.tsx";
 import { Icon } from "@/components/md3/Icon.tsx";
@@ -125,9 +125,10 @@ export default function Items(
   // ── sheet signals ────────────────────────────────────────────────────────
   const addOpen = useSignal(false);
   const editingId = useSignal<string | null>(null);
-  // add-item: searchable category picker mode (replaces the sheet body while open)
+  // add-item + item-editor: searchable category picker mode (replaces the
+  // respective sheet body while open)
   const catPicking = useSignal(false);
-  const catQuery = useSignal("");
+  const editCatPicking = useSignal(false);
 
   // ── item-editor: honest "Saved" indicator ───────────────────────────────
   // Driven directly by `lastSaved` (bumped only when a debounced list-item write
@@ -162,12 +163,6 @@ export default function Items(
   const selectedCatLabel =
     categories.value.find((c) => c.id === selectedCategoryId.value)?.label ??
       "Uncategorized";
-  const catQ = catQuery.value.trim().toLowerCase();
-  const catMatches = [...categories.value]
-    .sort((a, b) =>
-      (a.label ?? "").toLowerCase().localeCompare((b.label ?? "").toLowerCase())
-    )
-    .filter((c) => !catQ || (c.label ?? "").toLowerCase().includes(catQ));
 
   // ── item-editor: get current list item being edited ──────────────────────
   const editingListItem = () =>
@@ -559,57 +554,19 @@ export default function Items(
         onClose={() => {
           addOpen.value = false;
           catPicking.value = false;
-          catQuery.value = "";
           reset();
         }}
         title={catPicking.value ? "Choose category" : "Add items"}
       >
         {catPicking.value && (
-          <div class="flex flex-col gap-1">
-            <div class="flex items-center gap-2 bg-surface-chigh rounded-[var(--md-shape-full)] h-12 px-4 mb-1">
-              <Icon name="search" size={20} class="text-on-surface-variant" />
-              <input
-                value={catQuery.value}
-                onInput={(e) => {
-                  catQuery.value = (e.target as HTMLInputElement).value;
-                }}
-                placeholder="Find a category"
-                class="flex-1 min-w-0 bg-transparent border-0 outline-none md-body-large text-on-surface"
-              />
-            </div>
-            {(!catQ || "uncategorized".includes(catQ)) && (
-              <ListItem
-                headline="Uncategorized"
-                onClick={() => {
-                  selectedCategoryId.value = "";
-                  catPicking.value = false;
-                  catQuery.value = "";
-                }}
-                trailing={!selectedCategoryId.value
-                  ? <Icon name="check" size={20} class="text-primary" />
-                  : undefined}
-              />
-            )}
-            {catMatches.map((cat) => (
-              <ListItem
-                key={cat.id}
-                headline={cat.label ?? ""}
-                onClick={() => {
-                  selectedCategoryId.value = cat.id ?? "";
-                  catPicking.value = false;
-                  catQuery.value = "";
-                }}
-                trailing={selectedCategoryId.value === cat.id
-                  ? <Icon name="check" size={20} class="text-primary" />
-                  : undefined}
-              />
-            ))}
-            {catQ && catMatches.length === 0 && (
-              <p class="md-body-medium text-on-surface-variant px-1 py-3.5">
-                No category matches "{catQuery.value.trim()}".
-              </p>
-            )}
-          </div>
+          <CategoryPickerList
+            categories={categories.value}
+            selectedId={selectedCategoryId.value}
+            onSelect={(id) => {
+              selectedCategoryId.value = id;
+              catPicking.value = false;
+            }}
+          />
         )}
         {!catPicking.value && (
           <>
@@ -664,7 +621,6 @@ export default function Items(
                   {/* Category — opens the searchable picker */}
                   <Pressable
                     onClick={() => {
-                      catQuery.value = "";
                       catPicking.value = true;
                     }}
                     color="var(--md-on-primary-container)"
@@ -746,8 +702,11 @@ export default function Items(
           const id = editingId.value;
           if (id) flushListItem(id);
           editingId.value = null;
+          editCatPicking.value = false;
         }}
-        title={editingId.value ? getItemName(editingListItem()?.itemId) : ""}
+        title={editCatPicking.value
+          ? "Choose category"
+          : (editingId.value ? getItemName(editingListItem()?.itemId) : "")}
       >
         {(() => {
           const li = editingListItem();
@@ -756,6 +715,23 @@ export default function Items(
           // Find category currently on the catalog item
           const catalogItem = items.value.find((i) => i.id === li.itemId);
           const currentCategoryId = catalogItem?.categoryId ?? "";
+          const currentCatLabel =
+            categories.value.find((c) => c.id === currentCategoryId)?.label ??
+              "Uncategorized";
+
+          // Searchable category picker replaces the editor body while open
+          if (editCatPicking.value) {
+            return (
+              <CategoryPickerList
+                categories={categories.value}
+                selectedId={currentCategoryId}
+                onSelect={(id) => {
+                  handleCategoryChange(id);
+                  editCatPicking.value = false;
+                }}
+              />
+            );
+          }
 
           return (
             <div class="flex flex-col gap-1.5 pb-1">
@@ -784,27 +760,24 @@ export default function Items(
               </div>
               <div class="h-px bg-surface-chigh mx-1" />
 
-              {/* Category */}
+              {/* Category — opens the searchable picker */}
               <div class="px-1 py-1.5">
-                <div class="md-body-large text-on-surface mb-3">Category</div>
-                <div class="flex gap-2 flex-wrap">
-                  <Chip
-                    selected={!currentCategoryId}
-                    onClick={() => handleCategoryChange("")}
-                  >
-                    Uncategorized
-                  </Chip>
-                  <For each={categories}>
-                    {(cat) => (
-                      <Chip
-                        selected={currentCategoryId === cat.id}
-                        onClick={() => cat.id && handleCategoryChange(cat.id)}
-                      >
-                        {cat.label}
-                      </Chip>
-                    )}
-                  </For>
-                </div>
+                <div class="md-body-large text-on-surface mb-2">Category</div>
+                <Pressable
+                  onClick={() => {
+                    editCatPicking.value = true;
+                  }}
+                  class="flex items-center justify-between gap-2 w-full bg-surface-chigh rounded-[var(--md-shape-md)] px-4 py-3"
+                >
+                  <span class="md-body-large text-on-surface">
+                    {currentCatLabel}
+                  </span>
+                  <Icon
+                    name="chevron"
+                    size={18}
+                    class="text-on-surface-variant"
+                  />
+                </Pressable>
               </div>
               <div class="h-px bg-surface-chigh mx-1" />
 
