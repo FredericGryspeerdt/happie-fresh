@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from "preact/hooks";
-import { useSignal } from "@preact/signals";
+import { useComputed, useSignal } from "@preact/signals";
 import { For } from "@preact/signals/utils";
 import {
   CategoryInterface,
@@ -86,16 +86,25 @@ export default function AddItems(
     categories.value.find((c) => c.id === selectedCategoryId.value)?.label ??
       "Uncategorized";
 
-  const chipCats = [...categories.value].sort((a, b) =>
-    (a.label ?? "").toLowerCase().localeCompare((b.label ?? "").toLowerCase())
+  // Memoized so the large-catalogue hot path (every row, every render) does a
+  // Map lookup instead of an O(n) `.find` scan over all categories.
+  const catLabelById = useComputed(() =>
+    new Map(categories.value.map((c) => [c.id, c.label ?? ""]))
+  );
+
+  const chipCats = useComputed(() =>
+    [...categories.value].sort((a, b) =>
+      (a.label ?? "").toLowerCase().localeCompare(
+        (b.label ?? "").toLowerCase(),
+      )
+    )
   );
 
   const row = (item: ItemInterface) => (
     <CatalogueAddRow
       key={item.id}
       name={item.name ?? ""}
-      categoryLabel={categories.value.find((c) => c.id === item.categoryId)
-        ?.label ?? ""}
+      categoryLabel={catLabelById.value.get(item.categoryId ?? "") ?? ""}
       added={listItemsMap.value.has(item.id ?? "")}
       onAdd={() => item.id && handleAdd(item.id)}
     />
@@ -106,7 +115,7 @@ export default function AddItems(
       class="flex gap-2 overflow-x-auto px-1 pb-1"
       style={{ scrollbarWidth: "none" }}
     >
-      {chipCats.map((c) => (
+      {chipCats.value.map((c) => (
         <Chip
           key={c.id}
           selected={filterCatId.value === c.id}
@@ -175,6 +184,11 @@ export default function AddItems(
       {(() => {
         // Typing → text search across the whole catalogue.
         if (q) {
+          // Intentionally two different predicates: the create card gates on
+          // an EXACT (case-insensitive) match, while `results` below comes
+          // from useSearchBox's SUBSTRING filter — so both can legitimately
+          // show at once (e.g. "Milk" exact-matches while "Milkshake" still
+          // shows as a substring result). Do not unify these.
           const exact = items.value.some((i) =>
             i.name?.toLowerCase() === q.toLowerCase()
           );

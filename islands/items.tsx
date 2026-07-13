@@ -582,6 +582,8 @@ export default function Items(
             onKeyDown={(e) => {
               if (e.key === "Enter" && query.value.trim()) {
                 const qq = query.value.trim();
+                // EXACT (case-insensitive) match, distinct from `results`'
+                // SUBSTRING filter below — intentional, do not unify.
                 const exact = items.value.some((i) =>
                   i.name?.toLowerCase() === qq.toLowerCase()
                 );
@@ -606,6 +608,10 @@ export default function Items(
               </div>
             );
           }
+          // Intentionally two different predicates: the create affordance
+          // below gates on an EXACT (case-insensitive) match, while `results`
+          // comes from useSearchBox's SUBSTRING filter — so both can
+          // legitimately show at once. Do not unify these.
           const exact = items.value.some((i) =>
             i.name?.toLowerCase() === qq.toLowerCase()
           );
