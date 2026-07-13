@@ -129,6 +129,9 @@ export default function Items(
   // respective sheet body while open)
   const catPicking = useSignal(false);
   const editCatPicking = useSignal(false);
+  // add-item: user explicitly chose "add as new" even though catalogue
+  // matches exist (promotes the otherwise-subtle create affordance)
+  const wantCreate = useSignal(false);
 
   // ── item-editor: honest "Saved" indicator ───────────────────────────────
   // Driven directly by `lastSaved` (bumped only when a debounced list-item write
@@ -147,6 +150,15 @@ export default function Items(
 
   const { query, results, inputRef, reset } = useSearchBox(catalog, filterFn);
 
+  // Autofocus the search field when the add-item sheet opens — enables a quick
+  // type-to-search flow without an extra tap. Keyed on addOpen only, so
+  // returning from the category picker doesn't steal focus.
+  useEffect(() => {
+    if (!addOpen.value) return;
+    const t = setTimeout(() => inputRef.current?.focus(), 80);
+    return () => clearTimeout(t);
+  }, [addOpen.value]);
+
   // ── add-item handlers ────────────────────────────────────────────────────
   const handleAddToList = async (itemId: string) => {
     await addToList(itemId);
@@ -156,6 +168,7 @@ export default function Items(
   const handleCreateItem = async (searchString: string) => {
     await addToCatalog(searchString, selectedCategoryId.value || undefined);
     selectedCategoryId.value = "";
+    wantCreate.value = false;
     reset();
   };
 
@@ -554,6 +567,7 @@ export default function Items(
         onClose={() => {
           addOpen.value = false;
           catPicking.value = false;
+          wantCreate.value = false;
           reset();
         }}
         title={catPicking.value ? "Choose category" : "Add items"}
@@ -580,6 +594,8 @@ export default function Items(
                 value={query.value}
                 onInput={(e) => {
                   query.value = (e.target as HTMLInputElement).value;
+                  // typing changes the match set — retract an explicit "add new"
+                  wantCreate.value = false;
                 }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && query.value.trim()) {
@@ -587,7 +603,10 @@ export default function Items(
                     const exact = items.value.some((i) =>
                       i.name?.toLowerCase() === q.toLowerCase()
                     );
-                    if (!exact) handleCreateItem(q);
+                    // Enter creates only when nothing in the catalogue matches
+                    if (!exact && results.value.length === 0) {
+                      handleCreateItem(q);
+                    }
                   }
                 }}
                 placeholder="Search or add an item…"
@@ -595,102 +614,125 @@ export default function Items(
               />
             </div>
 
-            {/* "Add '<query>'" card — shown when non-empty query and no exact match */}
             {(() => {
               const q = query.value.trim();
-              const exact = q
-                ? items.value.some((i) =>
-                  i.name?.toLowerCase() === q.toLowerCase()
-                )
-                : true;
-              if (!q || exact) return null;
-              return (
-                <div class="bg-primary-container text-on-primary-container rounded-[var(--md-shape-lg)] p-3.5 mb-3 flex flex-col gap-3">
-                  <div class="flex items-center gap-3.5">
-                    <span class="w-9 h-9 rounded-full bg-on-primary-container text-primary-container grid place-items-center shrink-0">
-                      <Icon name="plus" size={20} />
-                    </span>
-                    <div class="flex-1 min-w-0">
-                      <div class="md-body-large">Add "{q}"</div>
-                      <div class="md-body-small opacity-80">
-                        New item — pick a category
-                      </div>
+
+              // Idle: no query yet — prompt to search rather than dumping the
+              // whole catalogue into the sheet.
+              if (!q) {
+                return (
+                  <div class="flex flex-col items-center text-center gap-1 px-6 py-10 text-on-surface-variant">
+                    <Icon name="search" size={28} />
+                    <div class="md-body-medium mt-1">Search your catalogue</div>
+                    <div class="md-body-small opacity-80">
+                      or type something new to add it
                     </div>
                   </div>
+                );
+              }
 
-                  {/* Category — opens the searchable picker */}
-                  <Pressable
-                    onClick={() => {
-                      catPicking.value = true;
-                    }}
-                    color="var(--md-on-primary-container)"
-                    class="flex items-center justify-between gap-2 w-full rounded-[var(--md-shape-md)] border border-on-primary-container/40 px-3.5 py-2.5"
-                  >
-                    <span class="md-body-medium opacity-80">Category</span>
-                    <span class="inline-flex items-center gap-1 md-label-large">
-                      {selectedCatLabel} <Icon name="chevron" size={18} />
-                    </span>
-                  </Pressable>
+              const exact = items.value.some((i) =>
+                i.name?.toLowerCase() === q.toLowerCase()
+              );
+              const hasResults = results.value.length > 0;
+              // "Add new" is prominent only when nothing matches — or when the
+              // user explicitly asked to create one despite matches.
+              const promoteCreate = !exact && (!hasResults || wantCreate.value);
+              const showSubtleCreate = !exact && hasResults &&
+                !wantCreate.value;
 
-                  <Button
-                    variant="filled"
-                    full
-                    onClick={() => handleCreateItem(q)}
-                    style={{
-                      background: "var(--md-on-primary-container)",
-                      color: "var(--md-primary-container)",
-                    }}
-                  >
-                    Add to {categories.value.find((c) =>
-                      c.id === selectedCategoryId.value
-                    )?.label ?? "Uncategorized"}
-                  </Button>
-                </div>
+              return (
+                <>
+                  {/* Prominent "Add '<query>'" card — the CTA when no match */}
+                  {promoteCreate && (
+                    <div class="bg-primary-container text-on-primary-container rounded-[var(--md-shape-lg)] p-3.5 mb-3 flex flex-col gap-3">
+                      <div class="flex items-center gap-3.5">
+                        <span class="w-9 h-9 rounded-full bg-on-primary-container text-primary-container grid place-items-center shrink-0">
+                          <Icon name="plus" size={20} />
+                        </span>
+                        <div class="flex-1 min-w-0">
+                          <div class="md-body-large">Add "{q}"</div>
+                          <div class="md-body-small opacity-80">
+                            New item — pick a category
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Category — opens the searchable picker */}
+                      <Pressable
+                        onClick={() => {
+                          catPicking.value = true;
+                        }}
+                        color="var(--md-on-primary-container)"
+                        class="flex items-center justify-between gap-2 w-full rounded-[var(--md-shape-md)] border border-on-primary-container/40 px-3.5 py-2.5"
+                      >
+                        <span class="md-body-medium opacity-80">Category</span>
+                        <span class="inline-flex items-center gap-1 md-label-large">
+                          {selectedCatLabel} <Icon name="chevron" size={18} />
+                        </span>
+                      </Pressable>
+
+                      <Button
+                        variant="filled"
+                        full
+                        onClick={() => handleCreateItem(q)}
+                        style={{
+                          background: "var(--md-on-primary-container)",
+                          color: "var(--md-primary-container)",
+                        }}
+                      >
+                        Add to {selectedCatLabel}
+                      </Button>
+                    </div>
+                  )}
+
+                  {/* Matching catalogue items — the main add flow */}
+                  <div class="flex flex-col">
+                    <For each={results}>
+                      {(item) => {
+                        const added = listItemsMap.value.has(item.id ?? "");
+                        return (
+                          <ListItem
+                            key={item.id}
+                            headline={item.name ?? ""}
+                            supporting={categories.value.find((c) =>
+                              c.id === item.categoryId
+                            )?.label ?? ""}
+                            onClick={added
+                              ? undefined
+                              : () => item.id && handleAddToList(item.id)}
+                            trailing={added
+                              ? (
+                                <span class="inline-flex items-center gap-1 text-primary md-label-medium">
+                                  <Icon name="check" size={18} /> Added
+                                </span>
+                              )
+                              : (
+                                <span class="text-primary">
+                                  <Icon name="plus" size={22} />
+                                </span>
+                              )}
+                          />
+                        );
+                      }}
+                    </For>
+                  </div>
+
+                  {/* Subtle "add as new" — offered only when matches exist */}
+                  {showSubtleCreate && (
+                    <Pressable
+                      onClick={() => {
+                        wantCreate.value = true;
+                      }}
+                      class="flex items-center gap-2 w-full text-left rounded-[var(--md-shape-md)] px-3 py-3 mt-1 text-primary md-label-large"
+                    >
+                      <Icon name="plus" size={20} />
+                      Add "{q}" as a new item
+                    </Pressable>
+                  )}
+                </>
               );
             })()}
-
-            {/* Catalogue list */}
-            <div class="flex flex-col">
-              {!query.value.trim() && (
-                <div class="md-label-medium text-on-surface-variant uppercase tracking-widest mb-1 px-1">
-                  From your catalogue
-                </div>
-              )}
-              <For each={results}>
-                {(item) => {
-                  const added = listItemsMap.value.has(item.id ?? "");
-                  return (
-                    <ListItem
-                      key={item.id}
-                      headline={item.name ?? ""}
-                      supporting={categories.value.find((c) =>
-                        c.id === item.categoryId
-                      )?.label ?? ""}
-                      onClick={added
-                        ? undefined
-                        : () => item.id && handleAddToList(item.id)}
-                      trailing={added
-                        ? (
-                          <span class="inline-flex items-center gap-1 text-primary md-label-medium">
-                            <Icon name="check" size={18} /> Added
-                          </span>
-                        )
-                        : (
-                          <span class="text-primary">
-                            <Icon name="plus" size={22} />
-                          </span>
-                        )}
-                    />
-                  );
-                }}
-              </For>
-              {query.value.trim() && results.value.length === 0 && (
-                <p class="md-body-medium text-on-surface-variant px-1 py-3.5">
-                  No catalogue match — use "Add "{query.value.trim()}"" above to
-                  create it.
-                </p>
-              )}
-            </div>
           </>
         )}
       </Sheet>
