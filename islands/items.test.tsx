@@ -16,3 +16,17 @@ Deno.test("Items — renders Plan and Shop mode toggle", () => {
   assertStringIncludes(html, "Plan");
   assertStringIncludes(html, "Shop");
 });
+
+Deno.test("Items — add sheet is search-first with a full-screen handoff", () => {
+  const html = render(
+    h(Items, {
+      listId: "l1",
+      listName: "Test list",
+      items: [],
+      shoppingList: [],
+      categories: [],
+    }),
+  );
+  assertStringIncludes(html, "Search your catalogue"); // idle hint
+  assertStringIncludes(html, "Full screen"); // expand handoff
+});
