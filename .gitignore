@@ -21,3 +21,9 @@ kv.db-wal
 
 
 .superpowers/
+
+# macOS Finder metadata
+.DS_Store
+
+# Large design handoff archive — kept locally, not committed
+docs/Happie-handoff.zip
