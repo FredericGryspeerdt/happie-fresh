@@ -557,6 +557,7 @@ export default function Items(
           reset();
         }}
         title="Add items"
+        size={query.value.trim() ? "large" : "auto"}
       >
         {/* Hand off to the full-screen add page */}
         <div class="flex justify-end -mt-1 mb-1">
