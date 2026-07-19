@@ -5,10 +5,11 @@ import MoreSheet from "./MoreSheet.tsx";
 import { NAV_CONFIG } from "@/config/navigation.ts";
 import { appBarAction } from "@/utils/app-bar.ts";
 import { IconButton } from "@/components/md3/IconButton.tsx";
+import type { AppBar } from "@/utils/define.ts";
 
 interface AppChromeProps {
   activeId?: string;
-  appBar?: { title: string; backUrl: string };
+  appBar?: AppBar;
   sectionTitle: string;
 }
 
@@ -16,13 +17,20 @@ export default function AppChrome(
   { activeId, appBar, sectionTitle }: AppChromeProps,
 ) {
   const moreOpen = useSignal(false);
+
+  // Full-screen routes (e.g. the add-items search) own the whole viewport:
+  // no top bar and no bottom navigation.
+  if (appBar?.mode === "none") return null;
+
+  const detail = appBar?.mode === "detail" ? appBar : null;
+
   return (
     <>
-      {appBar
+      {detail
         ? (
           <TopAppBar
-            title={appBar.title}
-            backUrl={appBar.backUrl}
+            title={detail.title}
+            backUrl={detail.backUrl}
             trailing={appBarAction.value
               ? (
                 <IconButton
