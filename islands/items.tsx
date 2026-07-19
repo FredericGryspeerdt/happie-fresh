@@ -6,13 +6,11 @@ import {
   ItemInterface,
   ShoppingListItemInterface,
 } from "@/models/index.ts";
-import { useSearchBox, useShoppingList } from "@/hooks/index.ts";
+import { useShoppingList } from "@/hooks/index.ts";
 import { api } from "@/services/api.ts";
 import { Segmented } from "@/components/md3/Segmented.tsx";
-import { SearchBar } from "@/components/md3/SearchBar.tsx";
 import { Sheet } from "@/components/md3/Sheet.tsx";
 import { CategoryPickerList } from "@/components/md3/CategoryPickerList.tsx";
-import { CatalogueAddRow } from "@/components/md3/CatalogueAddRow.tsx";
 import { Card } from "@/components/md3/Card.tsx";
 import { Stepper } from "@/components/md3/Stepper.tsx";
 import { Button } from "@/components/md3/Button.tsx";
@@ -23,6 +21,7 @@ import { Pressable } from "@/components/md3/Pressable.tsx";
 import { Progress } from "@/components/md3/Progress.tsx";
 import { RoundCheck } from "@/components/md3/RoundCheck.tsx";
 import { Snackbar } from "@/components/md3/Snackbar.tsx";
+import Fab from "@/islands/shell/Fab.tsx";
 
 interface ItemsProps {
   listId: string;
@@ -46,7 +45,6 @@ export default function Items(
   // re-render would recreate all signals from SSR props, discarding local state.
   const {
     updateListItem,
-    addToList,
     removeListItem,
     checkItem,
     uncheckItem,
@@ -55,7 +53,6 @@ export default function Items(
     groupedList,
     list,
     checkedItems,
-    listItemsMap,
     categories,
     items,
     lastSaved,
@@ -122,7 +119,6 @@ export default function Items(
   }, []);
 
   // ── sheet signals ────────────────────────────────────────────────────────
-  const addOpen = useSignal(false);
   const editingId = useSignal<string | null>(null);
   // item-editor: searchable category picker mode (replaces the sheet body
   // while open)
@@ -136,34 +132,6 @@ export default function Items(
   // per keystroke. (A signal written from inside a useSignalEffect did NOT
   // re-render this island, so the pill is driven by this top-level read instead.)
   const savedBaseline = useRef(0);
-
-  // ── search / filter for add-item sheet ──────────────────────────────────
-  const filterFn = (searchString: string, item: ItemInterface) => {
-    if (searchString.trim() === "") return false;
-    return !!item?.name?.toLowerCase().includes(searchString.toLowerCase());
-  };
-
-  const { query, results, inputRef, reset } = useSearchBox(catalog, filterFn);
-
-  // Autofocus the search field when the add-item sheet opens — enables a quick
-  // type-to-search flow without an extra tap. Keyed on addOpen only, so
-  // returning from the category picker doesn't steal focus.
-  useEffect(() => {
-    if (!addOpen.value) return;
-    const t = setTimeout(() => inputRef.current?.focus(), 80);
-    return () => clearTimeout(t);
-  }, [addOpen.value]);
-
-  // ── add-item handlers ────────────────────────────────────────────────────
-  const handleAddToList = async (itemId: string) => {
-    await addToList(itemId);
-    // keep sheet open so multiple items can be added quickly
-  };
-
-  const openAddPage = (q?: string) => {
-    const suffix = q ? `?q=${encodeURIComponent(q)}` : "";
-    globalThis.location.href = `/shopping/${listId}/add${suffix}`;
-  };
 
   // ── item-editor: get current list item being edited ──────────────────────
   const editingListItem = () =>
@@ -209,19 +177,6 @@ export default function Items(
       {/* ── Plan mode ── */}
       {mode.value === "plan" && (
         <div class="flex flex-col gap-4">
-          {/* SearchBar opens the add-item sheet */}
-          <SearchBar
-            placeholder="Add item or search catalogue…"
-            onClick={() => {
-              addOpen.value = true;
-            }}
-            trailing={
-              <span class="text-primary">
-                <Icon name="plus" size={22} />
-              </span>
-            }
-          />
-
           {/* Grouped list */}
           <For each={groupedList}>
             {(group) => (
@@ -282,7 +237,7 @@ export default function Items(
 
           {groupedList.value.length === 0 && (
             <p class="md-body-large text-on-surface-variant text-center py-8">
-              Tap the search bar to add items.
+              Tap Add items to get started.
             </p>
           )}
         </div>
@@ -549,104 +504,6 @@ export default function Items(
         </div>
       </Sheet>
 
-      {/* ══════════════════════ Add-item sheet (quick) ══════════════════════ */}
-      <Sheet
-        open={addOpen.value}
-        onClose={() => {
-          addOpen.value = false;
-          reset();
-        }}
-        title="Add items"
-        size={query.value.trim() ? "large" : "auto"}
-      >
-        {/* Hand off to the full-screen add page */}
-        <div class="flex justify-end -mt-1 mb-1">
-          <Pressable
-            onClick={() => openAddPage(query.value.trim())}
-            class="inline-flex items-center gap-1.5 md-label-large text-primary rounded-[var(--md-shape-full)] px-3 py-1.5"
-          >
-            <Icon name="expand" size={18} /> Full screen
-          </Pressable>
-        </div>
-
-        {/* Search input */}
-        <div class="relative mb-3">
-          <span class="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant">
-            <Icon name="search" size={20} />
-          </span>
-          <input
-            ref={inputRef}
-            value={query.value}
-            onInput={(e) => {
-              query.value = (e.target as HTMLInputElement).value;
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && query.value.trim()) {
-                const qq = query.value.trim();
-                // EXACT (case-insensitive) match, distinct from `results`'
-                // SUBSTRING filter below — intentional, do not unify.
-                const exact = items.value.some((i) =>
-                  i.name?.toLowerCase() === qq.toLowerCase()
-                );
-                if (!exact && results.value.length === 0) openAddPage(qq);
-              }
-            }}
-            placeholder="Search or add an item…"
-            class="w-full md-body-large text-on-surface bg-surface-chigh border-0 rounded-[var(--md-shape-full)] py-3.5 pl-11 pr-4 outline-none"
-          />
-        </div>
-
-        {(() => {
-          const qq = query.value.trim();
-          if (!qq) {
-            return (
-              <div class="flex flex-col items-center text-center gap-1 px-6 py-10 text-on-surface-variant">
-                <Icon name="search" size={28} />
-                <div class="md-body-medium mt-1">Search your catalogue</div>
-                <div class="md-body-small opacity-80">
-                  or open full screen to add something new
-                </div>
-              </div>
-            );
-          }
-          // Intentionally two different predicates: the create affordance
-          // below gates on an EXACT (case-insensitive) match, while `results`
-          // comes from useSearchBox's SUBSTRING filter — so both can
-          // legitimately show at once. Do not unify these.
-          const exact = items.value.some((i) =>
-            i.name?.toLowerCase() === qq.toLowerCase()
-          );
-          return (
-            <>
-              <div class="flex flex-col">
-                <For each={results}>
-                  {(item) => (
-                    <CatalogueAddRow
-                      key={item.id}
-                      name={item.name ?? ""}
-                      categoryLabel={categories.value.find((c) =>
-                        c.id === item.categoryId
-                      )?.label ?? ""}
-                      added={listItemsMap.value.has(item.id ?? "")}
-                      onAdd={() => item.id && handleAddToList(item.id)}
-                    />
-                  )}
-                </For>
-              </div>
-              {!exact && (
-                <Pressable
-                  onClick={() => openAddPage(qq)}
-                  class="flex items-center gap-2 w-full text-left rounded-[var(--md-shape-md)] px-3 py-3 mt-1 text-primary md-label-large"
-                >
-                  <Icon name="plus" size={20} />{" "}
-                  Create "{qq}" — opens full screen
-                </Pressable>
-              )}
-            </>
-          );
-        })()}
-      </Sheet>
-
       {/* ══════════════════════ Item-editor sheet ══════════════════════ */}
       <Sheet
         open={editingId.value !== null}
@@ -779,6 +636,24 @@ export default function Items(
           );
         })()}
       </Sheet>
+
+      {/* FAB — opens the full-screen add page (Plan mode only) */}
+      {mode.value === "plan" && (
+        <div
+          class="fixed right-4 z-30"
+          style={{ bottom: "calc(96px + env(safe-area-inset-bottom))" }}
+        >
+          <Fab
+            icon="plus"
+            label="Add items"
+            aria-label="Add items"
+            onClick={() => {
+              globalThis.location.href = `/shopping/${listId}/add`;
+            }}
+          />
+        </div>
+      )}
+
       {/* ══════════════════════ Snackbar ══════════════════════ */}
       <Snackbar data={snackData.value} />
     </div>
