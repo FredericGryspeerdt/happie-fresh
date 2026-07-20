@@ -1,6 +1,5 @@
 import { useEffect, useMemo } from "preact/hooks";
 import { useComputed, useSignal } from "@preact/signals";
-import { For } from "@preact/signals/utils";
 import {
   CategoryInterface,
   ItemInterface,
@@ -319,9 +318,7 @@ export default function AddItems(
                   </div>
                 )}
                 <div class="flex flex-col">
-                  <For each={results}>
-                    {(item) => catalogueRow(item, false)}
-                  </For>
+                  {results.value.map((item) => catalogueRow(item, false))}
                 </div>
               </>
             );

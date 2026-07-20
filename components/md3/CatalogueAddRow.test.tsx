@@ -43,10 +43,13 @@ Deno.test("CatalogueAddRow — added with onRemove shows a remove control", () =
   assertStringIncludes(html, "Remove Milk");
 });
 
-// Backward-compat: both real callers pass only { name, added, onAdd }. With no
-// quantity/onQtyChange/onEdit the row must fall back to a static "✓ Added" label
-// and stay inert — ListItem renders a plain <div> (no "md-press" host) when it
-// has no onClick, whereas the interactive path wraps body in a Pressable.
+// Defensive fallback: no current caller exercises this path (the sole caller,
+// islands/add-items.tsx, always passes quantity/onEdit alongside added). With no
+// quantity/onQtyChange/onEdit the row must still fall back to a static "✓ Added"
+// label and stay inert — ListItem renders a plain <div> (no "md-press" host) when
+// it has no onClick, whereas the interactive path wraps body in a Pressable. This
+// test guards that contract so the static fallback keeps working if a future
+// caller (or this one) ever omits quantity.
 Deno.test("CatalogueAddRow — added fallback: static Added label, inert, no stepper/remove", () => {
   const html = render(h(CatalogueAddRow, {
     name: "Eggs",
