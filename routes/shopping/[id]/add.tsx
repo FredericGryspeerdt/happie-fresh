@@ -16,11 +16,9 @@ export const handler = define.handlers({
     if (!list) {
       return new Response("Not found", { status: 404 });
     }
-    ctx.state.appBar = {
-      mode: "detail",
-      title: "Add items",
-      backUrl: `/shopping/${listId}`,
-    };
+    // Full-screen search surface: the island owns the top bar and there is no
+    // bottom nav. The shell renders no chrome for mode:"none".
+    ctx.state.appBar = { mode: "none" };
     const [items, shoppingList, categories] = await Promise.all([
       ItemRepo.readAll(),
       ShoppingListItemRepo.getAll(listId),
@@ -33,7 +31,7 @@ export const handler = define.handlers({
 
 export default define.page<typeof handler>(function AddItemsPage({ data }) {
   return (
-    <main class="max-w-md mx-auto p-4">
+    <main class="max-w-md mx-auto">
       <AddItemsIsland
         listId={data.list.id}
         listName={data.list.name}
