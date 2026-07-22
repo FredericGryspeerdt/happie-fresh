@@ -27,9 +27,12 @@ Deno.test("AddItems — a back link to the list is always present", () => {
   assertStringIncludes(html, `href="/shopping/l1"`);
 });
 
-Deno.test("AddItems — a matching query lists the catalogue item", () => {
+Deno.test("AddItems — matching query: results first, Create action below", () => {
   const html = render(h(AddItems, { ...base, initialQuery: "But" }));
   assertStringIncludes(html, "Butter");
+  // "But" has no exact match, so the Create action shows too — but BELOW the
+  // results: existing matches lead, create-new is the fallback.
+  assert(html.indexOf("Butter") < html.indexOf("Create &quot;But&quot;"));
 });
 
 Deno.test("AddItems — a no-match query shows the Create card", () => {

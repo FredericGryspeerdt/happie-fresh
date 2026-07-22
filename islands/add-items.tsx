@@ -269,7 +269,7 @@ export default function AddItems(
           </div>
         )}
 
-        {/* Main content: idle hint, or create card + live results */}
+        {/* Main content: idle hint, or live results + create-new fallback */}
         {q
           ? (() => {
             // Two intentional predicates: the create card gates on an EXACT
@@ -281,8 +281,16 @@ export default function AddItems(
             );
             return (
               <>
+                <div class="flex flex-col">
+                  {results.value.map((item) => catalogueRow(item, false))}
+                </div>
+                {
+                  /* Create-new action stays BELOW the results: existing matches
+                    lead while the user types, and this is the fallback (and the
+                    only thing shown when nothing matches). */
+                }
                 {!exact && (
-                  <div class="bg-primary-container text-on-primary-container rounded-[var(--md-shape-lg)] p-3.5 mb-1 flex flex-col gap-3">
+                  <div class="bg-primary-container text-on-primary-container rounded-[var(--md-shape-lg)] p-3.5 mt-1 flex flex-col gap-3">
                     <div class="flex items-center gap-3.5">
                       <span class="w-9 h-9 rounded-full bg-on-primary-container text-primary-container grid place-items-center shrink-0">
                         <Icon name="plus" size={20} />
@@ -317,9 +325,6 @@ export default function AddItems(
                     </Button>
                   </div>
                 )}
-                <div class="flex flex-col">
-                  {results.value.map((item) => catalogueRow(item, false))}
-                </div>
               </>
             );
           })()
