@@ -27,16 +27,18 @@ Deno.test("AddItems — a back link to the list is always present", () => {
   assertStringIncludes(html, `href="/shopping/l1"`);
 });
 
-Deno.test("AddItems — matching query: results first, Create action below", () => {
+Deno.test("AddItems — matching query: results first, then a slim Create row (not the card)", () => {
   const html = render(h(AddItems, { ...base, initialQuery: "But" }));
   assertStringIncludes(html, "Butter");
-  // "But" has no exact match, so the Create action shows too — but BELOW the
-  // results: existing matches lead, create-new is the fallback.
+  // "But" has no exact match, so a Create affordance shows too — but BELOW the
+  // results and as a slim row, NOT the prominent card.
   assert(html.indexOf("Butter") < html.indexOf("Create &quot;But&quot;"));
+  assert(!html.includes("New item")); // de-emphasized: slim row, not the full card
 });
 
-Deno.test("AddItems — a no-match query shows the Create card", () => {
+Deno.test("AddItems — no-match query shows the full Create card", () => {
   const html = render(h(AddItems, { ...base, initialQuery: "Tofu" }));
   // preact-render-to-string HTML-escapes the literal quotes in Create "{q}".
   assertStringIncludes(html, "Create &quot;Tofu&quot;");
+  assertStringIncludes(html, "New item"); // no matches → the prominent card
 });

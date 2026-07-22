@@ -69,6 +69,9 @@ export default function AddItems(
   const editingId = useSignal<string | null>(null);
   // "Added (N)" section collapse state (collapsed by default).
   const addedOpen = useSignal(false);
+  // Create-new affordance: a slim row while matches exist; tapping it expands to
+  // the full category-picker card (which also shows outright when nothing matches).
+  const createExpanded = useSignal(false);
 
   // Autofocus the search field on mount for a quick type-to-search flow.
   useEffect(() => {
@@ -88,6 +91,7 @@ export default function AddItems(
     trackAdded(await addToCatalog(name, selectedCategoryId.value || undefined));
     selectedCategoryId.value = "";
     query.value = "";
+    createExpanded.value = false;
     inputRef.current?.focus();
   };
 
@@ -208,6 +212,7 @@ export default function AddItems(
               value={query.value}
               onInput={(e) => {
                 query.value = (e.target as HTMLInputElement).value;
+                createExpanded.value = false; // typing re-collapses the create row
               }}
               placeholder="Search or add an item…"
               class="w-full md-body-large text-on-surface bg-surface-chigh border-0 rounded-[var(--md-shape-full)] py-2.5 pl-10 pr-10 outline-none"
@@ -285,46 +290,59 @@ export default function AddItems(
                   {results.value.map((item) => catalogueRow(item, false))}
                 </div>
                 {
-                  /* Create-new action stays BELOW the results: existing matches
-                    lead while the user types, and this is the fallback (and the
-                    only thing shown when nothing matches). */
+                  /* Create-new action stays BELOW the results. It's a slim row
+                    when there are matches (de-emphasized), and upgrades to the
+                    full category-picker card when there are no matches — or when
+                    the user taps the slim row to engage. */
                 }
-                {!exact && (
-                  <div class="bg-primary-container text-on-primary-container rounded-[var(--md-shape-lg)] p-3.5 mt-1 flex flex-col gap-3">
-                    <div class="flex items-center gap-3.5">
-                      <span class="w-9 h-9 rounded-full bg-on-primary-container text-primary-container grid place-items-center shrink-0">
-                        <Icon name="plus" size={20} />
-                      </span>
-                      <div class="flex-1 min-w-0">
-                        <div class="md-body-large">Create "{q}"</div>
-                        <div class="md-body-small opacity-80">
-                          New item — pick a category
+                {!exact &&
+                  (results.value.length > 0 && !createExpanded.value
+                    ? (
+                      <Pressable
+                        onClick={() => (createExpanded.value = true)}
+                        class="flex items-center gap-2 w-full text-left rounded-[var(--md-shape-md)] px-3 py-3 mt-1 text-primary md-label-large"
+                      >
+                        <Icon name="plus" size={20} /> Create "{q}"
+                      </Pressable>
+                    )
+                    : (
+                      <div class="bg-primary-container text-on-primary-container rounded-[var(--md-shape-lg)] p-3.5 mt-1 flex flex-col gap-3">
+                        <div class="flex items-center gap-3.5">
+                          <span class="w-9 h-9 rounded-full bg-on-primary-container text-primary-container grid place-items-center shrink-0">
+                            <Icon name="plus" size={20} />
+                          </span>
+                          <div class="flex-1 min-w-0">
+                            <div class="md-body-large">Create "{q}"</div>
+                            <div class="md-body-small opacity-80">
+                              New item — pick a category
+                            </div>
+                          </div>
                         </div>
+                        <Pressable
+                          onClick={() => (catPicking.value = true)}
+                          color="var(--md-on-primary-container)"
+                          class="flex items-center justify-between gap-2 w-full rounded-[var(--md-shape-md)] border border-on-primary-container/40 px-3.5 py-2.5"
+                        >
+                          <span class="md-body-medium opacity-80">
+                            Category
+                          </span>
+                          <span class="inline-flex items-center gap-1 md-label-large">
+                            {selectedCatLabel} <Icon name="chevron" size={18} />
+                          </span>
+                        </Pressable>
+                        <Button
+                          variant="filled"
+                          full
+                          onClick={() => handleCreate(q)}
+                          style={{
+                            background: "var(--md-on-primary-container)",
+                            color: "var(--md-primary-container)",
+                          }}
+                        >
+                          Add to {selectedCatLabel}
+                        </Button>
                       </div>
-                    </div>
-                    <Pressable
-                      onClick={() => (catPicking.value = true)}
-                      color="var(--md-on-primary-container)"
-                      class="flex items-center justify-between gap-2 w-full rounded-[var(--md-shape-md)] border border-on-primary-container/40 px-3.5 py-2.5"
-                    >
-                      <span class="md-body-medium opacity-80">Category</span>
-                      <span class="inline-flex items-center gap-1 md-label-large">
-                        {selectedCatLabel} <Icon name="chevron" size={18} />
-                      </span>
-                    </Pressable>
-                    <Button
-                      variant="filled"
-                      full
-                      onClick={() => handleCreate(q)}
-                      style={{
-                        background: "var(--md-on-primary-container)",
-                        color: "var(--md-primary-container)",
-                      }}
-                    >
-                      Add to {selectedCatLabel}
-                    </Button>
-                  </div>
-                )}
+                    ))}
               </>
             );
           })()
