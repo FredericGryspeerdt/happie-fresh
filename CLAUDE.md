@@ -34,7 +34,8 @@ shopping, or quickly adding something to a list from wherever you are.
 - `deno task preview` — Serve production build
 - `deno task db:seed` — Seed database with demo user (reads `.env`)
 - `deno task db:view` — Inspect KV database contents
-- `deno test` — Run tests
+- `deno task test` — Run tests (uses `--unstable-kv -A`; required for KV-backed
+  repo tests)
 
 ## Architecture
 

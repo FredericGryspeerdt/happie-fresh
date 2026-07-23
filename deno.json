@@ -2,6 +2,7 @@
   "nodeModulesDir": "manual",
   "tasks": {
     "check": "deno fmt --check && deno lint && deno check",
+    "test": "deno test --unstable-kv -A",
     "dev": "deno run --env-file --unstable-kv -A vite",
     "build": "vite build",
     "preview": "deno serve --env-file --unstable-kv -A _fresh/server.js",
