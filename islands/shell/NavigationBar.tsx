@@ -2,6 +2,7 @@ import { Pressable } from "@/components/md3/Pressable.tsx";
 import { Icon } from "@/components/md3/Icon.tsx";
 import { cn } from "@/components/md3/tokens.ts";
 import type { NavItem } from "@/config/navigation.ts";
+import { navigateTo } from "@/utils/loading.ts";
 
 interface NavigationBarProps {
   items: NavItem[];
@@ -16,7 +17,7 @@ export default function NavigationBar({
 }: NavigationBarProps) {
   const go = (it: NavItem) => {
     if (it.id === "more") onMore();
-    else globalThis.location.href = it.defaultRoute;
+    else navigateTo(it.defaultRoute);
   };
 
   return (
