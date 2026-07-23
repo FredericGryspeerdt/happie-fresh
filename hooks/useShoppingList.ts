@@ -45,12 +45,28 @@ export function useShoppingList(
   // so the UI can show a "Saved" indicator tied to the real write (not keystrokes).
   const lastSaved = signal<number>(0);
 
+  // Ids of list items whose debounced write hasn't flushed yet (drives "Saving…").
+  const savingIds = signal<Set<string>>(new Set());
+  const markSaving = (id: string) => {
+    if (savingIds.value.has(id)) return;
+    const next = new Set(savingIds.value);
+    next.add(id);
+    savingIds.value = next;
+  };
+  const clearSaving = (id: string) => {
+    if (!savingIds.value.has(id)) return;
+    const next = new Set(savingIds.value);
+    next.delete(id);
+    savingIds.value = next;
+  };
+
   const patchScheduler = createDebouncedMergeScheduler<
     ShoppingListItemInterface
   >({
     delayMs: 500,
     flush: async (id, patch) => {
       await api.shoppingList.updateItem(listId, id, patch);
+      clearSaving(id);
       lastSaved.value = lastSaved.value + 1;
     },
   });
@@ -65,6 +81,7 @@ export function useShoppingList(
     list.value = list.value.map((li) =>
       li.id === id ? { ...li, ...patch } : li
     );
+    markSaving(id);
     patchScheduler.schedule(id, patch);
   };
 
@@ -111,6 +128,7 @@ export function useShoppingList(
     await new Promise((resolve) => setTimeout(resolve, 300));
 
     patchScheduler.cancel(id);
+    clearSaving(id);
     list.value = list.value.filter((li) => li.id !== id);
     checkedItems.value = checkedItems.value.filter((li) => li.id !== id);
     exitingItems.value = exitingItems.value.filter((itemId) => itemId !== id);
@@ -134,6 +152,7 @@ export function useShoppingList(
         return;
       }
       patchScheduler.cancel(id);
+      clearSaving(id);
       list.value = list.value.filter((li) => li.id !== id);
       exitingItems.value = exitingItems.value.filter((i) => i !== id);
       const checked = { ...item, checked: true };
@@ -250,6 +269,7 @@ export function useShoppingList(
     selectedCategoryId,
     listItemsMap,
     lastSaved,
+    savingIds,
     flushListItem,
   };
 }
