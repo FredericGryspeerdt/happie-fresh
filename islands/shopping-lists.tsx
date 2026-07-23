@@ -8,6 +8,7 @@ import { Button } from "@/components/md3/Button.tsx";
 import { Icon } from "@/components/md3/Icon.tsx";
 import { Segmented } from "@/components/md3/Segmented.tsx";
 import Fab from "@/islands/shell/Fab.tsx";
+import { PullToRefresh } from "@/components/md3/PullToRefresh.tsx";
 
 type ShoppingListWithCounts = ShoppingListInterface & {
   total: number;
@@ -62,8 +63,23 @@ export default function ShoppingLists({ initialLists }: ShoppingListsProps) {
     }
   };
 
+  const refresh = async () => {
+    const fresh = await api.shoppingLists.getAll();
+    const withCounts = await Promise.all(
+      fresh.map(async (l) => {
+        const items = await api.shoppingList.getItems(l.id);
+        return {
+          ...l,
+          total: items.length,
+          done: items.filter((i) => i.checked).length,
+        };
+      }),
+    );
+    lists.value = withCounts;
+  };
+
   return (
-    <>
+    <PullToRefresh onRefresh={refresh} disabled={newOpen.value}>
       {/* Lists / Catalogue selector */}
       <div class="px-4 pt-4 pb-2">
         <Segmented
@@ -188,6 +204,6 @@ export default function ShoppingLists({ initialLists }: ShoppingListsProps) {
           </Button>
         </div>
       </Sheet>
-    </>
+    </PullToRefresh>
   );
 }
