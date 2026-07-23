@@ -148,6 +148,24 @@ export function useShoppingList(
     }
   };
 
+  const clearCheckedItems = async () => {
+    const snapshot = checkedItems.value;
+    if (snapshot.length === 0) return;
+    // Cancel any in-flight debounced writes for items being cleared, so a
+    // late flush can't resurrect a deleted item.
+    for (const li of snapshot) {
+      if (li.id) patchScheduler.cancel(li.id);
+    }
+    checkedItems.value = [];
+    pendingCount.value++;
+    try {
+      const cleared = await api.shoppingList.clearChecked(listId);
+      if (cleared === null) checkedItems.value = snapshot; // rollback on failure
+    } finally {
+      pendingCount.value--;
+    }
+  };
+
   const refresh = async () => {
     pendingCount.value++;
     try {
@@ -241,5 +259,6 @@ export function useShoppingList(
     listItemsMap,
     lastSaved,
     flushListItem,
+    clearCheckedItems,
   };
 }

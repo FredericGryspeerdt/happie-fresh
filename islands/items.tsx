@@ -58,6 +58,7 @@ export default function Items(
     items,
     lastSaved,
     flushListItem,
+    clearCheckedItems,
   } = useMemo(
     () => useShoppingList(listId, catalog, shoppingList, initialCategories),
     [], // intentionally empty — signals are initialized once from SSR data
@@ -498,13 +499,8 @@ export default function Items(
               </span>
             }
             onClick={async () => {
-              const ids = checkedItems.value.map((li) => li.id!).filter(
-                Boolean,
-              );
               mgmtOpen.value = false;
-              for (const id of ids) {
-                await removeListItem(id);
-              }
+              await clearCheckedItems();
             }}
           />
 
