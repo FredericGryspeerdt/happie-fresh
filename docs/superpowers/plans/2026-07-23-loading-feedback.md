@@ -317,11 +317,9 @@ git commit -m "feat(md3): add circular indeterminate Spinner primitive"
 
 - [ ] **Step 1: Add a failing test**
 
-Append to `components/md3/Button.test.tsx`:
+Append to `components/md3/Button.test.tsx` (the existing `render`, `h`, `assertStringIncludes`, and `Button` imports at the top of the file already cover this test — do NOT add new imports, or `deno lint` will flag them as unused):
 
 ```tsx
-import { Spinner } from "./Spinner.tsx"; // ensure module resolves
-
 Deno.test("Button — loading renders a spinner and disabled styling", () => {
   const html = render(h(Button, { loading: true }, "Save"));
   assertStringIncludes(html, 'role="status"'); // the spinner
