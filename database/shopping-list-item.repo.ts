@@ -57,4 +57,24 @@ export class ShoppingListItemRepo {
       await kv.delete(entry.key);
     }
   }
+
+  static async clearChecked(listId: string): Promise<number> {
+    const kv = await getKv();
+    let atomic = kv.atomic();
+    let count = 0;
+    for await (
+      const entry of kv.list<ShoppingListItemInterface>({
+        prefix: ["shopping_list_items", listId],
+      })
+    ) {
+      if (entry.value.checked) {
+        atomic = atomic.delete(entry.key);
+        count++;
+      }
+    }
+    if (count === 0) return 0;
+    const { ok } = await atomic.commit();
+    if (!ok) throw new Error("Failed to clear checked items.");
+    return count;
+  }
 }

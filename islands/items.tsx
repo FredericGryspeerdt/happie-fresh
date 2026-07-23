@@ -10,6 +10,7 @@ import { useShoppingList } from "@/hooks/index.ts";
 import { api } from "@/services/api.ts";
 import { Segmented } from "@/components/md3/Segmented.tsx";
 import { Sheet } from "@/components/md3/Sheet.tsx";
+import { Spinner } from "@/components/md3/Spinner.tsx";
 import { CategoryPickerList } from "@/components/md3/CategoryPickerList.tsx";
 import { Card } from "@/components/md3/Card.tsx";
 import { Stepper } from "@/components/md3/Stepper.tsx";
@@ -24,6 +25,7 @@ import { Snackbar } from "@/components/md3/Snackbar.tsx";
 import Fab from "@/islands/shell/Fab.tsx";
 import AddItems from "@/islands/add-items.tsx";
 import { PullToRefresh } from "@/components/md3/PullToRefresh.tsx";
+import { navigateTo, reloadPage } from "@/utils/loading.ts";
 
 interface ItemsProps {
   listId: string;
@@ -58,7 +60,9 @@ export default function Items(
     categories,
     items,
     lastSaved,
+    savingIds,
     flushListItem,
+    clearCheckedItems,
   } = useMemo(
     () => useShoppingList(listId, catalog, shoppingList, initialCategories),
     [], // intentionally empty — signals are initialized once from SSR data
@@ -454,7 +458,7 @@ export default function Items(
                     mgmtOpen.value = false;
                     // The route SSR renders the list name into the shell TopAppBar;
                     // reload to reflect the new name there.
-                    globalThis.location.reload();
+                    reloadPage();
                   }
                 }}
                 placeholder="List name"
@@ -467,7 +471,7 @@ export default function Items(
                   if (!name) return;
                   await api.shoppingLists.rename(listId, name);
                   mgmtOpen.value = false;
-                  globalThis.location.reload();
+                  reloadPage();
                 }}
               >
                 Save
@@ -503,13 +507,8 @@ export default function Items(
               </span>
             }
             onClick={async () => {
-              const ids = checkedItems.value.map((li) => li.id!).filter(
-                Boolean,
-              );
               mgmtOpen.value = false;
-              for (const id of ids) {
-                await removeListItem(id);
-              }
+              await clearCheckedItems();
             }}
           />
 
@@ -526,7 +525,7 @@ export default function Items(
             onClick={async () => {
               mgmtOpen.value = false;
               await api.shoppingLists.delete(listId);
-              globalThis.location.href = "/shopping";
+              navigateTo("/shopping");
             }}
           />
         </div>
@@ -577,14 +576,20 @@ export default function Items(
                   savedTick so it replays on each flush */
               }
               <div class="h-6 flex justify-end items-center px-1">
-                {showSaved && (
-                  <span
-                    key={savedTick}
-                    class="md-saved-flash inline-flex items-center gap-1 md-label-medium text-on-tertiary-container bg-tertiary-container rounded-full px-2.5 py-0.5 pointer-events-none"
-                  >
-                    <Icon name="check" size={14} /> Saved
-                  </span>
-                )}
+                {savingIds.value.has(li.id!)
+                  ? (
+                    <span class="inline-flex items-center gap-1.5 md-label-medium text-on-surface-variant">
+                      <Spinner size={12} /> Saving…
+                    </span>
+                  )
+                  : showSaved && (
+                    <span
+                      key={savedTick}
+                      class="md-saved-flash inline-flex items-center gap-1 md-label-medium text-on-tertiary-container bg-tertiary-container rounded-full px-2.5 py-0.5 pointer-events-none"
+                    >
+                      <Icon name="check" size={14} /> Saved
+                    </span>
+                  )}
               </div>
 
               {/* Quantity */}

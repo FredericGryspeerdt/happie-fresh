@@ -9,6 +9,7 @@ import { Icon } from "@/components/md3/Icon.tsx";
 import { Segmented } from "@/components/md3/Segmented.tsx";
 import Fab from "@/islands/shell/Fab.tsx";
 import { PullToRefresh } from "@/components/md3/PullToRefresh.tsx";
+import { navigateTo } from "@/utils/loading.ts";
 
 type ShoppingListWithCounts = ShoppingListInterface & {
   total: number;
@@ -86,8 +87,7 @@ export default function ShoppingLists({ initialLists }: ShoppingListsProps) {
           options={SEGMENTED_OPTIONS}
           value="lists"
           onChange={(k) => {
-            if (k === "catalogue") {globalThis.location.href =
-                "/shopping/catalogue";}
+            if (k === "catalogue") navigateTo("/shopping/catalogue");
           }}
         />
       </div>
@@ -126,7 +126,7 @@ export default function ShoppingLists({ initialLists }: ShoppingListsProps) {
                 variant="filled"
                 radius={20}
                 onClick={() => {
-                  globalThis.location.href = `/shopping/${list.id}`;
+                  navigateTo(`/shopping/${list.id}`);
                 }}
               >
                 <div class="flex flex-col gap-3">
@@ -198,7 +198,7 @@ export default function ShoppingLists({ initialLists }: ShoppingListsProps) {
             variant="filled"
             full
             onClick={createList}
-            disabled={loading.value}
+            loading={loading.value}
           >
             Add
           </Button>

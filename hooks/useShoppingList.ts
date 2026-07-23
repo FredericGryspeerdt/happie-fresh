@@ -6,6 +6,7 @@ import {
 } from "@/models/index.ts";
 import { createDebouncedMergeScheduler } from "@/utils/debounce-update.ts";
 import { api } from "@/services/api.ts";
+import { beginBusy, endBusy } from "@/utils/loading.ts";
 
 export function useShoppingList(
   listId: string,
@@ -31,17 +32,45 @@ export function useShoppingList(
   const categories = signal<CategoryInterface[]>(initialCategories);
   const selectedCategoryId = signal<string>("");
   const pendingCount = signal<number>(0);
+  // Mirror each in-flight mutation into the global loading bar.
+  const startPending = () => {
+    pendingCount.value++;
+    beginBusy();
+  };
+  const endPending = () => {
+    pendingCount.value--;
+    endBusy();
+  };
   // Bumped whenever a debounced list-item write actually flushes to the API,
   // so the UI can show a "Saved" indicator tied to the real write (not keystrokes).
   const lastSaved = signal<number>(0);
+
+  // Ids of list items whose debounced write hasn't flushed yet (drives "Saving…").
+  const savingIds = signal<Set<string>>(new Set());
+  const markSaving = (id: string) => {
+    if (savingIds.value.has(id)) return;
+    const next = new Set(savingIds.value);
+    next.add(id);
+    savingIds.value = next;
+  };
+  const clearSaving = (id: string) => {
+    if (!savingIds.value.has(id)) return;
+    const next = new Set(savingIds.value);
+    next.delete(id);
+    savingIds.value = next;
+  };
 
   const patchScheduler = createDebouncedMergeScheduler<
     ShoppingListItemInterface
   >({
     delayMs: 500,
     flush: async (id, patch) => {
-      await api.shoppingList.updateItem(listId, id, patch);
-      lastSaved.value = lastSaved.value + 1;
+      try {
+        await api.shoppingList.updateItem(listId, id, patch);
+        lastSaved.value = lastSaved.value + 1;
+      } finally {
+        clearSaving(id);
+      }
     },
   });
 
@@ -55,6 +84,7 @@ export function useShoppingList(
     list.value = list.value.map((li) =>
       li.id === id ? { ...li, ...patch } : li
     );
+    markSaving(id);
     patchScheduler.schedule(id, patch);
   };
 
@@ -68,11 +98,11 @@ export function useShoppingList(
   };
 
   const addToList = async (itemId: string): Promise<string | null> => {
-    pendingCount.value++;
+    startPending();
     try {
       return await _addToList(itemId);
     } finally {
-      pendingCount.value--;
+      endPending();
     }
   };
 
@@ -81,7 +111,7 @@ export function useShoppingList(
     categoryId?: string,
   ): Promise<string | null> => {
     if (!name) return null;
-    pendingCount.value++;
+    startPending();
     try {
       const created = await api.items.create({ name, categoryId });
       if (created) {
@@ -92,7 +122,7 @@ export function useShoppingList(
       }
       return null;
     } finally {
-      pendingCount.value--;
+      endPending();
     }
   };
 
@@ -101,41 +131,45 @@ export function useShoppingList(
     await new Promise((resolve) => setTimeout(resolve, 300));
 
     patchScheduler.cancel(id);
+    clearSaving(id);
     list.value = list.value.filter((li) => li.id !== id);
     checkedItems.value = checkedItems.value.filter((li) => li.id !== id);
     exitingItems.value = exitingItems.value.filter((itemId) => itemId !== id);
 
-    pendingCount.value++;
+    startPending();
     try {
       await api.shoppingList.removeItem(listId, id);
     } finally {
-      pendingCount.value--;
+      endPending();
     }
   };
 
   const checkItem = async (id: string) => {
-    pendingCount.value++;
     exitingItems.value = [...exitingItems.value, id];
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 300));
-      const item = list.value.find((li) => li.id === id);
-      if (!item) {
-        exitingItems.value = exitingItems.value.filter((i) => i !== id);
-        return;
-      }
-      patchScheduler.cancel(id);
-      list.value = list.value.filter((li) => li.id !== id);
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
+    const item = list.value.find((li) => li.id === id);
+    if (!item) {
       exitingItems.value = exitingItems.value.filter((i) => i !== id);
-      const checked = { ...item, checked: true };
-      checkedItems.value = [...checkedItems.value, checked];
+      return;
+    }
+    patchScheduler.cancel(id);
+    clearSaving(id);
+    list.value = list.value.filter((li) => li.id !== id);
+    exitingItems.value = exitingItems.value.filter((i) => i !== id);
+    const checked = { ...item, checked: true };
+    checkedItems.value = [...checkedItems.value, checked];
+
+    startPending();
+    try {
       await api.shoppingList.updateItem(listId, id, { checked: true });
     } finally {
-      pendingCount.value--;
+      endPending();
     }
   };
 
   const uncheckItem = async (id: string) => {
-    pendingCount.value++;
+    startPending();
     try {
       const item = checkedItems.value.find((li) => li.id === id);
       if (!item) return;
@@ -144,12 +178,30 @@ export function useShoppingList(
       list.value = [...list.value, active];
       await api.shoppingList.updateItem(listId, id, { checked: false });
     } finally {
+      endPending();
+    }
+  };
+
+  const clearCheckedItems = async () => {
+    const snapshot = checkedItems.value;
+    if (snapshot.length === 0) return;
+    // Cancel any in-flight debounced writes for items being cleared, so a
+    // late flush can't resurrect a deleted item.
+    for (const li of snapshot) {
+      if (li.id) patchScheduler.cancel(li.id);
+    }
+    checkedItems.value = [];
+    pendingCount.value++;
+    try {
+      const cleared = await api.shoppingList.clearChecked(listId);
+      if (cleared === null) checkedItems.value = snapshot; // rollback on failure
+    } finally {
       pendingCount.value--;
     }
   };
 
   const refresh = async () => {
-    pendingCount.value++;
+    startPending();
     try {
       const [newList, newItems, newCategories] = await Promise.all([
         api.shoppingList.getItems(listId),
@@ -161,7 +213,7 @@ export function useShoppingList(
       items.value = newItems;
       categories.value = newCategories;
     } finally {
-      pendingCount.value--;
+      endPending();
     }
   };
 
@@ -240,6 +292,8 @@ export function useShoppingList(
     selectedCategoryId,
     listItemsMap,
     lastSaved,
+    savingIds,
     flushListItem,
+    clearCheckedItems,
   };
 }
