@@ -6,10 +6,9 @@ import {
   ItemInterface,
   ShoppingListItemInterface,
 } from "@/models/index.ts";
-import { useSearchBox, useShoppingList } from "@/hooks/index.ts";
+import { useShoppingList } from "@/hooks/index.ts";
 import { api } from "@/services/api.ts";
 import { Segmented } from "@/components/md3/Segmented.tsx";
-import { SearchBar } from "@/components/md3/SearchBar.tsx";
 import { Sheet } from "@/components/md3/Sheet.tsx";
 import { CategoryPickerList } from "@/components/md3/CategoryPickerList.tsx";
 import { Card } from "@/components/md3/Card.tsx";
@@ -22,6 +21,7 @@ import { Pressable } from "@/components/md3/Pressable.tsx";
 import { Progress } from "@/components/md3/Progress.tsx";
 import { RoundCheck } from "@/components/md3/RoundCheck.tsx";
 import { Snackbar } from "@/components/md3/Snackbar.tsx";
+import Fab from "@/islands/shell/Fab.tsx";
 
 interface ItemsProps {
   listId: string;
@@ -45,8 +45,6 @@ export default function Items(
   // re-render would recreate all signals from SSR props, discarding local state.
   const {
     updateListItem,
-    addToList,
-    addToCatalog,
     removeListItem,
     checkItem,
     uncheckItem,
@@ -55,8 +53,6 @@ export default function Items(
     groupedList,
     list,
     checkedItems,
-    selectedCategoryId,
-    listItemsMap,
     categories,
     items,
     lastSaved,
@@ -123,15 +119,10 @@ export default function Items(
   }, []);
 
   // ── sheet signals ────────────────────────────────────────────────────────
-  const addOpen = useSignal(false);
   const editingId = useSignal<string | null>(null);
-  // add-item + item-editor: searchable category picker mode (replaces the
-  // respective sheet body while open)
-  const catPicking = useSignal(false);
+  // item-editor: searchable category picker mode (replaces the sheet body
+  // while open)
   const editCatPicking = useSignal(false);
-  // add-item: user explicitly chose "add as new" even though catalogue
-  // matches exist (promotes the otherwise-subtle create affordance)
-  const wantCreate = useSignal(false);
 
   // ── item-editor: honest "Saved" indicator ───────────────────────────────
   // Driven directly by `lastSaved` (bumped only when a debounced list-item write
@@ -141,41 +132,6 @@ export default function Items(
   // per keystroke. (A signal written from inside a useSignalEffect did NOT
   // re-render this island, so the pill is driven by this top-level read instead.)
   const savedBaseline = useRef(0);
-
-  // ── search / filter for add-item sheet ──────────────────────────────────
-  const filterFn = (searchString: string, item: ItemInterface) => {
-    if (searchString.trim() === "") return false;
-    return !!item?.name?.toLowerCase().includes(searchString.toLowerCase());
-  };
-
-  const { query, results, inputRef, reset } = useSearchBox(catalog, filterFn);
-
-  // Autofocus the search field when the add-item sheet opens — enables a quick
-  // type-to-search flow without an extra tap. Keyed on addOpen only, so
-  // returning from the category picker doesn't steal focus.
-  useEffect(() => {
-    if (!addOpen.value) return;
-    const t = setTimeout(() => inputRef.current?.focus(), 80);
-    return () => clearTimeout(t);
-  }, [addOpen.value]);
-
-  // ── add-item handlers ────────────────────────────────────────────────────
-  const handleAddToList = async (itemId: string) => {
-    await addToList(itemId);
-    // keep sheet open so multiple items can be added quickly
-  };
-
-  const handleCreateItem = async (searchString: string) => {
-    await addToCatalog(searchString, selectedCategoryId.value || undefined);
-    selectedCategoryId.value = "";
-    wantCreate.value = false;
-    reset();
-  };
-
-  // ── add-item: category selection (compact button + searchable picker) ─────
-  const selectedCatLabel =
-    categories.value.find((c) => c.id === selectedCategoryId.value)?.label ??
-      "Uncategorized";
 
   // ── item-editor: get current list item being edited ──────────────────────
   const editingListItem = () =>
@@ -221,19 +177,6 @@ export default function Items(
       {/* ── Plan mode ── */}
       {mode.value === "plan" && (
         <div class="flex flex-col gap-4">
-          {/* SearchBar opens the add-item sheet */}
-          <SearchBar
-            placeholder="Add item or search catalogue…"
-            onClick={() => {
-              addOpen.value = true;
-            }}
-            trailing={
-              <span class="text-primary">
-                <Icon name="plus" size={22} />
-              </span>
-            }
-          />
-
           {/* Grouped list */}
           <For each={groupedList}>
             {(group) => (
@@ -294,7 +237,7 @@ export default function Items(
 
           {groupedList.value.length === 0 && (
             <p class="md-body-large text-on-surface-variant text-center py-8">
-              Tap the search bar to add items.
+              Tap Add items to get started.
             </p>
           )}
         </div>
@@ -561,182 +504,6 @@ export default function Items(
         </div>
       </Sheet>
 
-      {/* ══════════════════════ Add-item sheet ══════════════════════ */}
-      <Sheet
-        open={addOpen.value}
-        onClose={() => {
-          addOpen.value = false;
-          catPicking.value = false;
-          wantCreate.value = false;
-          reset();
-        }}
-        title={catPicking.value ? "Choose category" : "Add items"}
-      >
-        {catPicking.value && (
-          <CategoryPickerList
-            categories={categories.value}
-            selectedId={selectedCategoryId.value}
-            onSelect={(id) => {
-              selectedCategoryId.value = id;
-              catPicking.value = false;
-            }}
-          />
-        )}
-        {!catPicking.value && (
-          <>
-            {/* Search input */}
-            <div class="relative mb-3">
-              <span class="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant">
-                <Icon name="search" size={20} />
-              </span>
-              <input
-                ref={inputRef}
-                value={query.value}
-                onInput={(e) => {
-                  query.value = (e.target as HTMLInputElement).value;
-                  // typing changes the match set — retract an explicit "add new"
-                  wantCreate.value = false;
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && query.value.trim()) {
-                    const q = query.value.trim();
-                    const exact = items.value.some((i) =>
-                      i.name?.toLowerCase() === q.toLowerCase()
-                    );
-                    // Enter creates only when nothing in the catalogue matches
-                    if (!exact && results.value.length === 0) {
-                      handleCreateItem(q);
-                    }
-                  }
-                }}
-                placeholder="Search or add an item…"
-                class="w-full md-body-large text-on-surface bg-surface-chigh border-0 rounded-[var(--md-shape-full)] py-3.5 pl-11 pr-4 outline-none"
-              />
-            </div>
-
-            {(() => {
-              const q = query.value.trim();
-
-              // Idle: no query yet — prompt to search rather than dumping the
-              // whole catalogue into the sheet.
-              if (!q) {
-                return (
-                  <div class="flex flex-col items-center text-center gap-1 px-6 py-10 text-on-surface-variant">
-                    <Icon name="search" size={28} />
-                    <div class="md-body-medium mt-1">Search your catalogue</div>
-                    <div class="md-body-small opacity-80">
-                      or type something new to add it
-                    </div>
-                  </div>
-                );
-              }
-
-              const exact = items.value.some((i) =>
-                i.name?.toLowerCase() === q.toLowerCase()
-              );
-              const hasResults = results.value.length > 0;
-              // "Add new" is prominent only when nothing matches — or when the
-              // user explicitly asked to create one despite matches.
-              const promoteCreate = !exact && (!hasResults || wantCreate.value);
-              const showSubtleCreate = !exact && hasResults &&
-                !wantCreate.value;
-
-              return (
-                <>
-                  {/* Prominent "Add '<query>'" card — the CTA when no match */}
-                  {promoteCreate && (
-                    <div class="bg-primary-container text-on-primary-container rounded-[var(--md-shape-lg)] p-3.5 mb-3 flex flex-col gap-3">
-                      <div class="flex items-center gap-3.5">
-                        <span class="w-9 h-9 rounded-full bg-on-primary-container text-primary-container grid place-items-center shrink-0">
-                          <Icon name="plus" size={20} />
-                        </span>
-                        <div class="flex-1 min-w-0">
-                          <div class="md-body-large">Add "{q}"</div>
-                          <div class="md-body-small opacity-80">
-                            New item — pick a category
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Category — opens the searchable picker */}
-                      <Pressable
-                        onClick={() => {
-                          catPicking.value = true;
-                        }}
-                        color="var(--md-on-primary-container)"
-                        class="flex items-center justify-between gap-2 w-full rounded-[var(--md-shape-md)] border border-on-primary-container/40 px-3.5 py-2.5"
-                      >
-                        <span class="md-body-medium opacity-80">Category</span>
-                        <span class="inline-flex items-center gap-1 md-label-large">
-                          {selectedCatLabel} <Icon name="chevron" size={18} />
-                        </span>
-                      </Pressable>
-
-                      <Button
-                        variant="filled"
-                        full
-                        onClick={() => handleCreateItem(q)}
-                        style={{
-                          background: "var(--md-on-primary-container)",
-                          color: "var(--md-primary-container)",
-                        }}
-                      >
-                        Add to {selectedCatLabel}
-                      </Button>
-                    </div>
-                  )}
-
-                  {/* Matching catalogue items — the main add flow */}
-                  <div class="flex flex-col">
-                    <For each={results}>
-                      {(item) => {
-                        const added = listItemsMap.value.has(item.id ?? "");
-                        return (
-                          <ListItem
-                            key={item.id}
-                            headline={item.name ?? ""}
-                            supporting={categories.value.find((c) =>
-                              c.id === item.categoryId
-                            )?.label ?? ""}
-                            onClick={added
-                              ? undefined
-                              : () => item.id && handleAddToList(item.id)}
-                            trailing={added
-                              ? (
-                                <span class="inline-flex items-center gap-1 text-primary md-label-medium">
-                                  <Icon name="check" size={18} /> Added
-                                </span>
-                              )
-                              : (
-                                <span class="text-primary">
-                                  <Icon name="plus" size={22} />
-                                </span>
-                              )}
-                          />
-                        );
-                      }}
-                    </For>
-                  </div>
-
-                  {/* Subtle "add as new" — offered only when matches exist */}
-                  {showSubtleCreate && (
-                    <Pressable
-                      onClick={() => {
-                        wantCreate.value = true;
-                      }}
-                      class="flex items-center gap-2 w-full text-left rounded-[var(--md-shape-md)] px-3 py-3 mt-1 text-primary md-label-large"
-                    >
-                      <Icon name="plus" size={20} />
-                      Add "{q}" as a new item
-                    </Pressable>
-                  )}
-                </>
-              );
-            })()}
-          </>
-        )}
-      </Sheet>
-
       {/* ══════════════════════ Item-editor sheet ══════════════════════ */}
       <Sheet
         open={editingId.value !== null}
@@ -869,6 +636,24 @@ export default function Items(
           );
         })()}
       </Sheet>
+
+      {/* FAB — opens the full-screen add page (Plan mode only) */}
+      {mode.value === "plan" && (
+        <div
+          class="fixed right-4 z-30"
+          style={{ bottom: "calc(96px + env(safe-area-inset-bottom))" }}
+        >
+          <Fab
+            icon="plus"
+            label="Add items"
+            aria-label="Add items"
+            onClick={() => {
+              globalThis.location.href = `/shopping/${listId}/add`;
+            }}
+          />
+        </div>
+      )}
+
       {/* ══════════════════════ Snackbar ══════════════════════ */}
       <Snackbar data={snackData.value} />
     </div>

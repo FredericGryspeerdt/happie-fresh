@@ -5,9 +5,15 @@ interface SheetProps {
   open: boolean;
   onClose: () => void;
   title?: string;
+  /** "large" pins a stable, fixed height so content scrolls inside a constant
+   *  window instead of the sheet growing/shrinking (e.g. live search results).
+   *  Default "auto" sizes to content (capped at maxHeight) — unchanged. */
+  size?: "auto" | "large";
   children: ComponentChildren;
 }
-export function Sheet({ open, onClose, title, children }: SheetProps) {
+export function Sheet(
+  { open, onClose, title, size = "auto", children }: SheetProps,
+) {
   const sheetRef = useRef<HTMLDivElement>(null);
   const dragStartY = useRef(0);
   const currentDelta = useRef(0);
@@ -78,6 +84,7 @@ export function Sheet({ open, onClose, title, children }: SheetProps) {
         style={{
           borderRadius: "var(--md-shape-xl) var(--md-shape-xl) 0 0",
           maxHeight: "84%",
+          height: size === "large" ? "80dvh" : undefined,
           transform: open ? "translateY(0)" : "translateY(110%)",
           transition: "transform .4s var(--md-emphasized-decel)",
           boxShadow: "0 -8px 40px rgba(0,0,0,.22)",
@@ -109,7 +116,9 @@ export function Sheet({ open, onClose, title, children }: SheetProps) {
           )}
         </div>
         <div
-          class="overflow-y-auto -mx-6 px-6 pt-1"
+          class={`overflow-y-auto -mx-6 px-6 pt-1${
+            size === "large" ? " flex-1 min-h-0" : ""
+          }`}
           style={{ overscrollBehavior: "contain" }}
         >
           {children}
