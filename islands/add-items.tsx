@@ -228,6 +228,9 @@ export default function AddItems(
             </span>
             <input
               ref={inputRef}
+              type="text"
+              autocomplete="off"
+              enterkeyhint="search"
               value={query.value}
               onInput={(e) => {
                 query.value = (e.target as HTMLInputElement).value;
