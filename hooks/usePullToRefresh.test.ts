@@ -128,3 +128,64 @@ Deno.test("usePullToRefresh — resistance damps pull distance", () => {
   c.move(100, true); // 100 * 0.4 = 40
   assertEquals(c.pull.value, 40);
 });
+
+Deno.test("usePullToRefresh — synchronous throw in onRefresh goes to error, not stuck refreshing", async () => {
+  const time = new FakeTime();
+  try {
+    let errored: unknown = null;
+    // deno-lint-ignore react-rules-of-hooks
+    const c = usePullToRefresh({
+      threshold: 72,
+      onRefresh: () => {
+        throw new Error("sync boom");
+      },
+      onError: (e) => (errored = e),
+    });
+    c.begin(0);
+    c.move(300, true);
+    c.end();
+    assertEquals(c.status.value, "error"); // caught synchronously, not stuck at "refreshing"
+    assert(errored instanceof Error);
+    await time.tickAsync(400);
+    assertEquals(c.status.value, "idle");
+  } finally {
+    time.restore();
+  }
+});
+
+Deno.test("usePullToRefresh — cancel() aborts an in-progress pull", () => {
+  const c = usePullToRefresh({
+    threshold: 72,
+    onRefresh: () => Promise.resolve(),
+  });
+  c.begin(0);
+  c.move(80, true); // 80 * 0.5 = 40 → pulling
+  assertEquals(c.status.value, "pulling");
+  c.cancel();
+  assertEquals(c.status.value, "idle");
+  assertEquals(c.pull.value, 0);
+});
+
+Deno.test("usePullToRefresh — ignores new gestures during the error linger", async () => {
+  const time = new FakeTime();
+  try {
+    // deno-lint-ignore react-rules-of-hooks
+    const c = usePullToRefresh({
+      threshold: 72,
+      onRefresh: () => Promise.reject(new Error("boom")),
+    });
+    c.begin(0);
+    c.move(300, true);
+    c.end();
+    await time.tickAsync(0);
+    assertEquals(c.status.value, "error");
+    // A new gesture during the error window is ignored (no clobber).
+    c.begin(0);
+    assertEquals(c.move(300, true), false);
+    assertEquals(c.status.value, "error");
+    await time.tickAsync(400);
+    assertEquals(c.status.value, "idle");
+  } finally {
+    time.restore();
+  }
+});

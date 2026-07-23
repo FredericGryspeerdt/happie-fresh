@@ -56,7 +56,8 @@ export function usePullToRefresh(
   let resetTimer: ReturnType<typeof setTimeout> | null = null;
 
   const busy = () =>
-    status.value === "refreshing" || status.value === "success";
+    status.value === "refreshing" || status.value === "success" ||
+    status.value === "error";
 
   const scheduleIdle = (ms: number) => {
     if (resetTimer) clearTimeout(resetTimer);
@@ -64,6 +65,13 @@ export function usePullToRefresh(
       status.value = "idle";
       pull.value = 0;
     }, ms);
+  };
+
+  const fail = (error: unknown) => {
+    status.value = "error";
+    pull.value = 0;
+    onError?.(error);
+    scheduleIdle(ERROR_MS);
   };
 
   const begin = (y: number) => {
@@ -101,20 +109,18 @@ export function usePullToRefresh(
     }
     status.value = "refreshing";
     pull.value = threshold;
-    const result = onRefresh();
-    Promise.resolve(result).then(
-      () => {
-        status.value = "success";
-        onSuccess?.();
-        scheduleIdle(SUCCESS_MS);
-      },
-      (error) => {
-        status.value = "error";
-        pull.value = 0;
-        onError?.(error);
-        scheduleIdle(ERROR_MS);
-      },
-    );
+    let result: Promise<unknown> | unknown;
+    try {
+      result = onRefresh();
+    } catch (error) {
+      fail(error);
+      return;
+    }
+    Promise.resolve(result).then(() => {
+      status.value = "success";
+      onSuccess?.();
+      scheduleIdle(SUCCESS_MS);
+    }, fail);
   };
 
   const cancel = () => {
