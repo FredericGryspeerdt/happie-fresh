@@ -22,6 +22,7 @@ import { Progress } from "@/components/md3/Progress.tsx";
 import { RoundCheck } from "@/components/md3/RoundCheck.tsx";
 import { Snackbar } from "@/components/md3/Snackbar.tsx";
 import Fab from "@/islands/shell/Fab.tsx";
+import AddItems from "@/islands/add-items.tsx";
 
 interface ItemsProps {
   listId: string;
@@ -64,6 +65,28 @@ export default function Items(
 
   // ── mode toggle ──────────────────────────────────────────────────────────
   const mode = useSignal<"plan" | "shop">("plan");
+
+  // ── add-items overlay ────────────────────────────────────────────────────
+  // The add surface is rendered here as a full-screen in-page overlay rather
+  // than navigated to as a separate route. This is what makes mobile autofocus
+  // work: opening from the FAB focuses `primerRef` *within the tap*, which is the
+  // only moment browsers allow the soft keyboard to open. Focus then transfers to
+  // the overlay's search field (keeping the keyboard up). A cross-document route
+  // navigation loses the tap's user-activation, so the keyboard never appears.
+  const addOpen = useSignal(false);
+  const primerRef = useRef<HTMLInputElement>(null);
+
+  const openAdd = () => {
+    primerRef.current?.focus();
+    addOpen.value = true;
+  };
+
+  const closeAdd = () => {
+    addOpen.value = false;
+    // The overlay runs its own useShoppingList instance, so pull the list back in
+    // to reflect anything added while it was open.
+    refresh();
+  };
 
   // ── shop mode: pending check items (optimistic UI) ───────────────────────
   const pendingItemIds = useSignal<Set<string>>(new Set());
@@ -647,9 +670,41 @@ export default function Items(
             icon="plus"
             label="Add items"
             aria-label="Add items"
-            onClick={() => {
-              globalThis.location.href = `/shopping/${listId}/add`;
-            }}
+            onClick={openAdd}
+          />
+        </div>
+      )}
+
+      {
+        /* Keyboard primer — focused inside the FAB tap (see openAdd) so mobile
+          browsers open the soft keyboard; focus then transfers to the overlay's
+          search field, which keeps it open. Kept always-mounted and offscreen. */
+      }
+      <input
+        ref={primerRef}
+        type="text"
+        aria-hidden="true"
+        tabIndex={-1}
+        class="fixed top-0 left-0 opacity-0 pointer-events-none"
+        style={{ width: 1, height: 1, fontSize: 16 }}
+      />
+
+      {
+        /* Add-items surface as a full-screen overlay. z-50 sits above the shell
+          chrome (nav z-40); the internal editor Sheet (z-[200]) still layers on
+          top. Fresh initial state is passed from the current signals so reopening
+          reflects the latest list. */
+      }
+      {addOpen.value && (
+        <div class="fixed inset-0 z-50 bg-surface overflow-y-auto">
+          <AddItems
+            listId={listId}
+            listName={listName}
+            items={items.value as Required<ItemInterface>[]}
+            shoppingList={[...list.value, ...checkedItems.value]}
+            categories={categories.value}
+            initialQuery=""
+            onClose={closeAdd}
           />
         </div>
       )}

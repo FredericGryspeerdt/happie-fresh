@@ -21,6 +21,11 @@ interface AddItemsProps {
   shoppingList: ShoppingListItemInterface[];
   categories: CategoryInterface[];
   initialQuery: string;
+  // When rendered as an in-page overlay (rather than the standalone /add route),
+  // the host passes onClose so the back control dismisses the overlay instead of
+  // navigating. Its presence is what switches the back control from a link to a
+  // button.
+  onClose?: () => void;
 }
 
 export default function AddItems(
@@ -31,6 +36,7 @@ export default function AddItems(
     shoppingList,
     categories: initialCategories,
     initialQuery,
+    onClose,
   }: AddItemsProps,
 ) {
   // Instantiate the signal()-based hook exactly once (see CLAUDE.md).
@@ -194,15 +200,28 @@ export default function AddItems(
         style={{ paddingTop: "env(safe-area-inset-top)" }}
       >
         <div class="flex items-center gap-1 px-1" style={{ height: 56 }}>
-          <a
-            href={`/shopping/${listId}`}
-            aria-label="Back"
-            class="md-press grid place-items-center text-on-surface-variant rounded-full shrink-0"
-            style={{ width: 40, height: 40 }}
-          >
-            <span class="md-state" />
-            <Icon name="back" size={22} />
-          </a>
+          {onClose
+            ? (
+              <Pressable
+                onClick={onClose}
+                aria-label="Back"
+                class="grid place-items-center text-on-surface-variant rounded-full shrink-0"
+                style={{ width: 40, height: 40 }}
+              >
+                <Icon name="back" size={22} />
+              </Pressable>
+            )
+            : (
+              <a
+                href={`/shopping/${listId}`}
+                aria-label="Back"
+                class="md-press grid place-items-center text-on-surface-variant rounded-full shrink-0"
+                style={{ width: 40, height: 40 }}
+              >
+                <span class="md-state" />
+                <Icon name="back" size={22} />
+              </a>
+            )}
           <div class="relative flex-1">
             <span class="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">
               <Icon name="search" size={20} />
