@@ -193,6 +193,13 @@ UI can proceed:
   add action awaits `addToList` / `addToCatalog`; show `Button loading` for that
   call.
 
+> **Implementation note (2026-07-23):** the inline button-busy state shipped for
+> **create-list only**. The add-item and catalogue-create actions route through
+> `useShoppingList` / `useCatalogue`, which now feed the global `busyCount` bar —
+> so those actions already show loading feedback via the top bar. The extra
+> *local* inline spinner on those two buttons was deliberately deferred (accepted
+> narrowing, confirmed during final review). The global bar covers the gap.
+
 ### 6.4 Debounced-edit "Saving / Saved"
 
 Keep the existing `.md-saved-flash` "Saved" pill (driven by `lastSaved`). Add a
