@@ -23,6 +23,7 @@ import { RoundCheck } from "@/components/md3/RoundCheck.tsx";
 import { Snackbar } from "@/components/md3/Snackbar.tsx";
 import Fab from "@/islands/shell/Fab.tsx";
 import AddItems from "@/islands/add-items.tsx";
+import { PullToRefresh } from "@/components/md3/PullToRefresh.tsx";
 
 interface ItemsProps {
   listId: string;
@@ -184,7 +185,11 @@ export default function Items(
 
   // ─────────────────────────────────────────────────────────────────────────
   return (
-    <div class="flex flex-col gap-4 pb-24">
+    <PullToRefresh
+      onRefresh={refresh}
+      disabled={addOpen.value || mgmtOpen.value || editingId.value !== null}
+      class="flex flex-col gap-4 pb-24"
+    >
       {/* Mode toggle (Plan / Shop) — list options live in the top app bar */}
       <Segmented
         options={[
@@ -711,6 +716,6 @@ export default function Items(
 
       {/* ══════════════════════ Snackbar ══════════════════════ */}
       <Snackbar data={snackData.value} />
-    </div>
+    </PullToRefresh>
   );
 }
