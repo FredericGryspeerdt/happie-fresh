@@ -267,6 +267,47 @@
   }
 }
 
+/* Global navigation/CRUD loading bar — wavy indeterminate (issue #32) */
+@keyframes md-loadbar-travel {
+  from {
+    -webkit-mask-position: 0 center;
+    mask-position: 0 center;
+  }
+  to {
+    -webkit-mask-position: 24px center;
+    mask-position: 24px center;
+  }
+}
+@keyframes md-loadbar-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+.md-loadbar-track {
+  height: 6px;
+  background: var(--md-primary-container);
+  overflow: hidden;
+}
+.md-loadbar-wave {
+  height: 100%;
+  background: var(--md-primary);
+  -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='6'><path d='M0 3 Q 6 0 12 3 T 24 3' fill='none' stroke='black' stroke-width='3'/></svg>");
+  mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='6'><path d='M0 3 Q 6 0 12 3 T 24 3' fill='none' stroke='black' stroke-width='3'/></svg>");
+  -webkit-mask-repeat: repeat-x;
+  mask-repeat: repeat-x;
+  -webkit-mask-size: 24px 6px;
+  mask-size: 24px 6px;
+  animation: md-loadbar-travel 0.6s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .md-loadbar-wave {
+    animation: md-loadbar-pulse 1.4s ease-in-out infinite;
+  }
+}
+
 body {
   background: var(--md-background);
   color: var(--md-on-surface);
