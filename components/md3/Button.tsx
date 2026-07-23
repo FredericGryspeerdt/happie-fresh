@@ -3,6 +3,7 @@ import type { ComponentChildren, JSX } from "preact";
 import { Pressable } from "./Pressable.tsx";
 import { Icon, type IconName } from "./Icon.tsx";
 import { cn } from "./tokens.ts";
+import { Spinner } from "./Spinner.tsx";
 
 type Variant = "filled" | "tonal" | "elevated" | "outlined" | "text" | "error";
 const VARIANT: Record<Variant, string> = {
@@ -20,6 +21,7 @@ interface ButtonProps {
   full?: boolean;
   onClick?: (e: Event) => void;
   disabled?: boolean;
+  loading?: boolean;
   class?: string;
   style?: JSX.CSSProperties;
   children?: ComponentChildren;
@@ -32,27 +34,29 @@ export function Button(
     full,
     onClick,
     disabled,
+    loading,
     class: cls,
     style,
     children,
   }: ButtonProps,
 ) {
+  const isDisabled = disabled || loading;
   return (
     <Pressable
       onClick={onClick}
-      disabled={disabled}
+      disabled={isDisabled}
       class={cn(
         "md-label-large inline-flex items-center justify-center gap-2 h-10 rounded-[var(--md-shape-full)] whitespace-nowrap",
-        icon ? "pl-4 pr-[22px]" : "px-6",
+        icon || loading ? "pl-4 pr-[22px]" : "px-6",
         full ? "w-full" : "w-auto",
-        disabled
+        isDisabled
           ? "bg-[color-mix(in_srgb,var(--md-on-surface)_12%,transparent)] text-[color-mix(in_srgb,var(--md-on-surface)_38%,transparent)]"
           : VARIANT[variant],
         cls,
       )}
       style={style}
     >
-      {icon && <Icon name={icon} size={18} />}
+      {loading ? <Spinner size={18} /> : icon && <Icon name={icon} size={18} />}
       {children}
     </Pressable>
   );
