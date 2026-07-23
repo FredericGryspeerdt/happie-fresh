@@ -22,9 +22,18 @@ Deno.test("AddItems — idle: search-first hint, no chips, no rows", () => {
   assert(!html.includes("Bakery")); // category chips are gone
 });
 
-Deno.test("AddItems — a back link to the list is always present", () => {
+Deno.test("AddItems — a back link to the list is present in route mode", () => {
   const html = render(h(AddItems, { ...base, initialQuery: "" }));
   assertStringIncludes(html, `href="/shopping/l1"`);
+});
+
+Deno.test("AddItems — overlay mode (onClose) renders a back button, not a link", () => {
+  const html = render(
+    h(AddItems, { ...base, initialQuery: "", onClose: () => {} }),
+  );
+  // In overlay mode the back control dismisses via onClose, so there is no
+  // navigation anchor to the list.
+  assert(!html.includes(`href="/shopping/l1"`));
 });
 
 Deno.test("AddItems — matching query: results first, then a slim Create row (not the card)", () => {
