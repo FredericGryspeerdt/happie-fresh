@@ -46,15 +46,16 @@ export function PullToRefresh(
   // useMemo with [] ensures usePullToRefresh is called only once.
   // usePullToRefresh uses plain signal() (not useSignal), so calling it on every
   // re-render would recreate all signals from SSR props, discarding local state.
-  const ctrl = useMemo(
-    () =>
-      usePullToRefresh({
-        threshold: THRESHOLD,
-        onRefresh: () => latest.current.onRefresh(),
-        onError: () => showError(),
-      }),
-    [], // intentionally empty — signals are initialized once from SSR data
-  );
+  const { status: statusSignal, pull: pullSignal, begin, move, end, cancel } =
+    useMemo(
+      () =>
+        usePullToRefresh({
+          threshold: THRESHOLD,
+          onRefresh: () => latest.current.onRefresh(),
+          onError: () => showError(),
+        }),
+      [], // intentionally empty — signals are initialized once from SSR data
+    );
 
   useEffect(() => {
     const el = rootRef.current;
@@ -65,25 +66,25 @@ export function PullToRefresh(
       if (latest.current.disabled || e.touches.length !== 1) return;
       const t = e.touches[0];
       startX = t.clientX;
-      ctrl.begin(t.clientY);
+      begin(t.clientY);
     };
     const onMove = (e: TouchEvent) => {
       if (latest.current.disabled || e.touches.length !== 1) return;
       const t = e.touches[0];
       // Bail on a predominantly-horizontal drag before we've engaged.
-      if (Math.abs(t.clientX - startX) > 40 && ctrl.pull.value === 0) {
-        ctrl.cancel();
+      if (Math.abs(t.clientX - startX) > 40 && pullSignal.value === 0) {
+        cancel();
         return;
       }
       const atTop = (globalThis.scrollY ?? 0) <= 0;
-      const engaged = ctrl.move(t.clientY, atTop);
+      const engaged = move(t.clientY, atTop);
       if (engaged && e.cancelable) e.preventDefault();
     };
     const onEnd = () => {
       if (latest.current.disabled) return;
-      ctrl.end();
+      end();
     };
-    const onCancel = () => ctrl.cancel();
+    const onCancel = () => cancel();
 
     el.addEventListener("touchstart", onStart, { passive: true });
     el.addEventListener("touchmove", onMove, { passive: false });
@@ -98,8 +99,8 @@ export function PullToRefresh(
     };
   }, []);
 
-  const status = ctrl.status.value;
-  const pull = ctrl.pull.value;
+  const status = statusSignal.value;
+  const pull = pullSignal.value;
   const dragging = status === "pulling" || status === "armed";
   const active = status !== "idle" && status !== "error";
   const progress = Math.min(pull / THRESHOLD, 1);
