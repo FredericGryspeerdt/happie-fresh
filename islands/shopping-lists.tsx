@@ -182,7 +182,7 @@ export default function ShoppingLists({ initialLists }: ShoppingListsProps) {
             variant="filled"
             full
             onClick={createList}
-            disabled={loading.value}
+            loading={loading.value}
           >
             Add
           </Button>
