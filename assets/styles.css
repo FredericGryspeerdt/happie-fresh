@@ -260,6 +260,13 @@
   animation: md-saved-flash 1.6s var(--md-emphasized) forwards;
 }
 
+/* Circular indeterminate spinner (issue #32) */
+@keyframes md-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 body {
   background: var(--md-background);
   color: var(--md-on-surface);
