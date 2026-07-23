@@ -156,5 +156,13 @@ export const api = {
         body: JSON.stringify({ id }),
       });
     },
+    clearChecked: async (listId: string): Promise<number | null> => {
+      const res = await fetch(`/api/shopping/lists/${listId}/items/checked`, {
+        method: "DELETE",
+      });
+      if (!res.ok) return null;
+      const data = await res.json();
+      return data.cleared as number;
+    },
   },
 };
