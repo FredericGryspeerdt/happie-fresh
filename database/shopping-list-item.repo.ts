@@ -1,19 +1,6 @@
 import { ShoppingListItemInterface } from "@/models/index.ts";
 import { getKv } from "./db.ts";
-
-/** Merge a partial patch onto `current`, ignoring keys whose value is undefined,
- *  so a partial update never clobbers omitted fields. Defined falsy values
- *  (false, 0, "") still apply. */
-export function mergeDefinedPatch<T extends object>(
-  current: T,
-  patch: Partial<T>,
-): T {
-  const next = { ...current };
-  for (const [k, v] of Object.entries(patch)) {
-    if (v !== undefined) (next as Record<string, unknown>)[k] = v;
-  }
-  return next;
-}
+import { mergeDefinedPatch } from "./merge-patch.ts";
 
 export class ShoppingListItemRepo {
   static async add(
