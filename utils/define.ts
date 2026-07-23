@@ -7,13 +7,21 @@ export interface AppBarDetail {
   backUrl: string;
 }
 
+/** The route owns the whole viewport — the shell renders no top bar and no
+ *  bottom navigation (e.g. the full-screen add-items search). */
+export interface AppBarNone {
+  mode: "none";
+}
+
+export type AppBar = AppBarDetail | AppBarNone;
+
 export interface StateInterface {
   userId?: string;
   householdId?: string;
   items?: ItemInterface[];
   shoppingList?: ShoppingListItemInterface[];
   error?: string;
-  appBar?: AppBarDetail;
+  appBar?: AppBar;
 }
 
 // Setup, do this once in a file and import it everywhere else.

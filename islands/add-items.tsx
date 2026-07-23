@@ -1,6 +1,5 @@
 import { useEffect, useMemo } from "preact/hooks";
 import { useComputed, useSignal } from "@preact/signals";
-import { For } from "@preact/signals/utils";
 import {
   CategoryInterface,
   ItemInterface,
@@ -9,8 +8,9 @@ import {
 import { useSearchBox, useShoppingList } from "@/hooks/index.ts";
 import { Icon } from "@/components/md3/Icon.tsx";
 import { Button } from "@/components/md3/Button.tsx";
-import { Chip } from "@/components/md3/Chip.tsx";
 import { Pressable } from "@/components/md3/Pressable.tsx";
+import { Sheet } from "@/components/md3/Sheet.tsx";
+import { Stepper } from "@/components/md3/Stepper.tsx";
 import { CategoryPickerList } from "@/components/md3/CategoryPickerList.tsx";
 import { CatalogueAddRow } from "@/components/md3/CatalogueAddRow.tsx";
 
@@ -37,7 +37,12 @@ export default function AddItems(
   const {
     addToList,
     addToCatalog,
+    updateListItem,
+    flushListItem,
+    removeListItem,
+    getItemName,
     listItemsMap,
+    list,
     categories,
     items,
     selectedCategoryId,
@@ -56,11 +61,17 @@ export default function AddItems(
     initialQuery,
   );
 
-  // null = no chip filter; "" = the Uncategorized chip; else a category id.
-  const filterCatId = useSignal<string | null>(null);
-  const addedCount = useSignal(0);
-  // Category-picker sub-view (mirrors the sheet's proven pattern, with room).
+  // List-item ids added during this visit — the "Added (N)" building cart.
+  const addedThisVisit = useSignal<string[]>([]);
+  // Create-flow category picker sub-screen.
   const catPicking = useSignal(false);
+  // Compact editor sheet — holds the list-item id being edited (qty + note).
+  const editingId = useSignal<string | null>(null);
+  // "Added (N)" section collapse state (collapsed by default).
+  const addedOpen = useSignal(false);
+  // Create-new affordance: a slim row while matches exist; tapping it expands to
+  // the full category-picker card (which also shows outright when nothing matches).
+  const createExpanded = useSignal(false);
 
   // Autofocus the search field on mount for a quick type-to-search flow.
   useEffect(() => {
@@ -68,17 +79,32 @@ export default function AddItems(
     return () => clearTimeout(t);
   }, []);
 
+  const trackAdded = (liId: string | null) => {
+    if (liId) addedThisVisit.value = [...addedThisVisit.value, liId];
+  };
+
   const handleAdd = async (itemId: string) => {
-    const id = await addToList(itemId);
-    if (id) addedCount.value++;
+    trackAdded(await addToList(itemId));
   };
 
   const handleCreate = async (name: string) => {
-    const id = await addToCatalog(name, selectedCategoryId.value || undefined);
-    if (id) addedCount.value++;
+    trackAdded(await addToCatalog(name, selectedCategoryId.value || undefined));
     selectedCategoryId.value = "";
     query.value = "";
+    createExpanded.value = false;
     inputRef.current?.focus();
+  };
+
+  const handleRemove = async (liId: string) => {
+    addedThisVisit.value = addedThisVisit.value.filter((id) => id !== liId);
+    if (editingId.value === liId) editingId.value = null;
+    await removeListItem(liId);
+  };
+
+  const closeEditor = () => {
+    const id = editingId.value;
+    if (id) flushListItem(id);
+    editingId.value = null;
   };
 
   const q = query.value.trim();
@@ -86,183 +112,296 @@ export default function AddItems(
     categories.value.find((c) => c.id === selectedCategoryId.value)?.label ??
       "Uncategorized";
 
-  // Memoized so the large-catalogue hot path (every row, every render) does a
-  // Map lookup instead of an O(n) `.find` scan over all categories.
+  // Memoized so each row does a Map lookup, not an O(n) find over categories.
   const catLabelById = useComputed(() =>
     new Map(categories.value.map((c) => [c.id, c.label ?? ""]))
   );
 
-  const chipCats = useComputed(() =>
-    [...categories.value].sort((a, b) =>
-      (a.label ?? "").toLowerCase().localeCompare(
-        (b.label ?? "").toLowerCase(),
-      )
-    )
-  );
-
-  const row = (item: ItemInterface) => (
-    <CatalogueAddRow
-      key={item.id}
-      name={item.name ?? ""}
-      categoryLabel={catLabelById.value.get(item.categoryId ?? "") ?? ""}
-      added={listItemsMap.value.has(item.id ?? "")}
-      onAdd={() => item.id && handleAdd(item.id)}
-    />
-  );
-
-  const chipRow = (
-    <div
-      class="flex gap-2 overflow-x-auto px-1 pb-1"
-      style={{ scrollbarWidth: "none" }}
-    >
-      {chipCats.value.map((c) => (
-        <Chip
-          key={c.id}
-          selected={filterCatId.value === c.id}
-          onClick={() => {
-            filterCatId.value = filterCatId.value === c.id
-              ? null
-              : (c.id ?? null);
-          }}
-        >
-          {c.label}
-        </Chip>
-      ))}
-      <Chip
-        selected={filterCatId.value === ""}
-        onClick={() => {
-          filterCatId.value = filterCatId.value === "" ? null : "";
+  // Render a catalogue item as a row: un-added → Add; added → inline stepper +
+  // tap-to-edit. `withRemove` adds a remove control (Added section only).
+  const catalogueRow = (item: ItemInterface, withRemove: boolean) => {
+    const li = listItemsMap.value.get(item.id ?? "");
+    return (
+      <CatalogueAddRow
+        key={item.id}
+        name={item.name ?? ""}
+        categoryLabel={catLabelById.value.get(item.categoryId ?? "") ?? ""}
+        added={!!li}
+        onAdd={() => {
+          if (item.id) handleAdd(item.id);
         }}
-      >
-        Uncategorized
-      </Chip>
-    </div>
-  );
+        quantity={li?.quantity ?? 1}
+        onQtyChange={(v) => {
+          if (li?.id) updateListItem(li.id, { quantity: v });
+        }}
+        onEdit={() => {
+          if (li?.id) editingId.value = li.id;
+        }}
+        onRemove={withRemove && li?.id ? () => handleRemove(li.id!) : undefined}
+      />
+    );
+  };
 
-  // ── Category-picker sub-view (replaces the body while choosing) ──
+  // ── Create-flow category picker sub-screen (replaces the body) ──────────
   if (catPicking.value) {
     return (
-      <div class="flex flex-col gap-2 pb-24">
-        <div class="md-title-medium text-on-surface px-1">Choose category</div>
-        <CategoryPickerList
-          categories={categories.value}
-          selectedId={selectedCategoryId.value}
-          onSelect={(id) => {
-            selectedCategoryId.value = id;
-            catPicking.value = false;
-          }}
-        />
+      <div class="flex flex-col">
+        <header
+          class="bg-surface sticky top-0 z-20"
+          style={{ paddingTop: "env(safe-area-inset-top)" }}
+        >
+          <div class="flex items-center gap-1 px-1" style={{ height: 56 }}>
+            <Pressable
+              onClick={() => (catPicking.value = false)}
+              aria-label="Back to search"
+              class="grid place-items-center text-on-surface-variant rounded-full shrink-0"
+              style={{ width: 40, height: 40 }}
+            >
+              <Icon name="back" size={22} />
+            </Pressable>
+            <div class="md-title-large text-on-surface">Choose category</div>
+          </div>
+        </header>
+        <div class="px-4 pt-1 pb-28">
+          <CategoryPickerList
+            categories={categories.value}
+            selectedId={selectedCategoryId.value}
+            onSelect={(id) => {
+              selectedCategoryId.value = id;
+              catPicking.value = false;
+            }}
+          />
+        </div>
       </div>
     );
   }
 
+  // ── "Added (N)" building-cart rows (newest first) ───────────────────────
+  const addedRows = addedThisVisit.value
+    .map((liId) => list.value.find((li) => li.id === liId))
+    .filter((li): li is ShoppingListItemInterface => !!li)
+    .reverse();
+
+  const editingLi = editingId.value
+    ? list.value.find((li) => li.id === editingId.value) ?? null
+    : null;
+
   return (
-    <div class="flex flex-col gap-3 pb-24">
-      {/* Search field */}
-      <div class="relative">
-        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant">
-          <Icon name="search" size={20} />
-        </span>
-        <input
-          ref={inputRef}
-          value={query.value}
-          onInput={(e) => {
-            query.value = (e.target as HTMLInputElement).value;
-            filterCatId.value = null; // typing overrides the chip filter
-          }}
-          placeholder="Search or add an item…"
-          class="w-full md-body-large text-on-surface bg-surface-chigh border-0 rounded-[var(--md-shape-full)] py-3.5 pl-11 pr-4 outline-none"
-        />
-      </div>
+    <div class="flex flex-col">
+      {/* Sticky search top bar — this island owns the top region */}
+      <header
+        class="bg-surface sticky top-0 z-20"
+        style={{ paddingTop: "env(safe-area-inset-top)" }}
+      >
+        <div class="flex items-center gap-1 px-1" style={{ height: 56 }}>
+          <a
+            href={`/shopping/${listId}`}
+            aria-label="Back"
+            class="md-press grid place-items-center text-on-surface-variant rounded-full shrink-0"
+            style={{ width: 40, height: 40 }}
+          >
+            <span class="md-state" />
+            <Icon name="back" size={22} />
+          </a>
+          <div class="relative flex-1">
+            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">
+              <Icon name="search" size={20} />
+            </span>
+            <input
+              ref={inputRef}
+              value={query.value}
+              onInput={(e) => {
+                query.value = (e.target as HTMLInputElement).value;
+                createExpanded.value = false; // typing re-collapses the create row
+              }}
+              placeholder="Search or add an item…"
+              class="w-full md-body-large text-on-surface bg-surface-chigh border-0 rounded-[var(--md-shape-full)] py-2.5 pl-10 pr-10 outline-none"
+            />
+            {q && (
+              <Pressable
+                onClick={() => {
+                  query.value = "";
+                  inputRef.current?.focus();
+                }}
+                aria-label="Clear search"
+                class="absolute right-2 top-1/2 -translate-y-1/2 grid place-items-center text-on-surface-variant rounded-full"
+                style={{ width: 32, height: 32 }}
+              >
+                <Icon name="x" size={18} />
+              </Pressable>
+            )}
+          </div>
+        </div>
+      </header>
 
-      {/* Running count sub-header */}
-      <div class="md-label-medium text-on-surface-variant px-1">
-        Adding to {listName}
-        {addedCount.value > 0 ? ` · ${addedCount.value} added` : ""}
-      </div>
+      <div class="px-4 pt-2 pb-28 flex flex-col gap-2">
+        {/* Context line */}
+        <div class="md-label-medium text-on-surface-variant px-1">
+          Adding to {listName}
+        </div>
 
-      {(() => {
-        // Typing → text search across the whole catalogue.
-        if (q) {
-          // Intentionally two different predicates: the create card gates on
-          // an EXACT (case-insensitive) match, while `results` below comes
-          // from useSearchBox's SUBSTRING filter — so both can legitimately
-          // show at once (e.g. "Milk" exact-matches while "Milkshake" still
-          // shows as a substring result). Do not unify these.
-          const exact = items.value.some((i) =>
-            i.name?.toLowerCase() === q.toLowerCase()
-          );
-          return (
-            <>
-              {!exact && (
-                <div class="bg-primary-container text-on-primary-container rounded-[var(--md-shape-lg)] p-3.5 mb-1 flex flex-col gap-3">
-                  <div class="flex items-center gap-3.5">
-                    <span class="w-9 h-9 rounded-full bg-on-primary-container text-primary-container grid place-items-center shrink-0">
-                      <Icon name="plus" size={20} />
-                    </span>
-                    <div class="flex-1 min-w-0">
-                      <div class="md-body-large">Create "{q}"</div>
-                      <div class="md-body-small opacity-80">
-                        New item — pick a category
-                      </div>
-                    </div>
-                  </div>
-                  <Pressable
-                    onClick={() => {
-                      catPicking.value = true;
-                    }}
-                    color="var(--md-on-primary-container)"
-                    class="flex items-center justify-between gap-2 w-full rounded-[var(--md-shape-md)] border border-on-primary-container/40 px-3.5 py-2.5"
-                  >
-                    <span class="md-body-medium opacity-80">Category</span>
-                    <span class="inline-flex items-center gap-1 md-label-large">
-                      {selectedCatLabel} <Icon name="chevron" size={18} />
-                    </span>
-                  </Pressable>
-                  <Button
-                    variant="filled"
-                    full
-                    onClick={() => handleCreate(q)}
-                    style={{
-                      background: "var(--md-on-primary-container)",
-                      color: "var(--md-primary-container)",
-                    }}
-                  >
-                    Add to {selectedCatLabel}
-                  </Button>
+        {/* Added (N) — the building cart, collapsed by default */}
+        {addedRows.length > 0 && (
+          <div class="rounded-[var(--md-shape-lg)] bg-surface-chigh overflow-hidden">
+            <Pressable
+              as="div"
+              onClick={() => (addedOpen.value = !addedOpen.value)}
+              class="flex items-center gap-2 px-4 py-3"
+            >
+              <Icon name="check" size={18} class="text-primary" />
+              <span class="md-title-small text-on-surface flex-1">
+                Added · {addedRows.length}
+              </span>
+              <span
+                class="text-on-surface-variant"
+                style={{
+                  transform: addedOpen.value ? "rotate(90deg)" : "rotate(0)",
+                  transition: "transform .15s",
+                  display: "inline-flex",
+                }}
+              >
+                <Icon name="chevron" size={18} />
+              </span>
+            </Pressable>
+            {addedOpen.value && (
+              <div class="flex flex-col pb-1">
+                {addedRows.map((li) => {
+                  const item = items.value.find((i) => i.id === li.itemId);
+                  return item ? catalogueRow(item, true) : null;
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Main content: idle hint, or live results + create-new fallback */}
+        {q
+          ? (() => {
+            // Two intentional predicates: the create card gates on an EXACT
+            // (case-insensitive) match, while `results` is useSearchBox's
+            // SUBSTRING filter — both can legitimately show at once. Do not
+            // unify these.
+            const exact = items.value.some((i) =>
+              i.name?.toLowerCase() === q.toLowerCase()
+            );
+            return (
+              <>
+                <div class="flex flex-col">
+                  {results.value.map((item) => catalogueRow(item, false))}
                 </div>
-              )}
-              <div class="flex flex-col">
-                <For each={results}>{(item) => row(item)}</For>
+                {
+                  /* Create-new action stays BELOW the results. It's a slim row
+                    when there are matches (de-emphasized), and upgrades to the
+                    full category-picker card when there are no matches — or when
+                    the user taps the slim row to engage. */
+                }
+                {!exact &&
+                  (results.value.length > 0 && !createExpanded.value
+                    ? (
+                      <Pressable
+                        onClick={() => (createExpanded.value = true)}
+                        class="flex items-center gap-2 w-full text-left rounded-[var(--md-shape-md)] px-3 py-3 mt-1 text-primary md-label-large"
+                      >
+                        <Icon name="plus" size={20} /> Create "{q}"
+                      </Pressable>
+                    )
+                    : (
+                      <div class="bg-primary-container text-on-primary-container rounded-[var(--md-shape-lg)] p-3.5 mt-1 flex flex-col gap-3">
+                        <div class="flex items-center gap-3.5">
+                          <span class="w-9 h-9 rounded-full bg-on-primary-container text-primary-container grid place-items-center shrink-0">
+                            <Icon name="plus" size={20} />
+                          </span>
+                          <div class="flex-1 min-w-0">
+                            <div class="md-body-large">Create "{q}"</div>
+                            <div class="md-body-small opacity-80">
+                              New item — pick a category
+                            </div>
+                          </div>
+                        </div>
+                        <Pressable
+                          onClick={() => (catPicking.value = true)}
+                          color="var(--md-on-primary-container)"
+                          class="flex items-center justify-between gap-2 w-full rounded-[var(--md-shape-md)] border border-on-primary-container/40 px-3.5 py-2.5"
+                        >
+                          <span class="md-body-medium opacity-80">
+                            Category
+                          </span>
+                          <span class="inline-flex items-center gap-1 md-label-large">
+                            {selectedCatLabel} <Icon name="chevron" size={18} />
+                          </span>
+                        </Pressable>
+                        <Button
+                          variant="filled"
+                          full
+                          onClick={() => handleCreate(q)}
+                          style={{
+                            background: "var(--md-on-primary-container)",
+                            color: "var(--md-primary-container)",
+                          }}
+                        >
+                          Add to {selectedCatLabel}
+                        </Button>
+                      </div>
+                    ))}
+              </>
+            );
+          })()
+          : (
+            <div class="flex flex-col items-center text-center gap-1 px-6 py-16 text-on-surface-variant">
+              <Icon name="search" size={30} />
+              <div class="md-body-large text-on-surface mt-2">
+                Search your catalogue
               </div>
-            </>
-          );
-        }
-
-        // Chip selected → that category's catalogue items.
-        if (filterCatId.value !== null) {
-          const catId = filterCatId.value;
-          const inCat = items.value.filter((i) =>
-            catId === "" ? !i.categoryId : i.categoryId === catId
-          );
-          return (
-            <>
-              {chipRow}
-              <div class="flex flex-col">
-                {inCat.map((item) => row(item))}
+              <div class="md-body-medium opacity-80">
+                Find an item to add, or create a new one.
               </div>
-              {inCat.length === 0 && (
-                <p class="md-body-medium text-on-surface-variant px-1 py-3.5">
-                  Nothing in this category yet.
-                </p>
-              )}
-            </>
-          );
-        }
+            </div>
+          )}
+      </div>
 
-        // Idle → chips only.
-        return chipRow;
-      })()}
+      {/* Compact editor sheet — quantity + note */}
+      <Sheet
+        open={editingId.value !== null}
+        onClose={closeEditor}
+        title={editingLi ? getItemName(editingLi.itemId) : ""}
+      >
+        {editingLi && (
+          <div class="flex flex-col gap-1.5 pb-1">
+            <div class="flex items-center justify-between px-1 py-1.5">
+              <span class="md-body-large text-on-surface">Quantity</span>
+              <Stepper
+                value={editingLi.quantity ?? 1}
+                onChange={(v) => updateListItem(editingLi.id!, { quantity: v })}
+              />
+            </div>
+            <div class="h-px bg-surface-chigh mx-1" />
+            <div class="px-1 py-1.5">
+              <div class="md-body-large text-on-surface mb-2">Note</div>
+              <textarea
+                value={editingLi.note ?? ""}
+                onInput={(e) =>
+                  updateListItem(editingLi.id!, {
+                    note: (e.target as HTMLTextAreaElement).value,
+                  })}
+                rows={2}
+                placeholder="e.g. the red ones, big pack, any brand…"
+                class="w-full md-body-large text-on-surface bg-surface-chigh border-0 rounded-[var(--md-shape-lg)] py-3 px-4 outline-none resize-none"
+              />
+            </div>
+            <Button variant="filled" full onClick={closeEditor} class="mt-2.5">
+              Done
+            </Button>
+            <Button
+              variant="error"
+              full
+              onClick={() => handleRemove(editingLi.id!)}
+              class="mt-2"
+            >
+              Remove from list
+            </Button>
+          </div>
+        )}
+      </Sheet>
     </div>
   );
 }
