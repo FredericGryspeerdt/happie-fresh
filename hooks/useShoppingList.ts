@@ -65,9 +65,12 @@ export function useShoppingList(
   >({
     delayMs: 500,
     flush: async (id, patch) => {
-      await api.shoppingList.updateItem(listId, id, patch);
-      clearSaving(id);
-      lastSaved.value = lastSaved.value + 1;
+      try {
+        await api.shoppingList.updateItem(listId, id, patch);
+        lastSaved.value = lastSaved.value + 1;
+      } finally {
+        clearSaving(id);
+      }
     },
   });
 
@@ -142,21 +145,23 @@ export function useShoppingList(
   };
 
   const checkItem = async (id: string) => {
-    startPending();
     exitingItems.value = [...exitingItems.value, id];
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 300));
-      const item = list.value.find((li) => li.id === id);
-      if (!item) {
-        exitingItems.value = exitingItems.value.filter((i) => i !== id);
-        return;
-      }
-      patchScheduler.cancel(id);
-      clearSaving(id);
-      list.value = list.value.filter((li) => li.id !== id);
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
+    const item = list.value.find((li) => li.id === id);
+    if (!item) {
       exitingItems.value = exitingItems.value.filter((i) => i !== id);
-      const checked = { ...item, checked: true };
-      checkedItems.value = [...checkedItems.value, checked];
+      return;
+    }
+    patchScheduler.cancel(id);
+    clearSaving(id);
+    list.value = list.value.filter((li) => li.id !== id);
+    exitingItems.value = exitingItems.value.filter((i) => i !== id);
+    const checked = { ...item, checked: true };
+    checkedItems.value = [...checkedItems.value, checked];
+
+    startPending();
+    try {
       await api.shoppingList.updateItem(listId, id, { checked: true });
     } finally {
       endPending();
