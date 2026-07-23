@@ -3,6 +3,7 @@ import { Sheet } from "@/components/md3/Sheet.tsx";
 import { ListItem } from "@/components/md3/ListItem.tsx";
 import { Icon, type IconName } from "@/components/md3/Icon.tsx";
 import { Snackbar } from "@/components/md3/Snackbar.tsx";
+import { navigateTo } from "@/utils/loading.ts";
 
 interface MoreSheetProps {
   open: boolean;
@@ -39,7 +40,7 @@ export default function MoreSheet({ open, onClose }: MoreSheetProps) {
           trailing={chevron()}
           onClick={() => {
             onClose();
-            globalThis.location.href = "/shopping";
+            navigateTo("/shopping");
           }}
         />
         <ListItem

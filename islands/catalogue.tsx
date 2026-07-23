@@ -11,6 +11,7 @@ import { IconButton } from "@/components/md3/IconButton.tsx";
 import { Icon } from "@/components/md3/Icon.tsx";
 import { Pressable } from "@/components/md3/Pressable.tsx";
 import { FabMenu } from "@/components/md3/FabMenu.tsx";
+import { navigateTo } from "@/utils/loading.ts";
 
 const SEGMENTED_OPTIONS: [string, "cart" | "tag", string][] = [
   ["lists", "cart", "Lists"],
@@ -121,7 +122,7 @@ export default function Catalogue(
           options={SEGMENTED_OPTIONS}
           value="catalogue"
           onChange={(k) => {
-            if (k === "lists") globalThis.location.href = "/shopping";
+            if (k === "lists") navigateTo("/shopping");
           }}
         />
       </div>

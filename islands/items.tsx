@@ -23,6 +23,7 @@ import { RoundCheck } from "@/components/md3/RoundCheck.tsx";
 import { Snackbar } from "@/components/md3/Snackbar.tsx";
 import Fab from "@/islands/shell/Fab.tsx";
 import AddItems from "@/islands/add-items.tsx";
+import { navigateTo, reloadPage } from "@/utils/loading.ts";
 
 interface ItemsProps {
   listId: string;
@@ -449,7 +450,7 @@ export default function Items(
                     mgmtOpen.value = false;
                     // The route SSR renders the list name into the shell TopAppBar;
                     // reload to reflect the new name there.
-                    globalThis.location.reload();
+                    reloadPage();
                   }
                 }}
                 placeholder="List name"
@@ -462,7 +463,7 @@ export default function Items(
                   if (!name) return;
                   await api.shoppingLists.rename(listId, name);
                   mgmtOpen.value = false;
-                  globalThis.location.reload();
+                  reloadPage();
                 }}
               >
                 Save
@@ -521,7 +522,7 @@ export default function Items(
             onClick={async () => {
               mgmtOpen.value = false;
               await api.shoppingLists.delete(listId);
-              globalThis.location.href = "/shopping";
+              navigateTo("/shopping");
             }}
           />
         </div>
