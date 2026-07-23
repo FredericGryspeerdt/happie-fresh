@@ -43,9 +43,7 @@ export default function App(
         {state?.userId && (
           <AppChrome
             activeId={activeTab?.id}
-            appBar={state.appBar
-              ? { title: state.appBar.title, backUrl: state.appBar.backUrl }
-              : undefined}
+            appBar={state.appBar}
             sectionTitle={activeTab?.label ?? "Happie"}
           />
         )}

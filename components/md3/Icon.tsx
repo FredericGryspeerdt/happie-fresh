@@ -27,7 +27,8 @@ export type IconName =
   | "calendar"
   | "leaf"
   | "flame"
-  | "tag";
+  | "tag"
+  | "expand";
 
 interface IconProps {
   name: IconName;
@@ -218,6 +219,14 @@ export function Icon({ name, size = 24, stroke = 2, class: cls }: IconProps) {
       <>
         <path d="M3 11V4h7l11 11-7 7L3 11Z" {...p} />
         <circle cx="7.5" cy="7.5" r="1.5" fill="currentColor" stroke="none" />
+      </>
+    ),
+    expand: (
+      <>
+        <path
+          d="M9 4H5a1 1 0 0 0-1 1v4M15 4h4a1 1 0 0 1 1 1v4M9 20H5a1 1 0 0 1-1-1v-4M15 20h4a1 1 0 0 0 1-1v-4"
+          {...p}
+        />
       </>
     ),
   } as Record<IconName, preact.JSX.Element>;

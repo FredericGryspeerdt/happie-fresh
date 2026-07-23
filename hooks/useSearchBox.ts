@@ -4,9 +4,10 @@ import { useSignalRef } from "@preact/signals/utils";
 export function useSearchBox<T>(
   initialItems: T[],
   filterFn: (query: string, item: T) => boolean,
+  initialQuery = "",
 ) {
   const items = useSignal<T[]>(initialItems || []);
-  const query = useSignal("");
+  const query = useSignal(initialQuery);
   const inputRef = useSignalRef<HTMLInputElement | null>(null);
   const hasSearchQuery = useComputed(() => query.value.trim().length > 0);
 
