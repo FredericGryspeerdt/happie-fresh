@@ -81,7 +81,8 @@ export function PullToRefresh(
       if (engaged && e.cancelable) e.preventDefault();
     };
     const onEnd = () => {
-      if (latest.current.disabled) return;
+      // end() is a no-op when no gesture is engaged; always call it so a
+      // gesture in progress when `disabled` flips still resolves (never strands).
       end();
     };
     const onCancel = () => cancel();
