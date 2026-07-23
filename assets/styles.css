@@ -260,9 +260,20 @@
   animation: md-saved-flash 1.6s var(--md-emphasized) forwards;
 }
 
+/* Pull-to-refresh indicator spinner */
+@keyframes pull-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.pull-spin {
+  animation: pull-spin 0.8s linear infinite;
+}
+
 body {
   background: var(--md-background);
   color: var(--md-on-surface);
+  overscroll-behavior-y: contain;
 }
 * {
   box-sizing: border-box;
