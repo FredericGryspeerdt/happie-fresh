@@ -1,17 +1,6 @@
-import { type Context } from "fresh";
-import { ShoppingListItemRepo, ShoppingListRepo } from "@/database/index.ts";
-import { define, type StateInterface } from "@/utils/index.ts";
-
-async function authorizeList(
-  ctx: Context<StateInterface>,
-  listId: string,
-) {
-  const householdId = ctx.state.householdId;
-  if (!householdId) return null;
-  const list = await ShoppingListRepo.getById(householdId, listId);
-  if (!list) return null;
-  return list;
-}
+import { ShoppingListItemRepo } from "@/database/index.ts";
+import { define } from "@/utils/index.ts";
+import { authorizeList } from "@/utils/authorize-list.ts";
 
 export const handler = define.handlers({
   async GET(ctx) {

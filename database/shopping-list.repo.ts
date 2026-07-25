@@ -3,6 +3,7 @@ import {
   ShoppingListInterface,
 } from "@/models/index.ts";
 import { getKv } from "./db.ts";
+import { mergeDefinedPatch } from "./merge-patch.ts";
 
 export class ShoppingListRepo {
   static async create(
@@ -46,7 +47,7 @@ export class ShoppingListRepo {
     const kv = await getKv();
     const existing = await this.getById(householdId, id);
     if (!existing) return null;
-    const updated = { ...existing, ...patch };
+    const updated = mergeDefinedPatch(existing, patch);
     await kv.set(["shopping_lists", householdId, id], updated);
     return updated;
   }

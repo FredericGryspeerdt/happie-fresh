@@ -397,3 +397,47 @@ Deno.test("addToCatalog — pendingCount returns to 0 after completion", async (
 
   assertEquals(hook.pendingCount.value, 0);
 });
+
+// ── clearCheckedItems ──────────────────────────────────────────────────────────
+
+Deno.test("clearCheckedItems — empties checkedItems with a single api call", async () => {
+  using clear = stub(
+    api.shoppingList,
+    "clearChecked",
+    () => Promise.resolve(2),
+  );
+
+  const hook = useShoppingList(
+    TEST_LIST_ID,
+    [makeItem("item-1", "Milk")],
+    [
+      makeListItem("sl-1", "item-1", true),
+      makeListItem("sl-2", "item-1", true),
+    ],
+  );
+
+  assertEquals(hook.checkedItems.value.length, 2);
+  await hook.clearCheckedItems();
+
+  assertEquals(hook.checkedItems.value.length, 0);
+  assertEquals(clear.calls.length, 1);
+});
+
+Deno.test("clearCheckedItems — rolls back checkedItems when the request fails", async () => {
+  using _clear = stub(
+    api.shoppingList,
+    "clearChecked",
+    () => Promise.resolve(null),
+  );
+
+  const hook = useShoppingList(
+    TEST_LIST_ID,
+    [makeItem("item-1", "Milk")],
+    [makeListItem("sl-1", "item-1", true)],
+  );
+
+  await hook.clearCheckedItems();
+
+  assertEquals(hook.checkedItems.value.length, 1);
+  assertEquals(hook.checkedItems.value[0].id, "sl-1");
+});

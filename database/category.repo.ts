@@ -1,5 +1,6 @@
 import { CategoryInterface } from "../models/index.ts";
 import { getKv } from "./db.ts";
+import { mergeDefinedPatch } from "./merge-patch.ts";
 
 export class CategoryRepo {
   constructor() {}
@@ -56,7 +57,7 @@ export class CategoryRepo {
     const existing = await this.getById(id);
     if (!existing) return null;
 
-    const updated = { ...existing, ...patch };
+    const updated = mergeDefinedPatch(existing, patch);
     await kv.set(["categories", id], updated);
     return updated;
   }

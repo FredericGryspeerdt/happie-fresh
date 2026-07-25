@@ -2,6 +2,7 @@ import { useEffect, useMemo } from "preact/hooks";
 import { useSignal } from "@preact/signals";
 import type { CategoryInterface, ItemInterface } from "@/models/index.ts";
 import { useCatalogue } from "@/hooks/useCatalogue.ts";
+import { PullToRefresh } from "@/components/md3/PullToRefresh.tsx";
 import { Segmented } from "@/components/md3/Segmented.tsx";
 import { Chip } from "@/components/md3/Chip.tsx";
 import { ListItem } from "@/components/md3/ListItem.tsx";
@@ -11,6 +12,7 @@ import { IconButton } from "@/components/md3/IconButton.tsx";
 import { Icon } from "@/components/md3/Icon.tsx";
 import { Pressable } from "@/components/md3/Pressable.tsx";
 import { FabMenu } from "@/components/md3/FabMenu.tsx";
+import { navigateTo } from "@/utils/loading.ts";
 
 const SEGMENTED_OPTIONS: [string, "cart" | "tag", string][] = [
   ["lists", "cart", "Lists"],
@@ -45,6 +47,7 @@ export default function Catalogue(
     createCategory,
     renameCategory,
     deleteCategory,
+    refresh,
   } = useMemo(
     () => useCatalogue(initialItems, initialCategories),
     [], // intentionally empty — signals are initialized once from SSR data
@@ -114,14 +117,14 @@ export default function Catalogue(
   );
 
   return (
-    <>
+    <PullToRefresh onRefresh={refresh} disabled={anySheetOpen}>
       {/* Lists / Catalogue selector */}
       <div class="px-4 pt-4 pb-2">
         <Segmented
           options={SEGMENTED_OPTIONS}
           value="catalogue"
           onChange={(k) => {
-            if (k === "lists") globalThis.location.href = "/shopping";
+            if (k === "lists") navigateTo("/shopping");
           }}
         />
       </div>
@@ -352,7 +355,7 @@ export default function Catalogue(
           ]}
         />
       )}
-    </>
+    </PullToRefresh>
   );
 }
 

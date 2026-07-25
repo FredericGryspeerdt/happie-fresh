@@ -2,6 +2,7 @@ import { useSignal } from "@preact/signals";
 import TopAppBar from "./TopAppBar.tsx";
 import NavigationBar from "./NavigationBar.tsx";
 import MoreSheet from "./MoreSheet.tsx";
+import GlobalLoadingBar from "./GlobalLoadingBar.tsx";
 import { NAV_CONFIG } from "@/config/navigation.ts";
 import { appBarAction } from "@/utils/app-bar.ts";
 import { IconButton } from "@/components/md3/IconButton.tsx";
@@ -20,12 +21,13 @@ export default function AppChrome(
 
   // Full-screen routes (e.g. the add-items search) own the whole viewport:
   // no top bar and no bottom navigation.
-  if (appBar?.mode === "none") return null;
+  if (appBar?.mode === "none") return <GlobalLoadingBar />;
 
   const detail = appBar?.mode === "detail" ? appBar : null;
 
   return (
     <>
+      <GlobalLoadingBar />
       {detail
         ? (
           <TopAppBar

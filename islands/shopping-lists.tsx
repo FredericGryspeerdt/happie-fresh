@@ -8,6 +8,8 @@ import { Button } from "@/components/md3/Button.tsx";
 import { Icon } from "@/components/md3/Icon.tsx";
 import { Segmented } from "@/components/md3/Segmented.tsx";
 import Fab from "@/islands/shell/Fab.tsx";
+import { PullToRefresh } from "@/components/md3/PullToRefresh.tsx";
+import { navigateTo } from "@/utils/loading.ts";
 
 type ShoppingListWithCounts = ShoppingListInterface & {
   total: number;
@@ -62,16 +64,30 @@ export default function ShoppingLists({ initialLists }: ShoppingListsProps) {
     }
   };
 
+  const refresh = async () => {
+    const fresh = await api.shoppingLists.getAll();
+    const withCounts = await Promise.all(
+      fresh.map(async (l) => {
+        const items = await api.shoppingList.getItems(l.id);
+        return {
+          ...l,
+          total: items.length,
+          done: items.filter((i) => i.checked).length,
+        };
+      }),
+    );
+    lists.value = withCounts;
+  };
+
   return (
-    <>
+    <PullToRefresh onRefresh={refresh} disabled={newOpen.value}>
       {/* Lists / Catalogue selector */}
       <div class="px-4 pt-4 pb-2">
         <Segmented
           options={SEGMENTED_OPTIONS}
           value="lists"
           onChange={(k) => {
-            if (k === "catalogue") {globalThis.location.href =
-                "/shopping/catalogue";}
+            if (k === "catalogue") navigateTo("/shopping/catalogue");
           }}
         />
       </div>
@@ -110,7 +126,7 @@ export default function ShoppingLists({ initialLists }: ShoppingListsProps) {
                 variant="filled"
                 radius={20}
                 onClick={() => {
-                  globalThis.location.href = `/shopping/${list.id}`;
+                  navigateTo(`/shopping/${list.id}`);
                 }}
               >
                 <div class="flex flex-col gap-3">
@@ -182,12 +198,12 @@ export default function ShoppingLists({ initialLists }: ShoppingListsProps) {
             variant="filled"
             full
             onClick={createList}
-            disabled={loading.value}
+            loading={loading.value}
           >
             Add
           </Button>
         </div>
       </Sheet>
-    </>
+    </PullToRefresh>
   );
 }

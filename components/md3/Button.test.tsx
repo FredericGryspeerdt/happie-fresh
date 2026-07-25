@@ -8,3 +8,10 @@ Deno.test("Button — filled variant uses primary background utility", () => {
   assertStringIncludes(html, "bg-primary");
   assertStringIncludes(html, "Save");
 });
+
+Deno.test("Button — loading renders a spinner and disabled styling", () => {
+  const html = render(h(Button, { loading: true }, "Save"));
+  assertStringIncludes(html, 'role="status"'); // the spinner
+  assertStringIncludes(html, "38%"); // disabled text mix (color-mix ... 38%)
+  assertStringIncludes(html, "Save");
+});

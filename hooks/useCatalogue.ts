@@ -1,6 +1,7 @@
 import { computed, signal } from "@preact/signals";
 import type { CategoryInterface, ItemInterface } from "@/models/index.ts";
 import { api } from "@/services/api.ts";
+import { beginBusy, endBusy } from "@/utils/loading.ts";
 
 export function useCatalogue(
   initialItems: ItemInterface[],
@@ -9,6 +10,15 @@ export function useCatalogue(
   const items = signal<ItemInterface[]>(initialItems ?? []);
   const categories = signal<CategoryInterface[]>(initialCategories ?? []);
   const pendingCount = signal<number>(0);
+  // Mirror each in-flight mutation into the global loading bar.
+  const startPending = () => {
+    pendingCount.value++;
+    beginBusy();
+  };
+  const endPending = () => {
+    pendingCount.value--;
+    endBusy();
+  };
 
   const sortedCategories = computed(() =>
     [...categories.value].sort((a, b) =>
@@ -43,7 +53,7 @@ export function useCatalogue(
   ): Promise<string | null> => {
     const trimmed = name.trim();
     if (!trimmed) return null;
-    pendingCount.value++;
+    startPending();
     try {
       const created = await api.items.create({ name: trimmed, categoryId });
       if (created) {
@@ -52,7 +62,7 @@ export function useCatalogue(
       }
       return null;
     } finally {
-      pendingCount.value--;
+      endPending();
     }
   };
 
@@ -63,11 +73,11 @@ export function useCatalogue(
     items.value = items.value.map((
       i,
     ) => (i.id === id ? { ...i, name: trimmed } : i));
-    pendingCount.value++;
+    startPending();
     try {
       await api.items.update(id, trimmed, existing.categoryId);
     } finally {
-      pendingCount.value--;
+      endPending();
     }
   };
 
@@ -77,21 +87,21 @@ export function useCatalogue(
     items.value = items.value.map((
       i,
     ) => (i.id === id ? { ...i, categoryId } : i));
-    pendingCount.value++;
+    startPending();
     try {
       await api.items.update(id, existing.name, categoryId);
     } finally {
-      pendingCount.value--;
+      endPending();
     }
   };
 
   const removeItem = async (id: string): Promise<void> => {
     items.value = items.value.filter((i) => i.id !== id);
-    pendingCount.value++;
+    startPending();
     try {
       await api.items.delete(id);
     } finally {
-      pendingCount.value--;
+      endPending();
     }
   };
 
@@ -100,7 +110,7 @@ export function useCatalogue(
   ): Promise<CategoryInterface | null> => {
     const trimmed = label.trim();
     if (!trimmed) return null;
-    pendingCount.value++;
+    startPending();
     try {
       const created = await api.categories.create(trimmed);
       if (created) {
@@ -109,7 +119,7 @@ export function useCatalogue(
       }
       return null;
     } finally {
-      pendingCount.value--;
+      endPending();
     }
   };
 
@@ -119,19 +129,33 @@ export function useCatalogue(
     categories.value = categories.value.map((c) =>
       c.id === id ? { ...c, label: trimmed } : c
     );
-    pendingCount.value++;
+    startPending();
     try {
       await api.categories.update(id, { label: trimmed });
     } finally {
-      pendingCount.value--;
+      endPending();
     }
   };
 
   const deleteCategory = async (id: string): Promise<void> => {
     categories.value = categories.value.filter((c) => c.id !== id);
-    pendingCount.value++;
+    startPending();
     try {
       await api.categories.delete(id);
+    } finally {
+      endPending();
+    }
+  };
+
+  const refresh = async (): Promise<void> => {
+    pendingCount.value++;
+    try {
+      const [newItems, newCategories] = await Promise.all([
+        api.items.getAll(),
+        api.categories.getAll(),
+      ]);
+      items.value = newItems;
+      categories.value = newCategories;
     } finally {
       pendingCount.value--;
     }
@@ -141,6 +165,7 @@ export function useCatalogue(
     items,
     categories,
     pendingCount,
+    refresh,
     sortedCategories,
     itemNames,
     hasUncategorized,
