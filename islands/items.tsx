@@ -432,104 +432,113 @@ export default function Items(
       })()}
 
       {/* ══════════════════════ List-management sheet ══════════════════════ */}
-      <Sheet
-        open={mgmtOpen.value}
-        onClose={() => {
-          mgmtOpen.value = false;
-        }}
-        title="List options"
-      >
-        <div class="flex flex-col gap-1 pb-1">
-          {/* Rename */}
-          <div class="px-1 py-2">
-            <div class="md-body-large text-on-surface mb-2">Rename list</div>
-            <div class="flex gap-2">
-              <input
-                value={renameValue.value}
-                onInput={(e) => {
-                  renameValue.value = (e.target as HTMLInputElement).value;
-                }}
-                onKeyDown={async (e) => {
-                  if (e.key === "Enter" && renameValue.value.trim()) {
-                    await api.shoppingLists.rename(
-                      listId,
-                      renameValue.value.trim(),
-                    );
+      {
+        /* Gated on !addOpen: <Sheet> renders its children even when closed, so
+          this rename <input> would otherwise stay in the DOM while the add-items
+          overlay is open. That extra form field makes iOS add a prev/next field
+          navigator to the keyboard accessory bar; unmounting the sheet leaves the
+          overlay's search box as the only field. */
+      }
+      {!addOpen.value && (
+        <Sheet
+          open={mgmtOpen.value}
+          onClose={() => {
+            mgmtOpen.value = false;
+          }}
+          title="List options"
+        >
+          <div class="flex flex-col gap-1 pb-1">
+            {/* Rename */}
+            <div class="px-1 py-2">
+              <div class="md-body-large text-on-surface mb-2">Rename list</div>
+              <div class="flex gap-2">
+                <input
+                  value={renameValue.value}
+                  onInput={(e) => {
+                    renameValue.value = (e.target as HTMLInputElement).value;
+                  }}
+                  onKeyDown={async (e) => {
+                    if (e.key === "Enter" && renameValue.value.trim()) {
+                      await api.shoppingLists.rename(
+                        listId,
+                        renameValue.value.trim(),
+                      );
+                      mgmtOpen.value = false;
+                      // The route SSR renders the list name into the shell TopAppBar;
+                      // reload to reflect the new name there.
+                      reloadPage();
+                    }
+                  }}
+                  placeholder="List name"
+                  class="flex-1 md-body-large text-on-surface bg-surface-chigh border-0 rounded-[var(--md-shape-full)] py-3 px-4 outline-none"
+                />
+                <Button
+                  variant="filled"
+                  onClick={async () => {
+                    const name = renameValue.value.trim();
+                    if (!name) return;
+                    await api.shoppingLists.rename(listId, name);
                     mgmtOpen.value = false;
-                    // The route SSR renders the list name into the shell TopAppBar;
-                    // reload to reflect the new name there.
                     reloadPage();
-                  }
-                }}
-                placeholder="List name"
-                class="flex-1 md-body-large text-on-surface bg-surface-chigh border-0 rounded-[var(--md-shape-full)] py-3 px-4 outline-none"
-              />
-              <Button
-                variant="filled"
-                onClick={async () => {
-                  const name = renameValue.value.trim();
-                  if (!name) return;
-                  await api.shoppingLists.rename(listId, name);
-                  mgmtOpen.value = false;
-                  reloadPage();
-                }}
-              >
-                Save
-              </Button>
+                  }}
+                >
+                  Save
+                </Button>
+              </div>
             </div>
+
+            <div class="h-px bg-surface-chigh mx-1 my-1" />
+
+            {/* Share — coming soon */}
+            <ListItem
+              headline="Share list"
+              supporting="Invite household members"
+              leading={
+                <span class="w-10 h-10 rounded-full bg-surface-chigh text-on-surface-variant grid place-items-center">
+                  <Icon name="share" size={20} />
+                </span>
+              }
+              onClick={() => {
+                showSnack("Sharing is coming soon");
+              }}
+            />
+
+            {/* Clear checked */}
+            <ListItem
+              headline="Clear checked items"
+              supporting={checkedItems.value.length
+                ? `${checkedItems.value.length} checked off`
+                : "Nothing checked yet"}
+              leading={
+                <span class="w-10 h-10 rounded-full bg-surface-chigh text-on-surface-variant grid place-items-center">
+                  <Icon name="check" size={20} />
+                </span>
+              }
+              onClick={async () => {
+                mgmtOpen.value = false;
+                await clearCheckedItems();
+              }}
+            />
+
+            <div class="h-px bg-surface-chigh mx-1 my-1" />
+
+            {/* Delete list */}
+            <ListItem
+              headline={<span class="text-error">Delete list</span>}
+              leading={
+                <span class="w-10 h-10 rounded-full bg-error-container text-error grid place-items-center">
+                  <Icon name="trash" size={20} />
+                </span>
+              }
+              onClick={async () => {
+                mgmtOpen.value = false;
+                await api.shoppingLists.delete(listId);
+                navigateTo("/shopping");
+              }}
+            />
           </div>
-
-          <div class="h-px bg-surface-chigh mx-1 my-1" />
-
-          {/* Share — coming soon */}
-          <ListItem
-            headline="Share list"
-            supporting="Invite household members"
-            leading={
-              <span class="w-10 h-10 rounded-full bg-surface-chigh text-on-surface-variant grid place-items-center">
-                <Icon name="share" size={20} />
-              </span>
-            }
-            onClick={() => {
-              showSnack("Sharing is coming soon");
-            }}
-          />
-
-          {/* Clear checked */}
-          <ListItem
-            headline="Clear checked items"
-            supporting={checkedItems.value.length
-              ? `${checkedItems.value.length} checked off`
-              : "Nothing checked yet"}
-            leading={
-              <span class="w-10 h-10 rounded-full bg-surface-chigh text-on-surface-variant grid place-items-center">
-                <Icon name="check" size={20} />
-              </span>
-            }
-            onClick={async () => {
-              mgmtOpen.value = false;
-              await clearCheckedItems();
-            }}
-          />
-
-          <div class="h-px bg-surface-chigh mx-1 my-1" />
-
-          {/* Delete list */}
-          <ListItem
-            headline={<span class="text-error">Delete list</span>}
-            leading={
-              <span class="w-10 h-10 rounded-full bg-error-container text-error grid place-items-center">
-                <Icon name="trash" size={20} />
-              </span>
-            }
-            onClick={async () => {
-              mgmtOpen.value = false;
-              await api.shoppingLists.delete(listId);
-              navigateTo("/shopping");
-            }}
-          />
-        </div>
-      </Sheet>
+        </Sheet>
+      )}
 
       {/* ══════════════════════ Item-editor sheet ══════════════════════ */}
       <Sheet
@@ -688,16 +697,22 @@ export default function Items(
       {
         /* Keyboard primer — focused inside the FAB tap (see openAdd) so mobile
           browsers open the soft keyboard; focus then transfers to the overlay's
-          search field, which keeps it open. Kept always-mounted and offscreen. */
+          search field, which keeps it open. Mounted only while the overlay is
+          closed: once open it's dead weight, and leaving it in the DOM makes it a
+          second form field, so iOS adds a prev/next field navigator to the
+          keyboard accessory bar. Unmounting it leaves the search box as the sole
+          field, so the navigator disappears. */
       }
-      <input
-        ref={primerRef}
-        type="text"
-        aria-hidden="true"
-        tabIndex={-1}
-        class="fixed top-0 left-0 opacity-0 pointer-events-none"
-        style={{ width: 1, height: 1, fontSize: 16 }}
-      />
+      {!addOpen.value && (
+        <input
+          ref={primerRef}
+          type="text"
+          aria-hidden="true"
+          tabIndex={-1}
+          class="fixed top-0 left-0 opacity-0 pointer-events-none"
+          style={{ width: 1, height: 1, fontSize: 16 }}
+        />
+      )}
 
       {
         /* Add-items surface as a full-screen overlay. z-50 sits above the shell
