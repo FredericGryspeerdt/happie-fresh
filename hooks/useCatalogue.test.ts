@@ -159,3 +159,27 @@ Deno.test("pendingCount — returns to 0 after an operation", async () => {
   await hook.addItem("Cheese");
   assertEquals(hook.pendingCount.value, 0);
 });
+
+Deno.test("refresh — re-pulls items and categories from the API", async () => {
+  const hook = useCatalogue([item("i1", "Butter", "d")], [cat("d", "Dairy")]);
+
+  const itemsStub = stub(
+    api.items,
+    "getAll",
+    () => Promise.resolve([item("i2", "Milk", "d"), item("i3", "Bread", "b")]),
+  );
+  const catsStub = stub(
+    api.categories,
+    "getAll",
+    () => Promise.resolve([cat("d", "Dairy"), cat("b", "Bakery")]),
+  );
+  try {
+    await hook.refresh();
+  } finally {
+    itemsStub.restore();
+    catsStub.restore();
+  }
+
+  assertEquals(hook.items.value.map((i) => i.name), ["Milk", "Bread"]);
+  assertEquals(hook.categories.value.map((c) => c.label), ["Dairy", "Bakery"]);
+});

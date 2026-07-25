@@ -147,10 +147,25 @@ export function useCatalogue(
     }
   };
 
+  const refresh = async (): Promise<void> => {
+    pendingCount.value++;
+    try {
+      const [newItems, newCategories] = await Promise.all([
+        api.items.getAll(),
+        api.categories.getAll(),
+      ]);
+      items.value = newItems;
+      categories.value = newCategories;
+    } finally {
+      pendingCount.value--;
+    }
+  };
+
   return {
     items,
     categories,
     pendingCount,
+    refresh,
     sortedCategories,
     itemNames,
     hasUncategorized,

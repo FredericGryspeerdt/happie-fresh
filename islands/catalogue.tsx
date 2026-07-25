@@ -2,6 +2,7 @@ import { useEffect, useMemo } from "preact/hooks";
 import { useSignal } from "@preact/signals";
 import type { CategoryInterface, ItemInterface } from "@/models/index.ts";
 import { useCatalogue } from "@/hooks/useCatalogue.ts";
+import { PullToRefresh } from "@/components/md3/PullToRefresh.tsx";
 import { Segmented } from "@/components/md3/Segmented.tsx";
 import { Chip } from "@/components/md3/Chip.tsx";
 import { ListItem } from "@/components/md3/ListItem.tsx";
@@ -46,6 +47,7 @@ export default function Catalogue(
     createCategory,
     renameCategory,
     deleteCategory,
+    refresh,
   } = useMemo(
     () => useCatalogue(initialItems, initialCategories),
     [], // intentionally empty — signals are initialized once from SSR data
@@ -115,7 +117,7 @@ export default function Catalogue(
   );
 
   return (
-    <>
+    <PullToRefresh onRefresh={refresh} disabled={anySheetOpen}>
       {/* Lists / Catalogue selector */}
       <div class="px-4 pt-4 pb-2">
         <Segmented
@@ -353,7 +355,7 @@ export default function Catalogue(
           ]}
         />
       )}
-    </>
+    </PullToRefresh>
   );
 }
 
