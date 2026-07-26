@@ -426,7 +426,7 @@ git commit -m "feat(seed): add hand-authored dev seed fixtures"
 Create `scripts/seed/runner.test.ts`:
 
 ```ts
-import { assert, assertEquals } from "jsr:@std/assert@^1.0.19";
+import { assertEquals } from "jsr:@std/assert@^1.0.19";
 
 // Isolated in-memory KV for this test process. getKv() reads KV_PATH lazily on
 // first use; set it before any repo/runner call. sanitizeResources is disabled
@@ -469,7 +469,6 @@ Deno.test({
       for await (const _ of kv.list({ prefix: p })) count++;
       assertEquals(count, 0, `prefix ${JSON.stringify(p)} not cleared`);
     }
-    assert(true);
   },
 });
 ```
@@ -545,9 +544,11 @@ git commit -m "feat(seed): add production guard and database reset"
 Append to `scripts/seed/runner.test.ts` (extend the imports at the top, then add the tests at the bottom):
 
 ```ts
-// --- extend the existing runner import to also pull in runSeed ---
+// --- extend the std/assert import to add `assert` and `assertExists`: ---
+// import { assert, assertEquals, assertExists } from "jsr:@std/assert@^1.0.19";
+// --- extend the existing runner import to also pull in runSeed: ---
 // import { isProductionEnv, resetDatabase, runSeed } from "./runner.ts";
-// --- and add these imports to the top of the file ---
+// --- and add these imports to the top of the file: ---
 import { catalogue, categories, users } from "./fixtures.ts";
 import { CategoryRepo } from "@/database/category.repo.ts";
 import { ItemRepo } from "@/database/item.repo.ts";
