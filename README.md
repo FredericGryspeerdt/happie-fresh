@@ -15,3 +15,36 @@ deno task dev
 ```
 
 This will watch the project directory and restart as necessary.
+
+## Development seed data
+
+Populate your local database with a realistic, production-like dataset:
+
+```
+deno task db:seed
+```
+
+This **resets** the seed-owned collections (users, households, shopping lists
+and their items, categories, and the item catalogue) and rebuilds them from
+hand-authored fixtures in `scripts/seed/fixtures.ts`. It is **destructive** and
+**dev-only** — it refuses to run when `DENO_DEPLOYMENT_ID` is set (Deno Deploy).
+
+What it creates:
+
+- ~8 categories and a ~58-item global catalogue.
+- 3 demo users, each with their own household and 1–3 populated shopping lists,
+  including deliberate edge cases (a fully-checked list, an empty list, a long
+  list spanning every category, long notes/names, high quantities, emoji, and
+  uncategorized items).
+
+Demo credentials:
+
+| User    | Username                         | Password                             |
+| ------- | -------------------------------- | ------------------------------------ |
+| Primary | `SEED_USERNAME` (default `demo`) | `SEED_PASSWORD` (default `password`) |
+| Second  | `alex`                           | `happie123`                          |
+| Third   | `sam`                            | `happie123`                          |
+
+Set `SEED_USERNAME` / `SEED_PASSWORD` in your `.env` to control the primary
+account. To edit the dataset, change `scripts/seed/fixtures.ts` and re-run
+`deno task db:seed`.
