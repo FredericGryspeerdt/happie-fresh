@@ -1,37 +1,32 @@
 // scripts/seed.ts
-import { UserRepo } from "@/database/user.repo.ts";
+// Dev-only seed entrypoint. Resets the seed-owned KV collections and rebuilds
+// them from hand-authored fixtures. Never runs on Deno Deploy (production).
 import { getKv } from "@/database/db.ts";
-import { hashPassword } from "@/utils/index.ts";
+import { isProductionEnv, runSeed } from "./seed/runner.ts";
 
-async function seed() {
-  const kv = await getKv();
-
-  const username = Deno.env.get("SEED_USERNAME")!;
-  const password = Deno.env.get("SEED_PASSWORD")!; // In a real app, use a more secure password or env var
-
-  // Simple check to prevent re-seeding
-  const existingUser = await UserRepo.findByUsername(username);
-  if (existingUser) {
-    console.log(`✅ ${username} user already exists. Seeding skipped.`);
-    kv.close();
-    return;
+async function main() {
+  if (isProductionEnv(Deno.env.get("DENO_DEPLOYMENT_ID"))) {
+    console.error(
+      "❌ Refusing to seed: DENO_DEPLOYMENT_ID is set (production). " +
+        "The dev seed is destructive and must only run locally.",
+    );
+    Deno.exit(1);
   }
 
-  console.log("🌱 Seeding database...");
-
-  const passwordHash = await hashPassword(password);
-
-  await UserRepo.create({
-    username,
-    passwordHash,
+  console.log("🌱 Resetting and seeding database...");
+  await runSeed({
+    primaryUsername: Deno.env.get("SEED_USERNAME") ?? undefined,
+    primaryPassword: Deno.env.get("SEED_PASSWORD") ?? undefined,
   });
+  console.log("✅ Seed complete.");
 
-  console.log(`✅ Seed complete. Created user '${username}'.`);
+  const kv = await getKv();
   kv.close();
 }
 
 if (import.meta.main) {
-  seed().catch((err) => {
+  main().catch((err) => {
     console.error("Seeding failed:", err);
+    Deno.exit(1);
   });
 }
