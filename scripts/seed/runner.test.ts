@@ -1,4 +1,9 @@
-import { assert, assertEquals, assertExists } from "jsr:@std/assert@^1.0.19";
+import {
+  assert,
+  assertEquals,
+  assertExists,
+  assertRejects,
+} from "jsr:@std/assert@^1.0.19";
 
 // Isolated in-memory KV for this test process. getKv() reads KV_PATH lazily on
 // first use; set it before any repo/runner call. sanitizeResources is disabled
@@ -6,7 +11,12 @@ import { assert, assertEquals, assertExists } from "jsr:@std/assert@^1.0.19";
 Deno.env.set("KV_PATH", ":memory:");
 
 import { getKv } from "@/database/db.ts";
-import { isProductionEnv, resetDatabase, runSeed } from "./runner.ts";
+import {
+  isProductionEnv,
+  isRemoteKvPath,
+  resetDatabase,
+  runSeed,
+} from "./runner.ts";
 import { catalogue, categories, users } from "./fixtures.ts";
 import { CategoryRepo } from "@/database/category.repo.ts";
 import { ItemRepo } from "@/database/item.repo.ts";
@@ -18,6 +28,14 @@ Deno.test("isProductionEnv — true only when a deployment id is present", () =>
   assertEquals(isProductionEnv("some-deploy-id"), true);
   assertEquals(isProductionEnv(""), false);
   assertEquals(isProductionEnv(undefined), false);
+});
+
+Deno.test("isRemoteKvPath — true only for https:// KV paths", () => {
+  assertEquals(isRemoteKvPath("https://api.example.com/db"), true);
+  assertEquals(isRemoteKvPath("data/kv.db"), false);
+  assertEquals(isRemoteKvPath(":memory:"), false);
+  assertEquals(isRemoteKvPath(""), false);
+  assertEquals(isRemoteKvPath(undefined), false);
 });
 
 Deno.test({
@@ -161,5 +179,27 @@ Deno.test({
     assertExists(overridden, "override username should exist");
     const original = await UserRepo.findByUsername(users[0].username);
     assertEquals(original, null, "default primary username should be replaced");
+  },
+});
+
+Deno.test({
+  name: "runSeed — empty-string overrides fall back to fixture defaults",
+  sanitizeResources: false,
+  async fn() {
+    await runSeed({ primaryUsername: "", primaryPassword: "" });
+    assertExists(await UserRepo.findByUsername(users[0].username));
+  },
+});
+
+Deno.test({
+  name:
+    "runSeed — primary override colliding with another fixture username rejects",
+  sanitizeResources: false,
+  async fn() {
+    await assertRejects(
+      () => runSeed({ primaryUsername: users[1].username }),
+      Error,
+      "collides",
+    );
   },
 });

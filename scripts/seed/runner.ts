@@ -25,6 +25,11 @@ export function isProductionEnv(deploymentId: string | undefined): boolean {
   return !!deploymentId;
 }
 
+/** True when KV_PATH targets a remote (https) database, where seeding must never run. */
+export function isRemoteKvPath(kvPath: string | undefined): boolean {
+  return !!kvPath && kvPath.startsWith("https://");
+}
+
 /** Deletes every entry under the seed-owned prefixes. */
 export async function resetDatabase(): Promise<void> {
   const kv = await getKv();
@@ -46,6 +51,15 @@ export interface SeedOptions {
  * credentials (supplied from SEED_USERNAME/SEED_PASSWORD by the entrypoint).
  */
 export async function runSeed(opts: SeedOptions = {}): Promise<void> {
+  if (
+    opts.primaryUsername &&
+    users.slice(1).some((u) => u.username === opts.primaryUsername)
+  ) {
+    throw new Error(
+      `SEED_USERNAME '${opts.primaryUsername}' collides with a fixture username; choose a different value.`,
+    );
+  }
+
   const kv = await getKv();
   await resetDatabase();
 
@@ -58,10 +72,10 @@ export async function runSeed(opts: SeedOptions = {}): Promise<void> {
   for (let i = 0; i < users.length; i++) {
     const fixtureUser = users[i];
     const username = i === 0
-      ? opts.primaryUsername ?? fixtureUser.username
+      ? opts.primaryUsername || fixtureUser.username
       : fixtureUser.username;
     const password = i === 0
-      ? opts.primaryPassword ?? fixtureUser.password
+      ? opts.primaryPassword || fixtureUser.password
       : fixtureUser.password;
 
     const household = await HouseholdRepo.create(`${username}'s household`);
