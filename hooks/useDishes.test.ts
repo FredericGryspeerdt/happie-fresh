@@ -63,12 +63,39 @@ Deno.test("clearFilters — removes all selected tag values", () => {
 
 Deno.test("removeDish — optimistically removes and calls the API", async () => {
   const del = stub(api.dishes, "delete", () => Promise.resolve());
+  const hook = useDishes([dish("1", "A"), dish("2", "B")], []);
   try {
-    const hook = useDishes([dish("1", "A"), dish("2", "B")], []);
     await hook.removeDish("1");
     assertEquals(hook.dishes.value.map((d) => d.id), ["2"]);
     assertEquals(del.calls.length, 1);
   } finally {
     del.restore();
   }
+});
+
+Deno.test("refresh — re-pulls dishes and tag groups from the API", async () => {
+  const hook = useDishes(
+    [dish("1", "Old Dish", ["veg"])],
+    [group("type", "Type", [["veg", "Vegetarian"]])],
+  );
+
+  const dishesStub = stub(
+    api.dishes,
+    "getAll",
+    () => Promise.resolve([dish("2", "Pasta"), dish("3", "Curry")]),
+  );
+  const groupsStub = stub(
+    api.dishTagGroups,
+    "getAll",
+    () => Promise.resolve([group("meal", "Meal", [["main", "Main dish"]])]),
+  );
+  try {
+    await hook.refresh();
+  } finally {
+    dishesStub.restore();
+    groupsStub.restore();
+  }
+
+  assertEquals(hook.dishes.value.map((d) => d.name), ["Pasta", "Curry"]);
+  assertEquals(hook.tagGroups.value.map((g) => g.label), ["Meal"]);
 });
