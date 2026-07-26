@@ -5,6 +5,12 @@ import {
   ShoppingListItemInterface,
 } from "@/models/index.ts";
 import { CreateItemDto } from "@/models/item/item.interface.ts";
+import {
+  CreateDishDto,
+  DishInterface,
+  DishTagGroupInterface,
+  DishTagValueInterface,
+} from "@/models/index.ts";
 
 export const api = {
   items: {
@@ -163,6 +169,60 @@ export const api = {
       if (!res.ok) return null;
       const data = await res.json();
       return data.cleared as number;
+    },
+  },
+  dishes: {
+    getAll: async (): Promise<DishInterface[]> => {
+      const res = await fetch("/api/menu/dishes");
+      if (!res.ok) return [];
+      return res.json();
+    },
+    create: async (dish: CreateDishDto): Promise<DishInterface | null> => {
+      const res = await fetch("/api/menu/dishes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(dish),
+      });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    update: async (
+      id: string,
+      patch: Partial<DishInterface>,
+    ): Promise<DishInterface | null> => {
+      const res = await fetch("/api/menu/dishes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...patch, id }),
+      });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    delete: async (id: string): Promise<void> => {
+      await fetch("/api/menu/dishes", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+    },
+  },
+  dishTagGroups: {
+    getAll: async (): Promise<DishTagGroupInterface[]> => {
+      const res = await fetch("/api/menu/tag-groups");
+      if (!res.ok) return [];
+      return res.json();
+    },
+    addValue: async (
+      groupId: string,
+      label: string,
+    ): Promise<DishTagValueInterface | null> => {
+      const res = await fetch("/api/menu/tag-groups", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ groupId, label }),
+      });
+      if (!res.ok) return null;
+      return res.json();
     },
   },
 };
