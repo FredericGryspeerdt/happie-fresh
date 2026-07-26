@@ -25,9 +25,12 @@ deno task db:seed
 ```
 
 This **resets** the seed-owned collections (users, households, shopping lists
-and their items, categories, and the item catalogue) and rebuilds them from
-hand-authored fixtures in `scripts/seed/fixtures.ts`. It is **destructive** and
-**dev-only** — it refuses to run when `DENO_DEPLOYMENT_ID` is set (Deno Deploy).
+and their items, categories, the item catalogue, and sessions) and rebuilds them
+from hand-authored fixtures in `scripts/seed/fixtures.ts`. It is **destructive**
+and **dev-only** — it refuses to run when `DENO_DEPLOYMENT_ID` is set (Deno
+Deploy) or when `KV_PATH` points at a remote (`https://`) database. Because
+sessions are cleared, everyone is logged out on reseed — you'll need to log in
+again afterwards.
 
 What it creates:
 
