@@ -7,6 +7,7 @@ import { Icon } from "@/components/md3/Icon.tsx";
 import { IconButton } from "@/components/md3/IconButton.tsx";
 import { Pressable } from "@/components/md3/Pressable.tsx";
 import { Button } from "@/components/md3/Button.tsx";
+import Fab from "@/islands/shell/Fab.tsx";
 import { navigateTo } from "@/utils/loading.ts";
 
 interface Props {
@@ -43,6 +44,7 @@ export default function DishCatalogue(
             value={query.value}
             onInput={(e) => (query.value = e.currentTarget.value)}
             placeholder="Search dishes"
+            aria-label="Search dishes"
             class="flex-1 min-w-0 bg-transparent border-0 outline-none md-body-large text-on-surface"
           />
           {query.value && (
@@ -132,24 +134,17 @@ export default function DishCatalogue(
           )}
       </div>
 
-      {/* Add-dish FAB (styled like islands/shell/Fab.tsx, fixed above the nav) */}
+      {/* Add-dish FAB — shared component, fixed below the nav chrome */}
       <div
-        class="fixed right-4 z-40"
+        class="fixed right-4 z-30"
         style={{ bottom: "calc(96px + env(safe-area-inset-bottom))" }}
       >
-        <Pressable
-          onClick={() => navigateTo("/menu/new")}
+        <Fab
+          icon="plus"
+          label="Add dish"
           aria-label="Add dish"
-          class="inline-flex items-center gap-3 bg-primary-container text-on-primary-container md-elevation-3"
-          style={{
-            height: 56,
-            borderRadius: "var(--md-shape-lg)",
-            padding: "0 20px",
-          }}
-        >
-          <Icon name="plus" size={24} />
-          <span class="md-label-large" style={{ fontSize: 15 }}>Add dish</span>
-        </Pressable>
+          onClick={() => navigateTo("/menu/new")}
+        />
       </div>
     </PullToRefresh>
   );
