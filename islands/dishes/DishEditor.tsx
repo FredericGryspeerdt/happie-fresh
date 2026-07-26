@@ -75,9 +75,18 @@ export default function DishEditor({ dish, tagGroups, items }: Props) {
       ingredientIds: ingredientIds.value,
       tagValueIds: tagValueIds.value,
     };
-    if (dish) await api.dishes.update(dish.id, payload);
-    else await api.dishes.create(payload);
-    navigateTo("/menu");
+    try {
+      const result = dish
+        ? await api.dishes.update(dish.id, payload)
+        : await api.dishes.create(payload);
+      if (result) {
+        navigateTo("/menu");
+      } else {
+        saving.value = false; // failed — re-enable so the user can retry
+      }
+    } catch (_) {
+      saving.value = false; // network error — re-enable
+    }
   };
   const remove = async () => {
     if (!dish) return;
@@ -206,6 +215,7 @@ export default function DishEditor({ dish, tagGroups, items }: Props) {
         <Button
           variant="filled"
           disabled={!name.value.trim() || saving.value}
+          loading={saving.value}
           onClick={save}
         >
           {dish ? "Save changes" : "Create dish"}
