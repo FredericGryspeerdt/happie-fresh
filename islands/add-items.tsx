@@ -26,6 +26,10 @@ interface AddItemsProps {
   // navigating. Its presence is what switches the back control from a link to a
   // button.
   onClose?: () => void;
+  // Called when the search field first receives focus. The overlay host uses
+  // this to retire its keyboard primer once the focus hand-off is complete —
+  // see the primer comment in islands/items.tsx.
+  onSearchFocus?: () => void;
 }
 
 export default function AddItems(
@@ -37,6 +41,7 @@ export default function AddItems(
     categories: initialCategories,
     initialQuery,
     onClose,
+    onSearchFocus,
   }: AddItemsProps,
 ) {
   // Instantiate the signal()-based hook exactly once (see CLAUDE.md).
@@ -79,9 +84,19 @@ export default function AddItems(
   // the full category-picker card (which also shows outright when nothing matches).
   const createExpanded = useSignal(false);
 
-  // Autofocus the search field on mount for a quick type-to-search flow.
+  // Autofocus the search field on mount for a quick type-to-search flow. The
+  // overlay mounts a tick after the FAB tap, so the host holds the soft keyboard
+  // open with a primer input until we take focus here; once we have, tell it the
+  // hand-off is done so it can retire the primer (see the primer comment in
+  // islands/items.tsx). Guarded on focus actually landing so the primer is never
+  // retired while focus is still on <body> — which would close the keyboard.
   useEffect(() => {
-    const t = setTimeout(() => inputRef.current?.focus(), 80);
+    const t = setTimeout(() => {
+      const el = inputRef.current;
+      if (!el) return;
+      el.focus();
+      if (document.activeElement === el) onSearchFocus?.();
+    }, 80);
     return () => clearTimeout(t);
   }, []);
 

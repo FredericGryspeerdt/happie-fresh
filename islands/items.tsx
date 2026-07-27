@@ -80,14 +80,20 @@ export default function Items(
   // navigation loses the tap's user-activation, so the keyboard never appears.
   const addOpen = useSignal(false);
   const primerRef = useRef<HTMLInputElement>(null);
+  // Set once the overlay's search field has taken focus, i.e. the keyboard
+  // hand-off is done and the primer can safely leave the DOM (see the primer
+  // comment near the bottom of the render).
+  const handoff = useSignal(false);
 
   const openAdd = () => {
+    handoff.value = false;
     primerRef.current?.focus();
     addOpen.value = true;
   };
 
   const closeAdd = () => {
     addOpen.value = false;
+    handoff.value = false;
     // The overlay runs its own useShoppingList instance, so pull the list back in
     // to reflect anything added while it was open.
     refresh();
@@ -696,14 +702,18 @@ export default function Items(
 
       {
         /* Keyboard primer — focused inside the FAB tap (see openAdd) so mobile
-          browsers open the soft keyboard; focus then transfers to the overlay's
-          search field, which keeps it open. Mounted only while the overlay is
-          closed: once open it's dead weight, and leaving it in the DOM makes it a
-          second form field, so iOS adds a prev/next field navigator to the
-          keyboard accessory bar. Unmounting it leaves the search box as the sole
-          field, so the navigator disappears. */
+          browsers open the soft keyboard within the tap's user activation. The
+          overlay mounts asynchronously (signal re-render), so its search field
+          focuses ~80ms later; the primer bridges that gap. It MUST stay mounted
+          and focused until the hand-off: unmounting it the instant the overlay
+          opens drops focus to <body>, the keyboard dismisses, and the later
+          programmatic focus of the search field can't reopen it without a fresh
+          user gesture (this was the autofocus regression). So it lingers until
+          AddItems reports its search field took focus (handoff → true), then
+          unmounts — which also removes the second form field iOS uses to add a
+          prev/next navigator to the keyboard accessory bar. */
       }
-      {!addOpen.value && (
+      {(!addOpen.value || !handoff.value) && (
         <input
           ref={primerRef}
           type="text"
@@ -730,6 +740,7 @@ export default function Items(
             categories={categories.value}
             initialQuery=""
             onClose={closeAdd}
+            onSearchFocus={() => (handoff.value = true)}
           />
         </div>
       )}
