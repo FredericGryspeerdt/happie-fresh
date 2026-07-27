@@ -1,6 +1,7 @@
 import { assertEquals } from "jsr:@std/assert@^1.0.19";
 import { DishRepo } from "@/database/dish.repo.ts";
 import { getKv } from "@/database/db.ts";
+import type { CreateDishDto } from "@/models/index.ts";
 
 // Isolated in-memory KV for this test process (see shopping-list-item.repo.test.ts).
 Deno.env.set("KV_PATH", ":memory:");
@@ -26,6 +27,20 @@ Deno.test({
     assertEquals(fetched?.name, "Pasta Bolognese");
     assertEquals(fetched?.ingredientIds, ["i1", "i2"]);
     assertEquals(fetched?.tagValueIds, ["meat", "main"]);
+  },
+});
+
+Deno.test({
+  name: "create — defaults ingredientIds/tagValueIds to [] when omitted",
+  sanitizeResources: false,
+  async fn() {
+    await clearDishes();
+    const created = await DishRepo.create(
+      { name: "Bare" } as CreateDishDto,
+    );
+    const fetched = await DishRepo.getById(created.id);
+    assertEquals(fetched?.ingredientIds, []);
+    assertEquals(fetched?.tagValueIds, []);
   },
 });
 

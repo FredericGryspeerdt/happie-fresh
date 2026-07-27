@@ -9,6 +9,8 @@ export class DishRepo {
     const record: DishInterface = {
       ...dish,
       id,
+      ingredientIds: dish.ingredientIds ?? [],
+      tagValueIds: dish.tagValueIds ?? [],
       createdAt: dish.createdAt ?? new Date().toISOString(),
     };
     const ok = await kv.atomic().set(["dishes", id], record).commit();
