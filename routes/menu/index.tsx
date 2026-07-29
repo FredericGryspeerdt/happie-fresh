@@ -7,7 +7,7 @@ export const handler = define.handlers({
   async GET(_ctx) {
     await DishTagGroupRepo.ensureDefaults();
     const [dishes, tagGroups] = await Promise.all([
-      DishRepo.readAll(),
+      DishRepo.getAll(),
       DishTagGroupRepo.getAll(),
     ]);
     return page({ dishes, tagGroups });

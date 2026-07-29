@@ -1,4 +1,4 @@
-import { CreateDishDto, DishInterface } from "@/models/index.ts";
+import { CreateDishDto, DishInterface, UpdateDishDto } from "@/models/index.ts";
 import { getKv } from "./db.ts";
 import { mergeDefinedPatch } from "./merge-patch.ts";
 
@@ -18,7 +18,7 @@ export class DishRepo {
     return record;
   }
 
-  static async readAll(): Promise<DishInterface[]> {
+  static async getAll(): Promise<DishInterface[]> {
     const kv = await getKv();
     const entries = kv.list<DishInterface>({ prefix: ["dishes"] });
     const dishes: DishInterface[] = [];
@@ -34,12 +34,12 @@ export class DishRepo {
 
   static async update(
     id: string,
-    patch: Partial<DishInterface>,
+    patch: UpdateDishDto,
   ): Promise<DishInterface | null> {
     const kv = await getKv();
     const existing = await this.getById(id);
     if (!existing) return null;
-    const updated = mergeDefinedPatch(existing, patch);
+    const updated = mergeDefinedPatch<DishInterface>(existing, patch);
     await kv.set(["dishes", id], updated);
     return updated;
   }

@@ -10,7 +10,5 @@ export interface DishInterface {
 // Derived type for creation (no ID)
 export type CreateDishDto = Omit<DishInterface, "id">;
 
-// Derived type for updating (ID + partial fields)
-export type UpdateDishDto =
-  & Pick<DishInterface, "id">
-  & Partial<Omit<DishInterface, "id">>;
+// Derived type for patch/update operations: never the id, all other fields optional
+export type UpdateDishDto = Partial<Omit<DishInterface, "id">>;

@@ -82,6 +82,6 @@ Deno.test({
     });
     await DishRepo.delete(d.id);
     assertEquals(await DishRepo.getById(d.id), null);
-    assertEquals(await DishRepo.readAll(), []);
+    assertEquals(await DishRepo.getAll(), []);
   },
 });

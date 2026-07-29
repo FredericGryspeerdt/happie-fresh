@@ -3,7 +3,7 @@ import { DishRepo } from "@/database/dish.repo.ts";
 
 export const handler = {
   async GET(_ctx: Context<unknown>) {
-    const dishes = await DishRepo.readAll();
+    const dishes = await DishRepo.getAll();
     return new Response(JSON.stringify(dishes), {
       status: 200,
       headers: { "Content-Type": "application/json" },
