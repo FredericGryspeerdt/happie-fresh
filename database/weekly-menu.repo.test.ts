@@ -38,7 +38,10 @@ Deno.test({
     const b = await WeeklyMenuRepo.addDish("h1", "d1"); // dedup
     assertEquals(b.entries.length, 1);
     const c = await WeeklyMenuRepo.addDish("h1", "d2");
-    assertEquals(c.entries.map((e: MenuEntryInterface) => e.dishId), ["d1", "d2"]);
+    assertEquals(c.entries.map((e: MenuEntryInterface) => e.dishId), [
+      "d1",
+      "d2",
+    ]);
   },
 });
 
@@ -49,8 +52,14 @@ Deno.test({
     await clearMenus();
     const m = await WeeklyMenuRepo.addDish("h1", "d1");
     const id = m.entries[0].id;
-    assertEquals((await WeeklyMenuRepo.setDay("h1", id, "Wed")).entries[0].day, "Wed");
-    assertEquals((await WeeklyMenuRepo.setDay("h1", id, null)).entries[0].day, null);
+    assertEquals(
+      (await WeeklyMenuRepo.setDay("h1", id, "Wed")).entries[0].day,
+      "Wed",
+    );
+    assertEquals(
+      (await WeeklyMenuRepo.setDay("h1", id, null)).entries[0].day,
+      null,
+    );
   },
 });
 
@@ -63,7 +72,9 @@ Deno.test({
     const m = await WeeklyMenuRepo.addDish("h1", "d2");
     const id = m.entries[0].id;
     const after = await WeeklyMenuRepo.removeEntry("h1", id);
-    assertEquals(after.entries.map((e: MenuEntryInterface) => e.dishId), ["d2"]);
+    assertEquals(after.entries.map((e: MenuEntryInterface) => e.dishId), [
+      "d2",
+    ]);
   },
 });
 

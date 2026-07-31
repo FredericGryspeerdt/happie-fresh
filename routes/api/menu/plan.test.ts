@@ -16,7 +16,10 @@ function ctx(
   req: Request,
   householdId?: string | undefined,
 ): Context<StateInterface> {
-  return { req, state: { householdId: arguments.length > 1 ? householdId : "h1" } } as unknown as Context<StateInterface>;
+  return {
+    req,
+    state: { householdId: arguments.length > 1 ? householdId : "h1" },
+  } as unknown as Context<StateInterface>;
 }
 async function clearMenus() {
   const kv = await getKv();
@@ -47,13 +50,17 @@ Deno.test({
     const addRes = await handler.POST(ctx(req("POST", { dishId: "d1" })));
     assertEquals(addRes.status, 200);
     const added = await addRes.json();
-    assertEquals(added.entries.map((e: { dishId: string }) => e.dishId), ["d1"]);
+    assertEquals(added.entries.map((e: { dishId: string }) => e.dishId), [
+      "d1",
+    ]);
     const entryId = added.entries[0].id;
 
     const getRes = await handler.GET(ctx(req("GET")));
     assertEquals((await getRes.json()).entries.length, 1);
 
-    const patchRes = await handler.PATCH(ctx(req("PATCH", { entryId, day: "Wed" })));
+    const patchRes = await handler.PATCH(
+      ctx(req("PATCH", { entryId, day: "Wed" })),
+    );
     assertEquals((await patchRes.json()).entries[0].day, "Wed");
 
     const delRes = await handler.DELETE(ctx(req("DELETE", { entryId })));
@@ -68,7 +75,10 @@ Deno.test({
     await clearMenus();
     await handler.POST(ctx(req("POST", { dishId: "d1" })));
     await handler.POST(ctx(req("POST", { dishId: "d2" })));
-    assertEquals((await handler.DELETE(ctx(req("DELETE", { clear: true })))).status, 200);
+    assertEquals(
+      (await handler.DELETE(ctx(req("DELETE", { clear: true })))).status,
+      200,
+    );
     assertEquals(
       (await (await handler.GET(ctx(req("GET")))).json()).entries,
       [],
@@ -83,7 +93,8 @@ Deno.test({
     await clearMenus();
     assertEquals((await handler.POST(ctx(req("POST", {})))).status, 400);
     assertEquals(
-      (await handler.PATCH(ctx(req("PATCH", { entryId: "x", day: "Funday" })))).status,
+      (await handler.PATCH(ctx(req("PATCH", { entryId: "x", day: "Funday" }))))
+        .status,
       400,
     );
   },
