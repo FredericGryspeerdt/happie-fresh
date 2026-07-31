@@ -25,6 +25,16 @@ but must also work well on desktop. Mobile is the priority because much of the
 functionality is meant to be used on the go — e.g. checking off items while
 shopping, or quickly adding something to a list from wherever you are.
 
+## UI/UX Patterns
+
+**Before building or changing anything the user sees, read
+[`docs/ui-ux-patterns.md`](docs/ui-ux-patterns.md).** It documents the
+established front-end conventions (optimistic vs. pessimistic mutations, the
+`api` error boundary, loading feedback, search/filter, exit animations,
+debounced writes, cross-island signals, the MD3 component library, mobile/PWA
+details) so new features stay consistent. Keep it updated when you introduce a
+new pattern.
+
 ## Build & Development Commands
 
 - `deno task dev` — Start dev server (Vite + HMR, requires `--unstable-kv`)
