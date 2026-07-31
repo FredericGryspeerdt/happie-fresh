@@ -4,6 +4,12 @@
 //
 // It never applies in production: on Deno Deploy `DENO_DEPLOYMENT_ID` is always
 // set (the same signal `database/db.ts` and the seed script rely on).
+//
+// ASSUMPTION: the only production target is Deno Deploy. Auto-login is on by
+// default in dev and gated purely on the *absence* of `DENO_DEPLOYMENT_ID`. If
+// this app is ever self-hosted somewhere that does not set that variable (e.g.
+// a Docker/VPS deployment), this default would become an auth bypass and MUST
+// be revisited — e.g. require an explicit positive dev signal instead.
 
 const DEFAULT_DEV_USERNAME = "demo";
 
@@ -21,6 +27,6 @@ export function devAutoLoginUsername(
   seedUsername: string | undefined,
 ): string | null {
   if (deploymentId) return null; // production — never auto-login
-  if (autoLoginFlag === "false") return null; // explicitly disabled
+  if (autoLoginFlag?.toLowerCase() === "false") return null; // explicitly disabled
   return seedUsername || DEFAULT_DEV_USERNAME;
 }

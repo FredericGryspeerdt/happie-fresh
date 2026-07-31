@@ -59,9 +59,11 @@ middleware auto-authenticates as a seeded user, and `/login` redirects to the
 app. This never happens in production (it's disabled whenever
 `DENO_DEPLOYMENT_ID` is set, i.e. on Deno Deploy).
 
-- The dev user is `SEED_USERNAME` (defaults to `demo`). Seed it first (e.g. via
-  `deno task db:seed`); if the user doesn't exist yet, the normal login page is
-  shown instead.
-- To test the real login/session flow, set `DEV_AUTOLOGIN=false` in your `.env`.
+- The dev user is `SEED_USERNAME` (defaults to `demo`). Seed it first — set
+  `SEED_USERNAME`/`SEED_PASSWORD` in your `.env` and run `deno task db:seed`. If
+  the user doesn't exist yet, the normal login page is shown instead.
+- To test the real login/session flow — including logout and switching between
+  users — set `DEV_AUTOLOGIN=false` in your `.env` (any other value keeps
+  auto-login on).
 - Auto-login populates the request from the user record directly and sets no
   cookie, so it also works when testing on a device over plain HTTP.

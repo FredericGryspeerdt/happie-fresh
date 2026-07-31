@@ -18,6 +18,11 @@ Deno.test("devAutoLoginUsername — disabled by DEV_AUTOLOGIN=false", () => {
   assertEquals(devAutoLoginUsername(undefined, "false", "alex"), null);
 });
 
+Deno.test("devAutoLoginUsername — DEV_AUTOLOGIN disable is case-insensitive", () => {
+  assertEquals(devAutoLoginUsername(undefined, "False", "alex"), null);
+  assertEquals(devAutoLoginUsername(undefined, "FALSE", "alex"), null);
+});
+
 Deno.test("devAutoLoginUsername — uses SEED_USERNAME when set", () => {
   assertEquals(devAutoLoginUsername(undefined, undefined, "alex"), "alex");
 });
