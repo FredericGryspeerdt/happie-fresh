@@ -182,21 +182,30 @@ export function useShoppingList(
     }
   };
 
-  const clearCheckedItems = async () => {
+  /**
+   * Optimistically clear all checked items. Returns `true` on success and
+   * `false` when the request failed (state is rolled back) so the caller can
+   * surface the failure to the user (see docs/ui-ux-patterns.md §3).
+   */
+  const clearCheckedItems = async (): Promise<boolean> => {
     const snapshot = checkedItems.value;
-    if (snapshot.length === 0) return;
+    if (snapshot.length === 0) return true;
     // Cancel any in-flight debounced writes for items being cleared, so a
     // late flush can't resurrect a deleted item.
     for (const li of snapshot) {
       if (li.id) patchScheduler.cancel(li.id);
     }
     checkedItems.value = [];
-    pendingCount.value++;
+    startPending();
     try {
       const cleared = await api.shoppingList.clearChecked(listId);
-      if (cleared === null) checkedItems.value = snapshot; // rollback on failure
+      if (cleared === null) {
+        checkedItems.value = snapshot; // rollback on failure
+        return false;
+      }
+      return true;
     } finally {
-      pendingCount.value--;
+      endPending();
     }
   };
 

@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "preact/hooks";
+import { useEffect, useMemo, useRef } from "preact/hooks";
 import { useComputed, useSignal } from "@preact/signals";
 import {
   CategoryInterface,
@@ -13,6 +13,7 @@ import { Sheet } from "@/components/md3/Sheet.tsx";
 import { Stepper } from "@/components/md3/Stepper.tsx";
 import { CategoryPickerList } from "@/components/md3/CategoryPickerList.tsx";
 import { CatalogueAddRow } from "@/components/md3/CatalogueAddRow.tsx";
+import { Snackbar } from "@/components/md3/Snackbar.tsx";
 
 interface AddItemsProps {
   listId: string;
@@ -85,16 +86,42 @@ export default function AddItems(
     return () => clearTimeout(t);
   }, []);
 
+  // Transient error feedback — a failed add/create must be visible, not silent
+  // (see docs/ui-ux-patterns.md §3).
+  const snackData = useSignal<{ msg: string } | null>(null);
+  const snackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const showSnack = (msg: string) => {
+    snackData.value = { msg };
+    if (snackTimer.current) clearTimeout(snackTimer.current);
+    snackTimer.current = setTimeout(() => {
+      snackData.value = null;
+    }, 3000);
+  };
+  useEffect(() => () => {
+    if (snackTimer.current) clearTimeout(snackTimer.current);
+  }, []);
+
   const trackAdded = (liId: string | null) => {
     if (liId) addedThisVisit.value = [...addedThisVisit.value, liId];
   };
 
   const handleAdd = async (itemId: string) => {
-    trackAdded(await addToList(itemId));
+    const liId = await addToList(itemId);
+    if (liId) trackAdded(liId);
+    else showSnack("Couldn't add that item — try again");
   };
 
   const handleCreate = async (name: string) => {
-    trackAdded(await addToCatalog(name, selectedCategoryId.value || undefined));
+    const liId = await addToCatalog(
+      name,
+      selectedCategoryId.value || undefined,
+    );
+    if (!liId) {
+      // Keep the typed name and chosen category so the user can retry.
+      showSnack("Couldn't create that item — try again");
+      return;
+    }
+    trackAdded(liId);
     selectedCategoryId.value = "";
     query.value = "";
     createExpanded.value = false;
@@ -424,6 +451,8 @@ export default function AddItems(
           </div>
         )}
       </Sheet>
+
+      <Snackbar data={snackData.value} />
     </div>
   );
 }
