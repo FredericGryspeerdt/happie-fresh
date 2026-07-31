@@ -45,3 +45,19 @@ Deno.test("DishCatalogue — empty state prompts adding a dish", () => {
   }));
   assertStringIncludes(html, "No dishes yet");
 });
+
+Deno.test("DishCatalogue — shows Added for a dish already in the week", () => {
+  const html = render(h(DishCatalogue, {
+    initialDishes: [
+      { id: "1", name: "Pasta Bolognese", ingredientIds: [], tagValueIds: [] },
+      { id: "2", name: "Veggie Curry", ingredientIds: [], tagValueIds: [] },
+    ],
+    initialTagGroups: [],
+    initialMenu: {
+      householdId: "h1",
+      entries: [{ id: "e1", dishId: "1", day: null }],
+    },
+  }));
+  assertStringIncludes(html, "Added"); // dish 1 is in the week
+  assertStringIncludes(html, "Add"); // dish 2 is not
+});
