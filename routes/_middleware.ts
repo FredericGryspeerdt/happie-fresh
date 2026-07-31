@@ -2,10 +2,17 @@ import { Context } from "fresh";
 import { getCookies } from "$std/http/cookie.ts";
 import { SessionRepo } from "@/database/session.repo.ts";
 import { UserRepo } from "@/database/user.repo.ts";
+import { devAutoLoginUsername } from "@/utils/index.ts";
 
 interface State {
   userId?: string;
   householdId?: string;
+}
+
+function seeOther(location: string): Response {
+  const headers = new Headers();
+  headers.set("location", location);
+  return new Response(null, { status: 303, headers });
 }
 
 export async function handler(
@@ -15,9 +22,8 @@ export async function handler(
   const url = new URL(req.url);
   const path = url.pathname;
 
-  // 1. Public Allowlist
+  // 1. Static assets — always public.
   if (
-    path === "/login" ||
     path.startsWith("/_fresh") ||
     path.startsWith("/static") ||
     path.startsWith("/assets") ||
@@ -26,7 +32,31 @@ export async function handler(
     return await ctx.next();
   }
 
-  // 2. Session Check
+  // 2. Dev auto-login. Never active in production — DENO_DEPLOYMENT_ID is always
+  //    set on Deno Deploy. When enabled and the seeded user exists, act as that
+  //    user without a session and skip the login page entirely.
+  const devUsername = devAutoLoginUsername(
+    Deno.env.get("DENO_DEPLOYMENT_ID"),
+    Deno.env.get("DEV_AUTOLOGIN"),
+    Deno.env.get("SEED_USERNAME"),
+  );
+  if (devUsername) {
+    const devUser = await UserRepo.findByUsername(devUsername);
+    if (devUser) {
+      if (path === "/login") return seeOther("/shopping");
+      ctx.state.userId = devUser.id;
+      ctx.state.householdId = devUser.householdId;
+      return await ctx.next();
+    }
+    // Dev user not seeded yet — fall through to the normal login flow.
+  }
+
+  // 3. Login page is public.
+  if (path === "/login") {
+    return await ctx.next();
+  }
+
+  // 4. Session check.
   const cookies = getCookies(req.headers);
   const sessionId = cookies.sessionId;
 
@@ -40,16 +70,11 @@ export async function handler(
     }
   }
 
-  // 3. Unauthorized Handling
+  // 5. Unauthorized handling.
   if (path.startsWith("/api")) {
     return new Response("Unauthorized", { status: 401 });
   }
 
-  // Redirect to login for page requests
-  const headers = new Headers();
-  headers.set("location", "/login");
-  return new Response(null, {
-    status: 303,
-    headers,
-  });
+  // Redirect to login for page requests.
+  return seeOther("/login");
 }
