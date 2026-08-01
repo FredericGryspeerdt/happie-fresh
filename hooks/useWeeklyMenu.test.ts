@@ -91,3 +91,18 @@ Deno.test("clear — rolls back when the API returns null", async () => {
     cl.restore();
   }
 });
+
+Deno.test("addDish — rolls back and does not throw when the API call rejects", async () => {
+  const add = stub(
+    api.weeklyMenu,
+    "addDish",
+    () => Promise.reject(new Error("boom")),
+  );
+  const hook = useWeeklyMenu(menu([{ id: "e1", dishId: "d1", day: null }]));
+  try {
+    await hook.addDish("dX"); // must not throw
+    assertEquals(hook.menu.value.entries.map((e) => e.id), ["e1"]); // unchanged
+  } finally {
+    add.restore();
+  }
+});

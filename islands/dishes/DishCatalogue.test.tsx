@@ -1,4 +1,4 @@
-import { assertStringIncludes } from "jsr:@std/assert@^1.0.19";
+import { assertEquals, assertStringIncludes } from "jsr:@std/assert@^1.0.19";
 import { render } from "npm:preact-render-to-string@^6.6.3";
 import { h } from "preact";
 import DishCatalogue from "./DishCatalogue.tsx";
@@ -59,5 +59,9 @@ Deno.test("DishCatalogue — shows Added for a dish already in the week", () => 
     },
   }));
   assertStringIncludes(html, "Added"); // dish 1 is in the week
-  assertStringIncludes(html, "Add"); // dish 2 is not
+  // "Add" is a substring of "Added", so a plain includes() check here is
+  // trivially satisfied by dish 1 alone — count exact label matches instead
+  // to prove dish 2 renders the un-planned "Add" label.
+  assertEquals((html.match(/>Added</g) || []).length, 1);
+  assertEquals((html.match(/>Add</g) || []).length, 1);
 });

@@ -97,3 +97,22 @@ Deno.test({
     assertEquals((await WeeklyMenuRepo.get("h2")).entries, []);
   },
 });
+
+Deno.test({
+  name:
+    "addDish — concurrent adds of different dishes both persist (atomic CAS)",
+  sanitizeResources: false,
+  async fn() {
+    await clearMenus();
+    await Promise.all([
+      WeeklyMenuRepo.addDish("h1", "d1"),
+      WeeklyMenuRepo.addDish("h1", "d2"),
+    ]);
+    const m = await WeeklyMenuRepo.get("h1");
+    assertEquals(m.entries.length, 2);
+    assertEquals(
+      new Set(m.entries.map((e) => e.dishId)),
+      new Set(["d1", "d2"]),
+    );
+  },
+});

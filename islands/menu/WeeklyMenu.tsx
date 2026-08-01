@@ -1,5 +1,5 @@
 import { useSignal } from "@preact/signals";
-import { useMemo, useRef } from "preact/hooks";
+import { useEffect, useMemo, useRef } from "preact/hooks";
 import type {
   DishInterface,
   DishTagGroupInterface,
@@ -58,6 +58,9 @@ export default function WeeklyMenu(
     if (snackTimer.current) clearTimeout(snackTimer.current);
     snackTimer.current = setTimeout(() => (snack.value = null), 4000);
   };
+  useEffect(() => () => {
+    if (snackTimer.current) clearTimeout(snackTimer.current);
+  }, []);
 
   // Undo for Clear: re-add each dish, then re-apply its weekday pin.
   const undoClear = async (prev: WeeklyMenuInterface["entries"]) => {

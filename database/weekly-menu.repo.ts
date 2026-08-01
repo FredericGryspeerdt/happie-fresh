@@ -16,32 +16,48 @@ export class WeeklyMenuRepo {
     return res.value ?? { householdId, entries: [] };
   }
 
-  // Read-modify-write so a single racing action loses at most itself, never the
-  // whole menu. Stamps updatedAt on every persisted change.
-  private static async save(
-    menu: WeeklyMenuInterface,
+  // Atomic compare-and-swap with a bounded retry loop, so concurrent mutations
+  // on the same household never silently clobber one another. `apply` returns
+  // the next value to persist, or null for a no-op (dedup / missing entry) —
+  // in which case nothing is written and the current value is returned as-is.
+  // Stamps updatedAt on every persisted change.
+  private static async mutate(
+    householdId: string,
+    apply: (current: WeeklyMenuInterface) => WeeklyMenuInterface | null,
   ): Promise<WeeklyMenuInterface> {
     const kv = await getKv();
-    const next: WeeklyMenuInterface = {
-      ...menu,
-      updatedAt: new Date().toISOString(),
-    };
-    await kv.set(this.key(menu.householdId), next);
-    return next;
+    const key = this.key(householdId);
+    for (let attempt = 0; attempt < 8; attempt++) {
+      const res = await kv.get<WeeklyMenuInterface>(key);
+      const current = res.value ?? { householdId, entries: [] };
+      const next = apply(current);
+      if (next === null) return current; // no-op — no write
+      const stamped: WeeklyMenuInterface = {
+        ...next,
+        updatedAt: new Date().toISOString(),
+      };
+      const ok = await kv.atomic()
+        .check({ key, versionstamp: res.versionstamp })
+        .set(key, stamped)
+        .commit();
+      if (ok.ok) return stamped;
+    }
+    throw new Error("WeeklyMenuRepo: concurrent update conflict after retries");
   }
 
   static async addDish(
     householdId: string,
     dishId: string,
   ): Promise<WeeklyMenuInterface> {
-    const menu = await this.get(householdId);
-    if (menu.entries.some((e) => e.dishId === dishId)) return menu; // dedup
-    const entry: MenuEntryInterface = {
-      id: crypto.randomUUID(),
-      dishId,
-      day: null,
-    };
-    return await this.save({ ...menu, entries: [...menu.entries, entry] });
+    return await this.mutate(householdId, (current) => {
+      if (current.entries.some((e) => e.dishId === dishId)) return null; // dedup
+      const entry: MenuEntryInterface = {
+        id: crypto.randomUUID(),
+        dishId,
+        day: null,
+      };
+      return { ...current, entries: [...current.entries, entry] };
+    });
   }
 
   static async setDay(
@@ -49,11 +65,14 @@ export class WeeklyMenuRepo {
     entryId: string,
     day: Weekday | null,
   ): Promise<WeeklyMenuInterface> {
-    const menu = await this.get(householdId);
-    if (!menu.entries.some((e) => e.id === entryId)) return menu;
-    return await this.save({
-      ...menu,
-      entries: menu.entries.map((e) => (e.id === entryId ? { ...e, day } : e)),
+    return await this.mutate(householdId, (current) => {
+      if (!current.entries.some((e) => e.id === entryId)) return null;
+      return {
+        ...current,
+        entries: current.entries.map((e) =>
+          e.id === entryId ? { ...e, day } : e
+        ),
+      };
     });
   }
 
@@ -61,15 +80,16 @@ export class WeeklyMenuRepo {
     householdId: string,
     entryId: string,
   ): Promise<WeeklyMenuInterface> {
-    const menu = await this.get(householdId);
-    return await this.save({
-      ...menu,
-      entries: menu.entries.filter((e) => e.id !== entryId),
-    });
+    return await this.mutate(householdId, (current) => ({
+      ...current,
+      entries: current.entries.filter((e) => e.id !== entryId),
+    }));
   }
 
   static async clear(householdId: string): Promise<WeeklyMenuInterface> {
-    const menu = await this.get(householdId);
-    return await this.save({ ...menu, entries: [] });
+    return await this.mutate(householdId, (current) => ({
+      ...current,
+      entries: [],
+    }));
   }
 }

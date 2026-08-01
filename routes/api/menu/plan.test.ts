@@ -99,3 +99,16 @@ Deno.test({
     );
   },
 });
+
+Deno.test({
+  name: "POST with a malformed JSON body is 400, not 500",
+  sanitizeResources: false,
+  async fn() {
+    await clearMenus();
+    const badReq = new Request("http://x/api/menu/plan", {
+      method: "POST",
+      body: "not json",
+    });
+    assertEquals((await handler.POST(ctx(badReq))).status, 400);
+  },
+});
