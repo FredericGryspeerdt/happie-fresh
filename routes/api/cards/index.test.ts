@@ -1,0 +1,157 @@
+import { assertEquals } from "jsr:@std/assert@^1.0.19";
+import { type Context } from "fresh";
+import { handler } from "@/routes/api/cards/index.ts";
+import { getKv } from "@/database/db.ts";
+
+Deno.env.set("KV_PATH", ":memory:");
+
+interface State {
+  userId?: string;
+  householdId?: string;
+}
+
+function ctx(req: Request, state: State = {}): Context<State> {
+  return { req, state } as unknown as Context<State>;
+}
+
+async function clearCards() {
+  const kv = await getKv();
+  for await (const e of kv.list({ prefix: ["loyalty_cards"] })) {
+    await kv.delete(e.key);
+  }
+}
+
+const AUTH: State = { userId: "u1", householdId: "h1" };
+
+const post = (body: unknown) =>
+  new Request("http://x/api/cards", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+
+const del = (body: unknown) =>
+  new Request("http://x/api/cards", {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+
+const validCard = {
+  label: "Delhaize",
+  value: "9520123456788",
+  format: "ean13",
+  color: "teal",
+};
+
+Deno.test({
+  name: "POST creates (201), GET lists it for the household",
+  sanitizeResources: false,
+  async fn() {
+    await clearCards();
+    const createRes = await handler.POST(ctx(post(validCard), AUTH));
+    assertEquals(createRes.status, 201);
+    const created = await createRes.json();
+    assertEquals(created.label, "Delhaize");
+    assertEquals(created.householdId, "h1");
+    assertEquals(created.createdBy, "u1");
+
+    const listRes = await handler.GET(
+      ctx(new Request("http://x/api/cards"), AUTH),
+    );
+    assertEquals(listRes.status, 200);
+    const list = await listRes.json();
+    assertEquals(list.map((c: { label: string }) => c.label), ["Delhaize"]);
+  },
+});
+
+Deno.test({
+  name: "GET / POST / DELETE require a household (401)",
+  sanitizeResources: false,
+  async fn() {
+    await clearCards();
+    assertEquals(
+      (await handler.GET(ctx(new Request("http://x/api/cards")))).status,
+      401,
+    );
+    assertEquals((await handler.POST(ctx(post(validCard)))).status, 401);
+    assertEquals(
+      (await handler.DELETE(ctx(del({ id: "x" })))).status,
+      401,
+    );
+  },
+});
+
+Deno.test({
+  name: "GET does not leak other households' cards",
+  sanitizeResources: false,
+  async fn() {
+    await clearCards();
+    await handler.POST(
+      ctx(post(validCard), { userId: "u2", householdId: "h2" }),
+    );
+    const listRes = await handler.GET(
+      ctx(new Request("http://x/api/cards"), AUTH),
+    );
+    assertEquals(await listRes.json(), []);
+  },
+});
+
+Deno.test({
+  name: "POST rejects missing label (400)",
+  sanitizeResources: false,
+  async fn() {
+    await clearCards();
+    const res = await handler.POST(
+      ctx(post({ ...validCard, label: "  " }), AUTH),
+    );
+    assertEquals(res.status, 400);
+  },
+});
+
+Deno.test({
+  name: "POST rejects an unknown format (400)",
+  sanitizeResources: false,
+  async fn() {
+    await clearCards();
+    const res = await handler.POST(
+      ctx(post({ ...validCard, format: "bogus" }), AUTH),
+    );
+    assertEquals(res.status, 400);
+  },
+});
+
+Deno.test({
+  name: "POST rejects a value that fails its symbology's validation (400)",
+  sanitizeResources: false,
+  async fn() {
+    await clearCards();
+    // Wrong EAN-13 check digit.
+    const res = await handler.POST(
+      ctx(post({ ...validCard, value: "9520123456789" }), AUTH),
+    );
+    assertEquals(res.status, 400);
+  },
+});
+
+Deno.test({
+  name: "DELETE removes a card (204); missing id is 400",
+  sanitizeResources: false,
+  async fn() {
+    await clearCards();
+    const created = await (await handler.POST(ctx(post(validCard), AUTH)))
+      .json();
+    assertEquals(
+      (await handler.DELETE(ctx(del({ id: created.id }), AUTH))).status,
+      204,
+    );
+    assertEquals(
+      (await handler.DELETE(ctx(del({}), AUTH))).status,
+      400,
+    );
+    const list = await (await handler.GET(
+      ctx(new Request("http://x/api/cards"), AUTH),
+    )).json();
+    assertEquals(list, []);
+  },
+});

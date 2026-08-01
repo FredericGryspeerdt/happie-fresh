@@ -59,7 +59,10 @@ export default function MoreSheet({ open, onClose }: MoreSheetProps) {
           leading={badge("card")}
           headline="Loyalty cards"
           trailing={chevron()}
-          onClick={() => soon("Loyalty cards")}
+          onClick={() => {
+            onClose();
+            navigateTo("/cards");
+          }}
         />
         <div
           class="md-label-medium text-on-surface-variant uppercase tracking-wide"

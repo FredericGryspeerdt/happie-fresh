@@ -11,6 +11,7 @@ import {
   DishTagGroupInterface,
   DishTagValueInterface,
 } from "@/models/index.ts";
+import { LoyaltyCardInput, LoyaltyCardInterface } from "@/models/index.ts";
 
 export const api = {
   items: {
@@ -200,6 +201,31 @@ export const api = {
     },
     delete: async (id: string): Promise<void> => {
       await fetch("/api/menu/dishes", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+    },
+  },
+  cards: {
+    getAll: async (): Promise<LoyaltyCardInterface[]> => {
+      const res = await fetch("/api/cards");
+      if (!res.ok) return [];
+      return res.json();
+    },
+    create: async (
+      card: LoyaltyCardInput,
+    ): Promise<LoyaltyCardInterface | null> => {
+      const res = await fetch("/api/cards", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(card),
+      });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    delete: async (id: string): Promise<void> => {
+      await fetch("/api/cards", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id }),

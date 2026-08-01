@@ -358,6 +358,46 @@ and must feel native on a phone.
 
 ---
 
+## 11. Progressive enhancement for capability-gated features
+
+**Rule:** When a feature relies on a browser capability that isn't universally
+available (camera `BarcodeDetector`, Web Share, notifications…), **feature-detect
+on the client and degrade gracefully.** The core flow must always work without
+it; the capability is purely additive.
+
+**Why:** The app is a mobile-first PWA spanning Android/Chrome and iOS Safari,
+whose capabilities differ. Loyalty cards must be addable by **typing** a number
+on every device; camera scanning is a shortcut offered only where it exists.
+Assuming a capability breaks the whole screen on browsers that lack it.
+
+**How:**
+
+- Initialise a `useSignal(false)` and flip it to `true` inside a mount
+  `useEffect` **only** when the capability is present — so SSR and the first
+  client render agree (no hydration mismatch), then the enhanced control appears
+  after hydration.
+- Conditionally render the enhanced affordance on that signal; the fallback path
+  (manual entry) is always present.
+- Wrap the capability's async calls in `try/catch` and surface failures via a
+  **Snackbar** (see §3) rather than letting them throw.
+
+```ts
+const available = useSignal(false);
+useEffect(() => {
+  if (scannerSupported()) available.value = true; // client-only probe
+}, []);
+// …
+{available.value && <button onClick={openScanner}>Scan</button>}
+```
+
+**See:** `components/cards/ScannerOverlay.tsx` (`scannerSupported()` +
+`getUserMedia`/`BarcodeDetector` in a guarded effect), `islands/cards/LoyaltyWallet.tsx`
+(`scannerAvailable`). Barcodes themselves render from a pure library call
+(`bwip-js` `toSVG`) served as an `<img>` data URI — see
+`components/md3/Barcode.tsx`.
+
+---
+
 ## Review checklist for user-facing changes
 
 Before merging anything the user sees, tick these (section refs in parens):
