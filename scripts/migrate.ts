@@ -4,7 +4,7 @@ import { ShoppingListRepo } from "@/database/shopping-list.repo.ts";
 import { ShoppingListItemRepo } from "@/database/shopping-list-item.repo.ts";
 import { UserRepo } from "@/database/user.repo.ts";
 import { hashPassword, timingSafeEqual } from "@/utils/index.ts";
-import { UserInterface } from "@/models/index.ts";
+import { HouseholdInterface, UserInterface } from "@/models/index.ts";
 
 interface LegacyShoppingListItem {
   id: string;
@@ -25,6 +25,73 @@ async function sha256Hex(password: string): Promise<string> {
   return Array.from(new Uint8Array(buf))
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
+}
+
+/** Catalogue collections that move from global (`[c, id]`) to household-scoped
+ *  (`[c, householdId, id]`). */
+const SCOPED_COLLECTIONS = [
+  "items",
+  "categories",
+  "dishes",
+  "dish_tag_groups",
+] as const;
+
+/**
+ * Moves global (length-2) catalogue entries under `householdId`. Idempotent:
+ * already-scoped (length-3) keys are skipped, so reruns are safe. Returns the
+ * number of entries moved per collection.
+ */
+export async function scopeGlobalCatalogue(
+  kv: Deno.Kv,
+  householdId: string,
+): Promise<Record<string, number>> {
+  const counts: Record<string, number> = {};
+  for (const collection of SCOPED_COLLECTIONS) {
+    let moved = 0;
+    for await (const entry of kv.list({ prefix: [collection] })) {
+      // key is [collection, id] (global) or [collection, householdId, id].
+      if (entry.key.length !== 2) continue; // already scoped → skip
+      const id = entry.key[1] as string;
+      await kv
+        .atomic()
+        .set([collection, householdId, id], entry.value)
+        .delete(entry.key)
+        .commit();
+      moved++;
+    }
+    counts[collection] = moved;
+  }
+  return counts;
+}
+
+/**
+ * Resolves which household should own the previously-global catalogue.
+ * Uses PRIMARY_USERNAME's household when set; otherwise only auto-resolves when
+ * exactly one household exists. Throws rather than guess in an ambiguous DB.
+ */
+export async function resolvePrimaryHouseholdId(kv: Deno.Kv): Promise<string> {
+  const primaryUsername = Deno.env.get("PRIMARY_USERNAME");
+  if (primaryUsername) {
+    const user = await UserRepo.findByUsername(primaryUsername);
+    if (!user) {
+      throw new Error(`PRIMARY_USERNAME '${primaryUsername}' not found.`);
+    }
+    if (!user.householdId) {
+      throw new Error(`User '${primaryUsername}' has no household.`);
+    }
+    return user.householdId;
+  }
+  const householdIds: string[] = [];
+  for await (
+    const entry of kv.list<HouseholdInterface>({ prefix: ["households"] })
+  ) {
+    householdIds.push(entry.value.id);
+  }
+  if (householdIds.length === 1) return householdIds[0];
+  throw new Error(
+    `Cannot infer primary household (${householdIds.length} found). ` +
+      `Set PRIMARY_USERNAME to choose which household owns the catalogue.`,
+  );
 }
 
 async function migrate() {
@@ -117,10 +184,17 @@ async function migrate() {
       console.log(`  Done. household: ${household.id}, list: ${list.id}`);
     }
 
+    // Scope the previously-global catalogue under the primary household.
+    const primaryHouseholdId = await resolvePrimaryHouseholdId(kv);
+    const scopeCounts = await scopeGlobalCatalogue(kv, primaryHouseholdId);
+
     console.log(`
 Migration complete.
   Passwords: ${passwordsMigrated} rehashed, ${passwordsSkipped} skipped (mismatch), ${passwordsAlready} already PBKDF2
-  Households: ${usersMigrated} migrated, ${itemsMigrated} items moved`);
+  Households: ${usersMigrated} migrated, ${itemsMigrated} items moved
+  Catalogue scoped to household ${primaryHouseholdId}: ${
+      JSON.stringify(scopeCounts)
+    }`);
   } finally {
     kv.close();
   }
