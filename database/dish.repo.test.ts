@@ -76,7 +76,9 @@ Deno.test({
       ingredientIds: ["i1"],
       tagValueIds: ["veg"],
     });
-    const updated = await DishRepo.update("hh-a", d.id, { name: "Veggie Curry" });
+    const updated = await DishRepo.update("hh-a", d.id, {
+      name: "Veggie Curry",
+    });
     assertEquals(updated?.name, "Veggie Curry");
     assertEquals(updated?.ingredientIds, ["i1"]); // untouched
     assertEquals(updated?.tagValueIds, ["veg"]); // untouched

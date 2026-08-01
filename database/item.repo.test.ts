@@ -31,8 +31,12 @@ Deno.test({
     await clearItems();
     const a = await ItemRepo.create("hh-a", { name: "Apples" });
     await ItemRepo.create("hh-b", { name: "Bananas" });
-    assertEquals((await ItemRepo.readAll("hh-a")).map((i) => i.name), ["Apples"]);
-    assertEquals((await ItemRepo.readAll("hh-b")).map((i) => i.name), ["Bananas"]);
+    assertEquals((await ItemRepo.readAll("hh-a")).map((i) => i.name), [
+      "Apples",
+    ]);
+    assertEquals((await ItemRepo.readAll("hh-b")).map((i) => i.name), [
+      "Bananas",
+    ]);
     // B cannot fetch A's item by id.
     assertEquals(await ItemRepo.getById("hh-b", a.id), null);
   },
