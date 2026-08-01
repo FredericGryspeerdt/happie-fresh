@@ -1664,7 +1664,13 @@ with:
 
 - [ ] **Step 8: Verify type-check + no leftover unscoped calls**
 
-Run: `deno task check`
+Type-check the module graph of the seven edited pages. A full `deno task check`
+is deferred to Task 8: `scripts/seed/runner.ts` still calls the old repo
+signatures until then, so a whole-project check reports expected errors there.
+The seven route graphs import only the now-scoped repos (not the seed runner),
+so they check clean:
+
+Run: `deno check routes/menu/index.tsx "routes/menu/[id]/index.tsx" routes/menu/new.tsx routes/shopping/catalogue/index.tsx routes/shopping/categories/index.tsx "routes/shopping/[id]/index.tsx" "routes/shopping/[id]/add.tsx"`
 Expected: PASS (no type errors).
 
 Run: `grep -rEn "Repo\.(getAll|readAll|getById|ensureDefaults)\(\)" routes/`
@@ -1947,7 +1953,17 @@ Deno.test({
 Run: `deno test --unstable-kv -A scripts/seed/runner.test.ts`
 Expected: PASS (all tests, including the untouched override/collision tests).
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 7: Verify the whole project now type-checks**
+
+With the seed runner updated, every catalogue/dish/category call site in the
+project (routes from Task 7 + this runner) now uses the scoped signatures.
+`scripts/migrate.ts` does not call these repos, so it is already clean.
+
+Run: `deno check`
+Expected: PASS — "Type checking failed" errors should be gone. (If any remain,
+they name a call site missed by Task 7 or this task; fix it before committing.)
+
+- [ ] **Step 8: Commit**
 
 ```bash
 git add scripts/seed/runner.ts scripts/seed/runner.test.ts
