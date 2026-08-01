@@ -22,9 +22,9 @@ export const handler = define.handlers({
       backUrl: "/shopping",
     };
     const [items, shoppingList, categories] = await Promise.all([
-      ItemRepo.readAll(),
+      ItemRepo.readAll(householdId),
       ShoppingListItemRepo.getAll(listId),
-      CategoryRepo.getAll(),
+      CategoryRepo.getAll(householdId),
     ]);
     return page({ list, items, shoppingList, categories });
   },

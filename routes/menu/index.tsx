@@ -4,11 +4,12 @@ import DishCatalogue from "@/islands/dishes/DishCatalogue.tsx";
 import { define } from "@/utils/index.ts";
 
 export const handler = define.handlers({
-  async GET(_ctx) {
-    await DishTagGroupRepo.ensureDefaults();
+  async GET(ctx) {
+    const householdId = ctx.state.householdId!;
+    await DishTagGroupRepo.ensureDefaults(householdId);
     const [dishes, tagGroups] = await Promise.all([
-      DishRepo.getAll(),
-      DishTagGroupRepo.getAll(),
+      DishRepo.getAll(householdId),
+      DishTagGroupRepo.getAll(householdId),
     ]);
     return page({ dishes, tagGroups });
   },

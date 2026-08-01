@@ -4,10 +4,11 @@ import Catalogue from "@/islands/catalogue.tsx";
 import { define } from "@/utils/index.ts";
 
 export const handler = define.handlers({
-  async GET(_ctx) {
+  async GET(ctx) {
+    const householdId = ctx.state.householdId!;
     const [items, categories] = await Promise.all([
-      ItemRepo.readAll(),
-      CategoryRepo.getAll(),
+      ItemRepo.readAll(householdId),
+      CategoryRepo.getAll(householdId),
     ]);
     return page({ items, categories });
   },
