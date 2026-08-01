@@ -1,12 +1,14 @@
 import { assertEquals } from "jsr:@std/assert@^1.0.19";
-import { type Context } from "fresh";
 import { handler } from "@/routes/api/menu/tag-groups.ts";
 import { getKv } from "@/database/db.ts";
 
 Deno.env.set("KV_PATH", ":memory:");
 
-function ctx(req: Request): Context<unknown> {
-  return { req } as unknown as Context<unknown>;
+function ctx(
+  req: Request,
+  state: { householdId?: string; userId?: string } = { householdId: "hh-1" },
+) {
+  return { req, state } as unknown as Parameters<typeof handler.GET>[0];
 }
 async function clearGroups() {
   const kv = await getKv();
@@ -14,6 +16,17 @@ async function clearGroups() {
     await kv.delete(e.key);
   }
 }
+
+Deno.test({
+  name: "GET without a household returns 401",
+  sanitizeResources: false,
+  async fn() {
+    const res = await handler.GET(
+      ctx(new Request("http://x/api/menu/tag-groups"), {}),
+    );
+    assertEquals(res.status, 401);
+  },
+});
 
 Deno.test({
   name: "GET seeds defaults and returns the groups",
