@@ -5,7 +5,7 @@ import {
   WeeklyMenuRepo,
 } from "@/database/index.ts";
 import MenuSubNav from "@/islands/menu/MenuSubNav.tsx";
-import WeeklyMenu from "@/islands/menu/WeeklyMenu.tsx";
+import DishCatalogue from "@/islands/dishes/DishCatalogue.tsx";
 import { define } from "@/utils/index.ts";
 
 export const handler = define.handlers({
@@ -21,14 +21,14 @@ export const handler = define.handlers({
   },
 });
 
-export default define.page<typeof handler>(function MenuPage({ data }) {
+export default define.page<typeof handler>(function DishesPage({ data }) {
   return (
     <main class="max-w-md mx-auto">
-      <MenuSubNav active="plan" />
-      <WeeklyMenu
-        initialMenu={data.menu}
+      <MenuSubNav active="dishes" />
+      <DishCatalogue
         initialDishes={data.dishes}
         initialTagGroups={data.tagGroups}
+        initialMenu={data.menu}
       />
     </main>
   );
