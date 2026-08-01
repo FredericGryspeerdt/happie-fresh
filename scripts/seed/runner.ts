@@ -15,6 +15,8 @@ const SEED_PREFIXES: Deno.KvKey[] = [
   ["households"],
   ["categories"],
   ["items"],
+  ["dishes"],
+  ["dish_tag_groups"],
   ["shopping_lists"],
   ["shopping_list_items"],
   ["sessions"],
@@ -68,7 +70,6 @@ export async function runSeed(opts: SeedOptions = {}): Promise<void> {
   //    are the only lists.
   const userIdBySlug = new Map<string, string>();
   const householdIdBySlug = new Map<string, string>();
-  let primaryUserId = "";
   for (let i = 0; i < users.length; i++) {
     const fixtureUser = users[i];
     const username = i === 0
@@ -97,32 +98,42 @@ export async function runSeed(opts: SeedOptions = {}): Promise<void> {
     // regardless of any primary-credential override.
     userIdBySlug.set(fixtureUser.username, id);
     householdIdBySlug.set(fixtureUser.username, household.id);
-    if (i === 0) primaryUserId = id;
   }
 
-  // 2. Categories (creator = primary user). Insert in `order` so the repo's
-  //    append-at-end ordering reproduces the fixture order.
-  const categoryIdBySlug = new Map<string, string>();
-  const orderedCategories = [...categories].sort((a, b) => a.order - b.order);
-  for (const category of orderedCategories) {
-    const created = await CategoryRepo.create(category.label, primaryUserId);
-    categoryIdBySlug.set(category.slug, created.id);
-  }
-
-  // 3. Catalogue items (resolve categoryId; undefined => uncategorized).
-  const itemIdBySlug = new Map<string, string>();
-  for (const item of catalogue) {
-    const categoryId = item.categorySlug
-      ? categoryIdBySlug.get(item.categorySlug)
-      : undefined;
-    const created = await ItemRepo.create({ name: item.name, categoryId });
-    itemIdBySlug.set(item.slug, created.id);
-  }
-
-  // 4. Shopping lists + list items.
+  // 2. Per household: categories + catalogue items + shopping lists. Each
+  //    household gets its own copy of the fixture catalogue so the item ids its
+  //    lists reference resolve within the same household.
   for (const fixtureUser of users) {
     const userId = userIdBySlug.get(fixtureUser.username)!;
     const householdId = householdIdBySlug.get(fixtureUser.username)!;
+
+    // 2a. Categories (creator = this household's user). Insert in `order` so the
+    //     repo's append-at-end ordering reproduces the fixture order.
+    const categoryIdBySlug = new Map<string, string>();
+    const orderedCategories = [...categories].sort((a, b) => a.order - b.order);
+    for (const category of orderedCategories) {
+      const created = await CategoryRepo.create(
+        householdId,
+        category.label,
+        userId,
+      );
+      categoryIdBySlug.set(category.slug, created.id);
+    }
+
+    // 2b. Catalogue items (resolve categoryId; undefined => uncategorized).
+    const itemIdBySlug = new Map<string, string>();
+    for (const item of catalogue) {
+      const categoryId = item.categorySlug
+        ? categoryIdBySlug.get(item.categorySlug)
+        : undefined;
+      const created = await ItemRepo.create(householdId, {
+        name: item.name,
+        categoryId,
+      });
+      itemIdBySlug.set(item.slug, created.id);
+    }
+
+    // 2c. Shopping lists + list items (reference this household's items).
     for (const fixtureList of fixtureUser.lists) {
       const list = await ShoppingListRepo.create({
         householdId,
