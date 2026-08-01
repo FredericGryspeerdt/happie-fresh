@@ -522,7 +522,8 @@ export default function Items(
               }
               onClick={async () => {
                 mgmtOpen.value = false;
-                await clearCheckedItems();
+                const ok = await clearCheckedItems();
+                if (!ok) showSnack("Couldn't clear checked items — try again");
               }}
             />
 

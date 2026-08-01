@@ -441,3 +441,48 @@ Deno.test("clearCheckedItems — rolls back checkedItems when the request fails"
   assertEquals(hook.checkedItems.value.length, 1);
   assertEquals(hook.checkedItems.value[0].id, "sl-1");
 });
+
+Deno.test("clearCheckedItems — returns true on success", async () => {
+  using _clear = stub(
+    api.shoppingList,
+    "clearChecked",
+    () => Promise.resolve(2),
+  );
+
+  const hook = useShoppingList(
+    TEST_LIST_ID,
+    [makeItem("item-1", "Milk")],
+    [makeListItem("sl-1", "item-1", true)],
+  );
+
+  const ok = await hook.clearCheckedItems();
+
+  assertEquals(ok, true);
+});
+
+Deno.test("clearCheckedItems — returns false when the request fails (so the UI can surface it)", async () => {
+  using _clear = stub(
+    api.shoppingList,
+    "clearChecked",
+    () => Promise.resolve(null),
+  );
+
+  const hook = useShoppingList(
+    TEST_LIST_ID,
+    [makeItem("item-1", "Milk")],
+    [makeListItem("sl-1", "item-1", true)],
+  );
+
+  const ok = await hook.clearCheckedItems();
+
+  assertEquals(ok, false);
+  assertEquals(hook.checkedItems.value.length, 1); // and still rolled back
+});
+
+Deno.test("clearCheckedItems — returns true (no-op) when there is nothing to clear", async () => {
+  const hook = useShoppingList(TEST_LIST_ID, [], []);
+
+  const ok = await hook.clearCheckedItems();
+
+  assertEquals(ok, true);
+});
