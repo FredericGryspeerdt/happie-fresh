@@ -1,3 +1,20 @@
+// scripts/migrate.ts
+//
+// One-off, manually-run data migration (`deno task db:migrate`). Idempotent —
+// safe to re-run. It (1) rehashes legacy SHA-256 passwords to PBKDF2, (2)
+// back-fills a household per user and moves legacy shopping-list items, and
+// (3) scopes the previously-global catalogue (items, categories, dishes,
+// dish_tag_groups) under a single primary household.
+//
+// Environment:
+//   SEED_PASSWORD    (required) the shared legacy password, used to rehash.
+//   PRIMARY_USERNAME (required when more than one household will exist) the
+//                    username whose household receives the global catalogue.
+//                    When unset, the migration proceeds only if exactly one
+//                    household exists; otherwise it fails fast BEFORE mutating
+//                    anything. Run this before the app serves traffic so lazy
+//                    per-household seeding (e.g. default tag groups) does not
+//                    race the catalogue move.
 import { getKv } from "@/database/db.ts";
 import { HouseholdRepo } from "@/database/household.repo.ts";
 import { ShoppingListRepo } from "@/database/shopping-list.repo.ts";
@@ -94,6 +111,48 @@ export async function resolvePrimaryHouseholdId(kv: Deno.Kv): Promise<string> {
   );
 }
 
+/** True when any global (length-2) catalogue entry remains to be scoped. */
+async function hasGlobalCatalogue(kv: Deno.Kv): Promise<boolean> {
+  for (const collection of SCOPED_COLLECTIONS) {
+    for await (const entry of kv.list({ prefix: [collection] })) {
+      if (entry.key.length === 2) return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Fail-fast pre-check, run before migrate() mutates anything: verifies the
+ * primary household will be resolvable, so a misconfigured run stops before it
+ * half-applies. No-ops when there is no global catalogue left to scope, so a
+ * re-run of an already-migrated DB never throws here.
+ */
+export async function assertPrimaryHouseholdResolvable(
+  kv: Deno.Kv,
+): Promise<void> {
+  if (!(await hasGlobalCatalogue(kv))) return;
+  const primaryUsername = Deno.env.get("PRIMARY_USERNAME");
+  if (primaryUsername) {
+    if (!(await UserRepo.findByUsername(primaryUsername))) {
+      throw new Error(`PRIMARY_USERNAME '${primaryUsername}' not found.`);
+    }
+    return; // its household will exist once the user loop has run
+  }
+  // Unset: only safe when the run will yield exactly one household.
+  let userCount = 0;
+  for await (const _ of kv.list({ prefix: ["users"] })) userCount++;
+  let householdCount = 0;
+  for await (const _ of kv.list({ prefix: ["households"] })) householdCount++;
+  const projected = Math.max(userCount, householdCount);
+  if (projected > 1) {
+    throw new Error(
+      `Cannot infer primary household (${projected} expected) and ` +
+        `PRIMARY_USERNAME is unset. Set PRIMARY_USERNAME to choose which ` +
+        `household owns the migrated catalogue.`,
+    );
+  }
+}
+
 async function migrate() {
   const password = Deno.env.get("SEED_PASSWORD");
   if (!password) {
@@ -112,6 +171,9 @@ async function migrate() {
   let itemsMigrated = 0;
 
   try {
+    // Fail fast before mutating anything if the primary household is ambiguous.
+    await assertPrimaryHouseholdResolvable(kv);
+
     for await (const entry of kv.list<UserInterface>({ prefix: ["users"] })) {
       const user = entry.value;
       if (!user?.id) continue;
