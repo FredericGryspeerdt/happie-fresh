@@ -83,6 +83,24 @@ Deno.test("tickOff — rolls back and reports failure when the server rejects", 
   assertEquals(hook.doneTodos.value, []);
 });
 
+Deno.test("tickOff — an edit landing during the exit animation is not dropped", async () => {
+  using _u = stub(
+    api.todos,
+    "update",
+    (_id: string, _patch: unknown) => Promise.resolve(makeTodo()),
+  );
+  const hook = useTodos([makeTodo({ id: "t1" })]);
+
+  using time = new FakeTime();
+  const promise = hook.tickOff("t1");
+  hook.editTodo("t1", { title: "Edited during animation" }); // before the wait elapses
+  await time.tickAsync(300);
+  await promise;
+
+  assertEquals(hook.doneTodos.value.length, 1);
+  assertEquals(hook.doneTodos.value[0].title, "Edited during animation");
+});
+
 Deno.test("unTick — moves the to-do back to open with a null completedAt", async () => {
   using _u = stub(
     api.todos,
