@@ -37,11 +37,18 @@ push/PR triggers).
 
 One-time setup — add these under **Settings → Secrets and variables → Actions**
 (ideally scoped to a `production` **Environment**, where you can also require a
-reviewer's approval):
+reviewer's approval). Store credentials as **Secrets** and the non-sensitive id
+as a **Variable**:
 
-- `DENO_KV_DATABASE_ID` — Deno Deploy dashboard → project → **KV** → database id
-- `DENO_KV_ACCESS_TOKEN` — dashboard → account settings → **Access Tokens**
-- `SEED_PASSWORD`
+| Name | Kind | Where to get it |
+|------|------|-----------------|
+| `DENO_KV_DATABASE_ID` | **Variable** | Deno Deploy console → **Databases** → your database (the id in the Databases table). Not sensitive on its own (useless without the token). |
+| `DENO_KV_ACCESS_TOKEN` | **Secret** | Deno Deploy console → your **organization's settings** → an **organization access token** (`ddo_…`) |
+| `SEED_PASSWORD` | **Secret** | the shared legacy password |
+
+The workflow reads the id from `vars.DENO_KV_DATABASE_ID` and the two
+credentials from `secrets.*`, so store each on the matching side — a value put
+on the wrong side reads back empty.
 
 To run: **Actions → Migrate production KV → Run workflow**, enter
 `primary_username`, and type `MIGRATE` in the confirm field.
@@ -52,8 +59,8 @@ To run: **Actions → Migrate production KV → Run workflow**, enter
 ## Running against production — locally via KV Connect
 
 ```bash
-KV_PATH="https://api.deno.com/databases/<DB_ID>/connect" \
-DENO_KV_ACCESS_TOKEN="<deno-deploy-access-token>" \
+KV_PATH="https://api.deno.com/v2/databases/<DB_ID>/connect" \
+DENO_KV_ACCESS_TOKEN="<deno-deploy-org-access-token>" \
 PRIMARY_USERNAME="<username whose household owns the catalogue>" \
 SEED_PASSWORD="<shared legacy password>" \
 deno task db:migrate
