@@ -1358,7 +1358,9 @@ type TodoEdit = { title?: string; notes?: string };
  */
 export function useTodos(initialTodos: TodoInterface[]) {
   const initial = initialTodos ?? [];
-  // TodoRepo.getAll already returns open before done, so this is a partition.
+  // Two independent filters splitting on completedAt === null; getAll's
+  // ordering (newest-created first, then most-recently-done first) is what
+  // keeps each resulting list correctly ordered without sorting here.
   const openTodos = signal<TodoInterface[]>(
     initial.filter((t) => t.completedAt === null),
   );
@@ -1426,14 +1428,25 @@ export function useTodos(initialTodos: TodoInterface[]) {
   const flushTodo = (id: string): void => scheduler.flush(id);
 
   const tickOff = async (id: string): Promise<boolean> => {
-    const todo = openTodos.value.find((t) => t.id === id);
-    if (!todo) return false;
+    // Cheap non-capturing check, so an unknown id returns without waiting 300ms.
+    if (!openTodos.value.some((t) => t.id === id)) return false;
 
     // §6: keep the row on screen for the transition, then move it.
     exitingIds.value = [...exitingIds.value, id];
     await new Promise((resolve) => setTimeout(resolve, EXIT_MS));
 
-    // Snapshot after the wait — state may have changed during the animation.
+    // Re-read after the wait — state may have changed during the animation
+    // (an edit, or a refresh() replacing the list). Building `ticked` from a
+    // pre-wait capture would silently drop a concurrent edit, and because
+    // tickOff does not cancel pending writes the server would still persist
+    // it — leaving local and server state diverged. Mirrors
+    // hooks/useShoppingList.ts:151, which re-reads for the same reason.
+    const todo = openTodos.value.find((t) => t.id === id);
+    if (!todo) {
+      exitingIds.value = exitingIds.value.filter((x) => x !== id);
+      return false;
+    }
+
     const openSnapshot = openTodos.value;
     const doneSnapshot = doneTodos.value;
     const completedAt = new Date().toISOString();
