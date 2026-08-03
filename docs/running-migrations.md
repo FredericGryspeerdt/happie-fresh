@@ -42,8 +42,8 @@ as a **Variable**:
 
 | Name | Kind | Where to get it |
 |------|------|-----------------|
-| `DENO_KV_DATABASE_ID` | **Variable** | Deno Deploy dashboard → project → **KV** → database id. Not sensitive on its own (useless without the token). |
-| `DENO_KV_ACCESS_TOKEN` | **Secret** | dashboard → account settings → **Access Tokens** |
+| `DENO_KV_DATABASE_ID` | **Variable** | Deno Deploy console → **Databases** → your database (the id in the Databases table). Not sensitive on its own (useless without the token). |
+| `DENO_KV_ACCESS_TOKEN` | **Secret** | Deno Deploy console → your **organization's settings** → an **organization access token** (`ddo_…`) |
 | `SEED_PASSWORD` | **Secret** | the shared legacy password |
 
 The workflow reads the id from `vars.DENO_KV_DATABASE_ID` and the two
@@ -59,8 +59,8 @@ To run: **Actions → Migrate production KV → Run workflow**, enter
 ## Running against production — locally via KV Connect
 
 ```bash
-KV_PATH="https://api.deno.com/databases/<DB_ID>/connect" \
-DENO_KV_ACCESS_TOKEN="<deno-deploy-access-token>" \
+KV_PATH="https://api.deno.com/v2/databases/<DB_ID>/connect" \
+DENO_KV_ACCESS_TOKEN="<deno-deploy-org-access-token>" \
 PRIMARY_USERNAME="<username whose household owns the catalogue>" \
 SEED_PASSWORD="<shared legacy password>" \
 deno task db:migrate
