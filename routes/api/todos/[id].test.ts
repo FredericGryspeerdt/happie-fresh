@@ -1,0 +1,191 @@
+import { assertEquals } from "jsr:@std/assert@^1.0.19";
+import { type Context } from "fresh";
+import { handler } from "@/routes/api/todos/[id].ts";
+import { TodoRepo } from "@/database/todo.repo.ts";
+import { getKv } from "@/database/db.ts";
+
+Deno.env.set("KV_PATH", ":memory:");
+
+interface State {
+  userId?: string;
+  householdId?: string;
+}
+
+function ctx(req: Request, id: string, state: State = {}): Context<State> {
+  return { req, state, params: { id } } as unknown as Context<State>;
+}
+
+async function clearTodos() {
+  const kv = await getKv();
+  for await (const e of kv.list({ prefix: ["todos"] })) {
+    await kv.delete(e.key);
+  }
+}
+
+const AUTH: State = { userId: "u1", householdId: "h1" };
+
+const patch = (body: unknown) =>
+  new Request("http://x/api/todos/x", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+
+const del = () => new Request("http://x/api/todos/x", { method: "DELETE" });
+
+function seed(householdId = "h1", title = "Take out the bins") {
+  return TodoRepo.create({
+    householdId,
+    title,
+    createdBy: "u1",
+    createdAt: "2026-08-03T10:00:00.000Z",
+    completedAt: null,
+  });
+}
+
+Deno.test({
+  name: "PATCH updates the title",
+  sanitizeResources: false,
+  async fn() {
+    await clearTodos();
+    const todo = await seed();
+    const res = await handler.PATCH(
+      ctx(patch({ title: "  Take out the recycling  " }), todo.id, AUTH),
+    );
+    assertEquals(res.status, 200);
+    assertEquals((await res.json()).title, "Take out the recycling");
+  },
+});
+
+Deno.test({
+  name: "PATCH ticks off and un-ticks via completedAt",
+  sanitizeResources: false,
+  async fn() {
+    await clearTodos();
+    const todo = await seed();
+
+    const ticked = await (await handler.PATCH(
+      ctx(patch({ completedAt: "2026-08-03T12:00:00.000Z" }), todo.id, AUTH),
+    )).json();
+    assertEquals(ticked.completedAt, "2026-08-03T12:00:00.000Z");
+
+    const reopened = await (await handler.PATCH(
+      ctx(patch({ completedAt: null }), todo.id, AUTH),
+    )).json();
+    assertEquals(reopened.completedAt, null);
+  },
+});
+
+Deno.test({
+  name: "PATCH can clear notes",
+  sanitizeResources: false,
+  async fn() {
+    await clearTodos();
+    const todo = await TodoRepo.create({
+      householdId: "h1",
+      title: "Call the dentist",
+      notes: "09 123 45 67",
+      createdBy: "u1",
+      createdAt: "2026-08-03T10:00:00.000Z",
+      completedAt: null,
+    });
+
+    const cleared = await (await handler.PATCH(
+      ctx(patch({ notes: "" }), todo.id, AUTH),
+    )).json();
+    assertEquals(cleared.notes, "");
+  },
+});
+
+Deno.test({
+  name: "PATCH rejects a blank title (400) and leaves the to-do alone",
+  sanitizeResources: false,
+  async fn() {
+    await clearTodos();
+    const todo = await seed();
+    assertEquals(
+      (await handler.PATCH(ctx(patch({ title: "  " }), todo.id, AUTH))).status,
+      400,
+    );
+    const still = await TodoRepo.getById("h1", todo.id);
+    assertEquals(still?.title, "Take out the bins");
+  },
+});
+
+Deno.test({
+  name: "PATCH ignores client-supplied createdBy and createdAt",
+  sanitizeResources: false,
+  async fn() {
+    await clearTodos();
+    const todo = await seed();
+    const updated = await (await handler.PATCH(
+      ctx(
+        patch({ createdBy: "hacker", createdAt: "1999-01-01T00:00:00.000Z" }),
+        todo.id,
+        AUTH,
+      ),
+    )).json();
+    assertEquals(updated.createdBy, "u1");
+    assertEquals(updated.createdAt, "2026-08-03T10:00:00.000Z");
+  },
+});
+
+Deno.test({
+  name: "PATCH on an unknown id is 404",
+  sanitizeResources: false,
+  async fn() {
+    await clearTodos();
+    assertEquals(
+      (await handler.PATCH(ctx(patch({ title: "x" }), "nope", AUTH))).status,
+      404,
+    );
+  },
+});
+
+Deno.test({
+  name: "DELETE removes the to-do (204), then 404",
+  sanitizeResources: false,
+  async fn() {
+    await clearTodos();
+    const todo = await seed();
+    assertEquals((await handler.DELETE(ctx(del(), todo.id, AUTH))).status, 204);
+    assertEquals((await handler.DELETE(ctx(del(), todo.id, AUTH))).status, 404);
+    assertEquals(await TodoRepo.getById("h1", todo.id), null);
+  },
+});
+
+Deno.test({
+  name: "another household cannot patch or delete your to-do",
+  sanitizeResources: false,
+  async fn() {
+    await clearTodos();
+    const todo = await seed();
+    const theirs: State = { userId: "u2", householdId: "h2" };
+
+    assertEquals(
+      (await handler.PATCH(ctx(patch({ title: "x" }), todo.id, theirs))).status,
+      404,
+    );
+    assertEquals(
+      (await handler.DELETE(ctx(del(), todo.id, theirs))).status,
+      404,
+    );
+    assertEquals(
+      (await TodoRepo.getById("h1", todo.id))?.title,
+      "Take out the bins",
+    );
+  },
+});
+
+Deno.test({
+  name: "PATCH and DELETE require a household (401)",
+  sanitizeResources: false,
+  async fn() {
+    await clearTodos();
+    assertEquals(
+      (await handler.PATCH(ctx(patch({ title: "x" }), "any"))).status,
+      401,
+    );
+    assertEquals((await handler.DELETE(ctx(del(), "any"))).status, 401);
+  },
+});
