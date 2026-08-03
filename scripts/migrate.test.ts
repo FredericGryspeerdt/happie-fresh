@@ -6,6 +6,7 @@ Deno.env.set("KV_PATH", ":memory:");
 import { getKv } from "@/database/db.ts";
 import {
   assertPrimaryHouseholdResolvable,
+  migrateCatalogue,
   resolvePrimaryHouseholdId,
   scopeGlobalCatalogue,
 } from "./migrate.ts";
@@ -202,5 +203,63 @@ Deno.test({
     } finally {
       Deno.env.delete("PRIMARY_USERNAME");
     }
+  },
+});
+
+Deno.test({
+  name:
+    "migrateCatalogue — no-op (null) on an empty KV, even with no household (preview deploy)",
+  sanitizeResources: false,
+  async fn() {
+    const kv = await getKv();
+    await clearCatalogue();
+    await clearIdentity();
+    Deno.env.delete("PRIMARY_USERNAME");
+    // Empty KV: no users, no households, no global catalogue — the fresh
+    // preview-deploy case. Must not throw "Cannot infer primary household".
+    assertEquals(await migrateCatalogue(kv), null);
+  },
+});
+
+Deno.test({
+  name:
+    "migrateCatalogue — returns null when only already-scoped entries exist",
+  sanitizeResources: false,
+  async fn() {
+    const kv = await getKv();
+    await clearCatalogue();
+    await clearIdentity();
+    Deno.env.delete("PRIMARY_USERNAME");
+    // Already-migrated: only length-3 (scoped) keys remain.
+    await kv.set(["items", "hh-x", "i1"], { id: "i1", name: "Milk" });
+    assertEquals(await migrateCatalogue(kv), null);
+    // The already-scoped entry is untouched.
+    assertEquals((await kv.get(["items", "hh-x", "i1"])).value, {
+      id: "i1",
+      name: "Milk",
+    });
+  },
+});
+
+Deno.test({
+  name: "migrateCatalogue — scopes global entries to the sole household",
+  sanitizeResources: false,
+  async fn() {
+    const kv = await getKv();
+    await clearCatalogue();
+    await clearIdentity();
+    Deno.env.delete("PRIMARY_USERNAME");
+    await addUserWithHousehold("solo", "hh-solo");
+    await kv.set(["items", "i1"], { id: "i1", name: "Milk" });
+
+    const result = await migrateCatalogue(kv);
+    assertEquals(result?.householdId, "hh-solo");
+    assertEquals(result?.counts.items, 1);
+    // Global key moved under the sole household.
+    assertEquals((await kv.get(["items", "i1"])).value, null);
+    assertEquals((await kv.get(["items", "hh-solo", "i1"])).value, {
+      id: "i1",
+      name: "Milk",
+    });
   },
 });

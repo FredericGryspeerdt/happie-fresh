@@ -153,6 +153,25 @@ export async function assertPrimaryHouseholdResolvable(
   }
 }
 
+/**
+ * Scopes the previously-global catalogue under the primary household — but only
+ * when there is something to scope. Returns the resolved household id and the
+ * per-collection move counts, or `null` when no global (length-2) catalogue
+ * entry remains (an empty or already-migrated KV).
+ *
+ * Guarding on `hasGlobalCatalogue` keeps the whole migration a safe no-op on an
+ * empty KV — e.g. a fresh Deno Deploy preview with no users or households yet —
+ * instead of failing in `resolvePrimaryHouseholdId` when no household exists.
+ */
+export async function migrateCatalogue(
+  kv: Deno.Kv,
+): Promise<{ householdId: string; counts: Record<string, number> } | null> {
+  if (!(await hasGlobalCatalogue(kv))) return null;
+  const householdId = await resolvePrimaryHouseholdId(kv);
+  const counts = await scopeGlobalCatalogue(kv, householdId);
+  return { householdId, counts };
+}
+
 async function migrate() {
   const password = Deno.env.get("SEED_PASSWORD");
   if (!password) {
@@ -246,16 +265,21 @@ async function migrate() {
       console.log(`  Done. household: ${household.id}, list: ${list.id}`);
     }
 
-    // Scope the previously-global catalogue under the primary household.
-    const primaryHouseholdId = await resolvePrimaryHouseholdId(kv);
-    const scopeCounts = await scopeGlobalCatalogue(kv, primaryHouseholdId);
+    // Scope the previously-global catalogue under the primary household, if any
+    // global entries remain. A no-op (needing no household) on an empty or
+    // already-migrated KV — e.g. a fresh preview deployment with no users.
+    const scoped = await migrateCatalogue(kv);
 
     console.log(`
 Migration complete.
   Passwords: ${passwordsMigrated} rehashed, ${passwordsSkipped} skipped (mismatch), ${passwordsAlready} already PBKDF2
   Households: ${usersMigrated} migrated, ${itemsMigrated} items moved
-  Catalogue scoped to household ${primaryHouseholdId}: ${
-      JSON.stringify(scopeCounts)
+  Catalogue: ${
+      scoped
+        ? `scoped to household ${scoped.householdId}: ${
+          JSON.stringify(scoped.counts)
+        }`
+        : "no global entries to scope (skipped)"
     }`);
   } finally {
     kv.close();
