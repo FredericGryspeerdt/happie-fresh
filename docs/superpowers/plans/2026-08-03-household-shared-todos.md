@@ -56,6 +56,8 @@ failure to your own work.
 | Modify `database/index.ts` | Add the repo. |
 | Create `routes/api/todos/index.ts` | `GET` list, `POST` create. |
 | Create `routes/api/todos/[id].ts` | `PATCH` update, `DELETE` remove. |
+| Create `routes/api/todos/index.test.ts` | Handler tests: create, list, validation, 401, household isolation. |
+| Create `routes/api/todos/[id].test.ts` | Handler tests: patch, tick/un-tick, 400/404, cross-household refusal. |
 | Modify `services/api.ts` | Add the `todos` namespace. |
 | Create `hooks/useTodos.ts` | Signals store + all four mutations. |
 | Create `hooks/useTodos.test.ts` | Mutation behaviour, rollback, exit timing, blank-title guard. |
@@ -585,6 +587,8 @@ git commit -m "feat(todos): add household-scoped TodoRepo"
 **Files:**
 - Create: `routes/api/todos/index.ts`
 - Create: `routes/api/todos/[id].ts`
+- Create: `routes/api/todos/index.test.ts`
+- Create: `routes/api/todos/[id].test.ts`
 
 **Interfaces:**
 - Consumes: `TodoRepo` from `@/database/index.ts` (Task 3); `json`, `noContent`, `badRequest`, `notFound` from `@/utils/index.ts` (Task 2); `define` from `@/utils/index.ts`.
@@ -596,9 +600,340 @@ git commit -m "feat(todos): add household-scoped TodoRepo"
 
 Unauthenticated `/api/*` requests already 401 in middleware (`routes/_middleware.ts:44`), so handlers do not repeat that. They **do** guard on `ctx.state.householdId` being present, because the type is optional.
 
-There is no automated test in this task — the repo covers persistence and the island covers rendering, and the codebase has no HTTP-handler test harness. Step 6 is a manual smoke test against the dev server.
+**Handler tests are a house pattern.** `routes/api/cards/index.test.ts` calls the exported `handler.GET` / `handler.POST` directly with a hand-built fake `Context` and an in-memory KV. Follow it exactly. For the `[id]` route the fake context must also carry `params`, since the handler reads `ctx.params.id`.
 
-- [ ] **Step 1: Write the collection route**
+- [ ] **Step 1: Write the failing tests**
+
+Create `routes/api/todos/index.test.ts`:
+
+```ts
+import { assertEquals } from "jsr:@std/assert@^1.0.19";
+import { type Context } from "fresh";
+import { handler } from "@/routes/api/todos/index.ts";
+import { getKv } from "@/database/db.ts";
+
+Deno.env.set("KV_PATH", ":memory:");
+
+interface State {
+  userId?: string;
+  householdId?: string;
+}
+
+function ctx(req: Request, state: State = {}): Context<State> {
+  return { req, state } as unknown as Context<State>;
+}
+
+async function clearTodos() {
+  const kv = await getKv();
+  for await (const e of kv.list({ prefix: ["todos"] })) {
+    await kv.delete(e.key);
+  }
+}
+
+const AUTH: State = { userId: "u1", householdId: "h1" };
+
+const post = (body: unknown) =>
+  new Request("http://x/api/todos", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+
+Deno.test({
+  name: "POST creates an open to-do (201); GET lists it for the household",
+  sanitizeResources: false,
+  async fn() {
+    await clearTodos();
+    const createRes = await handler.POST(
+      ctx(post({ title: "Take out the bins" }), AUTH),
+    );
+    assertEquals(createRes.status, 201);
+    const created = await createRes.json();
+    assertEquals(created.title, "Take out the bins");
+    assertEquals(created.householdId, "h1");
+    assertEquals(created.createdBy, "u1");
+    assertEquals(created.completedAt, null);
+
+    const listRes = await handler.GET(
+      ctx(new Request("http://x/api/todos"), AUTH),
+    );
+    assertEquals(listRes.status, 200);
+    const list = await listRes.json();
+    assertEquals(list.map((t: { title: string }) => t.title), [
+      "Take out the bins",
+    ]);
+  },
+});
+
+Deno.test({
+  name: "POST trims the title and omits blank notes",
+  sanitizeResources: false,
+  async fn() {
+    await clearTodos();
+    const created = await (await handler.POST(
+      ctx(post({ title: "  Call the dentist  ", notes: "   " }), AUTH),
+    )).json();
+    assertEquals(created.title, "Call the dentist");
+    assertEquals(created.notes, undefined);
+  },
+});
+
+Deno.test({
+  name: "POST keeps notes when given",
+  sanitizeResources: false,
+  async fn() {
+    await clearTodos();
+    const created = await (await handler.POST(
+      ctx(post({ title: "Call the dentist", notes: "09 123 45 67" }), AUTH),
+    )).json();
+    assertEquals(created.notes, "09 123 45 67");
+  },
+});
+
+Deno.test({
+  name: "POST rejects a blank title (400)",
+  sanitizeResources: false,
+  async fn() {
+    await clearTodos();
+    assertEquals(
+      (await handler.POST(ctx(post({ title: "   " }), AUTH))).status,
+      400,
+    );
+    assertEquals((await handler.POST(ctx(post({}), AUTH))).status, 400);
+  },
+});
+
+Deno.test({
+  name: "GET and POST require a household (401)",
+  sanitizeResources: false,
+  async fn() {
+    await clearTodos();
+    assertEquals(
+      (await handler.GET(ctx(new Request("http://x/api/todos")))).status,
+      401,
+    );
+    assertEquals(
+      (await handler.POST(ctx(post({ title: "x" })))).status,
+      401,
+    );
+  },
+});
+
+Deno.test({
+  name: "GET does not leak another household's to-dos",
+  sanitizeResources: false,
+  async fn() {
+    await clearTodos();
+    await handler.POST(
+      ctx(post({ title: "Theirs" }), { userId: "u2", householdId: "h2" }),
+    );
+    const list = await (await handler.GET(
+      ctx(new Request("http://x/api/todos"), AUTH),
+    )).json();
+    assertEquals(list, []);
+  },
+});
+```
+
+Create `routes/api/todos/[id].test.ts`:
+
+```ts
+import { assertEquals } from "jsr:@std/assert@^1.0.19";
+import { type Context } from "fresh";
+import { handler } from "@/routes/api/todos/[id].ts";
+import { TodoRepo } from "@/database/todo.repo.ts";
+import { getKv } from "@/database/db.ts";
+
+Deno.env.set("KV_PATH", ":memory:");
+
+interface State {
+  userId?: string;
+  householdId?: string;
+}
+
+function ctx(req: Request, id: string, state: State = {}): Context<State> {
+  return { req, state, params: { id } } as unknown as Context<State>;
+}
+
+async function clearTodos() {
+  const kv = await getKv();
+  for await (const e of kv.list({ prefix: ["todos"] })) {
+    await kv.delete(e.key);
+  }
+}
+
+const AUTH: State = { userId: "u1", householdId: "h1" };
+
+const patch = (body: unknown) =>
+  new Request("http://x/api/todos/x", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+
+const del = () => new Request("http://x/api/todos/x", { method: "DELETE" });
+
+function seed(householdId = "h1", title = "Take out the bins") {
+  return TodoRepo.create({
+    householdId,
+    title,
+    createdBy: "u1",
+    createdAt: "2026-08-03T10:00:00.000Z",
+    completedAt: null,
+  });
+}
+
+Deno.test({
+  name: "PATCH updates the title",
+  sanitizeResources: false,
+  async fn() {
+    await clearTodos();
+    const todo = await seed();
+    const res = await handler.PATCH(
+      ctx(patch({ title: "  Take out the recycling  " }), todo.id, AUTH),
+    );
+    assertEquals(res.status, 200);
+    assertEquals((await res.json()).title, "Take out the recycling");
+  },
+});
+
+Deno.test({
+  name: "PATCH ticks off and un-ticks via completedAt",
+  sanitizeResources: false,
+  async fn() {
+    await clearTodos();
+    const todo = await seed();
+
+    const ticked = await (await handler.PATCH(
+      ctx(patch({ completedAt: "2026-08-03T12:00:00.000Z" }), todo.id, AUTH),
+    )).json();
+    assertEquals(ticked.completedAt, "2026-08-03T12:00:00.000Z");
+
+    const reopened = await (await handler.PATCH(
+      ctx(patch({ completedAt: null }), todo.id, AUTH),
+    )).json();
+    assertEquals(reopened.completedAt, null);
+  },
+});
+
+Deno.test({
+  name: "PATCH can clear notes",
+  sanitizeResources: false,
+  async fn() {
+    await clearTodos();
+    const todo = await TodoRepo.create({
+      householdId: "h1",
+      title: "Call the dentist",
+      notes: "09 123 45 67",
+      createdBy: "u1",
+      createdAt: "2026-08-03T10:00:00.000Z",
+      completedAt: null,
+    });
+
+    const cleared = await (await handler.PATCH(
+      ctx(patch({ notes: "" }), todo.id, AUTH),
+    )).json();
+    assertEquals(cleared.notes, "");
+  },
+});
+
+Deno.test({
+  name: "PATCH rejects a blank title (400) and leaves the to-do alone",
+  sanitizeResources: false,
+  async fn() {
+    await clearTodos();
+    const todo = await seed();
+    assertEquals(
+      (await handler.PATCH(ctx(patch({ title: "  " }), todo.id, AUTH))).status,
+      400,
+    );
+    const still = await TodoRepo.getById("h1", todo.id);
+    assertEquals(still?.title, "Take out the bins");
+  },
+});
+
+Deno.test({
+  name: "PATCH ignores client-supplied createdBy and createdAt",
+  sanitizeResources: false,
+  async fn() {
+    await clearTodos();
+    const todo = await seed();
+    const updated = await (await handler.PATCH(
+      ctx(
+        patch({ createdBy: "hacker", createdAt: "1999-01-01T00:00:00.000Z" }),
+        todo.id,
+        AUTH,
+      ),
+    )).json();
+    assertEquals(updated.createdBy, "u1");
+    assertEquals(updated.createdAt, "2026-08-03T10:00:00.000Z");
+  },
+});
+
+Deno.test({
+  name: "PATCH on an unknown id is 404",
+  sanitizeResources: false,
+  async fn() {
+    await clearTodos();
+    assertEquals(
+      (await handler.PATCH(ctx(patch({ title: "x" }), "nope", AUTH))).status,
+      404,
+    );
+  },
+});
+
+Deno.test({
+  name: "DELETE removes the to-do (204), then 404",
+  sanitizeResources: false,
+  async fn() {
+    await clearTodos();
+    const todo = await seed();
+    assertEquals((await handler.DELETE(ctx(del(), todo.id, AUTH))).status, 204);
+    assertEquals((await handler.DELETE(ctx(del(), todo.id, AUTH))).status, 404);
+    assertEquals(await TodoRepo.getById("h1", todo.id), null);
+  },
+});
+
+Deno.test({
+  name: "another household cannot patch or delete your to-do",
+  sanitizeResources: false,
+  async fn() {
+    await clearTodos();
+    const todo = await seed();
+    const theirs: State = { userId: "u2", householdId: "h2" };
+
+    assertEquals(
+      (await handler.PATCH(ctx(patch({ title: "x" }), todo.id, theirs))).status,
+      404,
+    );
+    assertEquals(
+      (await handler.DELETE(ctx(del(), todo.id, theirs))).status,
+      404,
+    );
+    assertEquals((await TodoRepo.getById("h1", todo.id))?.title, "Take out the bins");
+  },
+});
+
+Deno.test({
+  name: "PATCH and DELETE require a household (401)",
+  sanitizeResources: false,
+  async fn() {
+    await clearTodos();
+    assertEquals(
+      (await handler.PATCH(ctx(patch({ title: "x" }), "any"))).status,
+      401,
+    );
+    assertEquals((await handler.DELETE(ctx(del(), "any"))).status, 401);
+  },
+});
+```
+
+- [ ] **Step 2: Run tests to verify they fail**
+
+Run: `deno test --unstable-kv -A routes/api/todos/`
+Expected: FAIL — module not found for `routes/api/todos/index.ts` and `routes/api/todos/[id].ts`.
+
+- [ ] **Step 3: Write the collection route**
 
 Create `routes/api/todos/index.ts`:
 
@@ -637,7 +972,7 @@ export const handler = define.handlers({
 });
 ```
 
-- [ ] **Step 2: Write the item route**
+- [ ] **Step 4: Write the item route**
 
 Create `routes/api/todos/[id].ts`. The `PATCH` handler picks only the three client-writable fields off the body, so a client cannot patch `createdBy` or `createdAt` even though `UpdateTodoDto` permits them:
 
@@ -660,7 +995,10 @@ export const handler = define.handlers({
       patch.title = title;
     }
     if (body.notes !== undefined) {
-      patch.notes = String(body.notes).trim() || undefined;
+      // Empty string, not undefined: mergeDefinedPatch skips undefined, so
+      // `undefined` here would silently leave an existing note in place and
+      // clearing notes in the UI would appear to fail.
+      patch.notes = String(body.notes).trim();
     }
     if (body.completedAt !== undefined) {
       patch.completedAt = body.completedAt === null
@@ -688,56 +1026,17 @@ export const handler = define.handlers({
 
 Note `DELETE` reads before deleting so a wrong or other-household id returns `404` rather than a misleading `204` — `kv.delete` on a missing key succeeds silently.
 
-Note also the `notes` handling: an empty string is stored as `undefined` (field cleared) rather than `""`. `mergeDefinedPatch` skips `undefined`, so clearing notes via `PATCH` will **not** remove an existing value — it leaves it unchanged. That is a known limitation of the shared merge helper and is acceptable for iteration 1; do not work around it by bypassing `mergeDefinedPatch`.
+- [ ] **Step 5: Run tests to verify they pass**
 
-- [ ] **Step 3: Verify check passes**
+Run: `deno test --unstable-kv -A routes/api/todos/`
+Expected: PASS, 15 passed (6 in `index.test.ts`, 9 in `[id].test.ts`).
 
-Run: `deno task check`
-Expected: PASS.
+- [ ] **Step 6: Verify the whole suite and check**
 
-- [ ] **Step 4: Start the dev server**
+Run: `deno task check && deno task test`
+Expected: both PASS.
 
-Run: `deno task dev`
-Expected: Vite starts and prints a localhost URL. Local dev auto-authenticates (see the dev auto-login middleware), so a session cookie is not needed manually.
-
-- [ ] **Step 5: Smoke-test the four endpoints**
-
-In a second terminal, replacing `<PORT>` with the dev server's port:
-
-```bash
-curl -s -X POST localhost:<PORT>/api/todos -H 'Content-Type: application/json' -d '{"title":"Take out the bins","notes":"Tuesday"}'
-```
-
-Expected: `201` and a JSON to-do with an `id`, `completedAt: null`, and a `householdId`.
-
-```bash
-curl -s localhost:<PORT>/api/todos
-```
-
-Expected: a JSON array containing that to-do.
-
-```bash
-curl -s -o /dev/null -w '%{http_code}\n' -X POST localhost:<PORT>/api/todos -H 'Content-Type: application/json' -d '{"title":"   "}'
-```
-
-Expected: `400`.
-
-Then, substituting the `id` from the create response:
-
-```bash
-curl -s -X PATCH localhost:<PORT>/api/todos/<ID> -H 'Content-Type: application/json' -d '{"completedAt":"2026-08-03T09:00:00.000Z"}'
-```
-
-Expected: `200` and the to-do with that `completedAt`.
-
-```bash
-curl -s -o /dev/null -w '%{http_code}\n' -X DELETE localhost:<PORT>/api/todos/<ID>
-curl -s -o /dev/null -w '%{http_code}\n' -X DELETE localhost:<PORT>/api/todos/<ID>
-```
-
-Expected: `204` then `404`.
-
-- [ ] **Step 6: Stop the dev server and commit**
+- [ ] **Step 7: Commit**
 
 ```bash
 git add routes/api/todos
@@ -1280,7 +1579,7 @@ Copy strings the test asserts on, so keep them exact: FAB label `"New to-do"`, c
 Create `islands/todos/TodoBacklog.test.tsx`:
 
 ```tsx
-import { assertStringIncludes } from "jsr:@std/assert@^1.0.19";
+import { assertFalse, assertStringIncludes } from "jsr:@std/assert@^1.0.19";
 import { render } from "npm:preact-render-to-string@^6.6.3";
 import { h } from "preact";
 import TodoBacklog from "./TodoBacklog.tsx";
@@ -1315,7 +1614,7 @@ Deno.test("TodoBacklog — renders open and done to-dos, and the FAB", () => {
   assertStringIncludes(html, "Call the dentist");
   assertStringIncludes(html, "09 123 45 67"); // notes hint on the row
   assertStringIncludes(html, "Pay the water bill");
-  assertStringIncludes(html, "Done"); // done section heading
+  assertStringIncludes(html, ">Done<"); // done section heading
   assertStringIncludes(html, "New to-do"); // FAB label
 });
 
@@ -1332,9 +1631,9 @@ Deno.test("TodoBacklog — no Done heading when nothing is done yet", () => {
   }));
 
   assertStringIncludes(html, "Take out the bins");
-  if (html.includes(">Done<")) {
-    throw new Error("Done section should be hidden when no to-do is done");
-  }
+  // The create sheet's body is gated on its open state, so nothing else in the
+  // SSR output says "Done" — this really is the section heading.
+  assertFalse(html.includes(">Done<"));
 });
 ```
 
@@ -1528,44 +1827,52 @@ export default function TodoBacklog({ initialTodos }: Props) {
         />
       </div>
 
-      {/* Create sheet — stays open between saves for rapid capture */}
+      {/* Create sheet — stays open between saves for rapid capture.
+          Body gated on createOpen: <Sheet> renders its children even when
+          closed (see islands/items.tsx:442), so an ungated `autofocus` would
+          steal focus and raise the mobile keyboard on page load. Gating also
+          means `autofocus` fires on mount, i.e. exactly when the sheet opens. */}
       <Sheet
         open={createOpen.value}
         onClose={() => (createOpen.value = false)}
         title="New to-do"
       >
-        <div class="flex flex-col gap-3 pb-1">
-          <input
-            autofocus
-            value={newTitle.value}
-            onInput={(e) => (newTitle.value = e.currentTarget.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                submitNew();
-              }
-            }}
-            placeholder="What needs doing?"
-            aria-label="What needs doing?"
-            class="w-full md-body-large text-on-surface bg-surface-chigh border-0 rounded-[var(--md-shape-lg)] py-3 px-4 outline-none"
-          />
-          <textarea
-            value={newNotes.value}
-            onInput={(e) => (newNotes.value = e.currentTarget.value)}
-            rows={2}
-            placeholder="Notes (optional)"
-            aria-label="Notes (optional)"
-            class="w-full md-body-large text-on-surface bg-surface-chigh border-0 rounded-[var(--md-shape-lg)] py-3 px-4 outline-none resize-none"
-          />
-          <Button variant="filled" full onClick={submitNew}>Add</Button>
-          <Button
-            variant="text"
-            full
-            onClick={() => (createOpen.value = false)}
-          >
-            Done
-          </Button>
-        </div>
+        {createOpen.value && (
+          <div class="flex flex-col gap-3 pb-1">
+            <input
+              autofocus
+              value={newTitle.value}
+              onInput={(e) => (newTitle.value = e.currentTarget.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  submitNew();
+                }
+              }}
+              placeholder="What needs doing?"
+              aria-label="What needs doing?"
+              class="w-full md-body-large text-on-surface bg-surface-chigh border-0 rounded-[var(--md-shape-lg)] py-3 px-4 outline-none"
+            />
+            <textarea
+              value={newNotes.value}
+              onInput={(e) => (newNotes.value = e.currentTarget.value)}
+              rows={2}
+              placeholder="Notes (optional)"
+              aria-label="Notes (optional)"
+              class="w-full md-body-large text-on-surface bg-surface-chigh border-0 rounded-[var(--md-shape-lg)] py-3 px-4 outline-none resize-none"
+            />
+            <Button variant="filled" full onClick={submitNew}>Add</Button>
+            {/* "Close", not "Done" — "Done" beside "Add" reads as a second
+                save, and the Done *section* heading must stay unambiguous. */}
+            <Button
+              variant="text"
+              full
+              onClick={() => (createOpen.value = false)}
+            >
+              Close
+            </Button>
+          </div>
+        )}
       </Sheet>
 
       {/* Edit sheet */}
@@ -1656,8 +1963,6 @@ export default function TodoBacklog({ initialTodos }: Props) {
 
 Run: `deno test --unstable-kv -A islands/todos/TodoBacklog.test.tsx`
 Expected: PASS, 3 passed.
-
-If the third test fails because `>Done<` appears in the create sheet's text button, that is a genuine collision — rename that button's label to `"Close"` in both the island and this plan's expectations, and re-run.
 
 - [ ] **Step 5: Verify the whole suite and check**
 
@@ -1834,7 +2139,7 @@ git commit -m "docs(todos): surface to-dos in the More sheet and document the ca
 ## Verification before calling this done
 
 - [ ] `deno task check` passes
-- [ ] `deno task test` passes, and includes the new `utils/http.test.ts`, `database/todo.repo.test.ts`, `hooks/useTodos.test.ts` and `islands/todos/TodoBacklog.test.tsx`
+- [ ] `deno task test` passes, and includes the new `utils/http.test.ts`, `database/todo.repo.test.ts`, `routes/api/todos/index.test.ts`, `routes/api/todos/[id].test.ts`, `hooks/useTodos.test.ts` and `islands/todos/TodoBacklog.test.tsx` — 196 baseline + 41 new = 237 passing
 - [ ] The full manual journey in Task 8 Step 4 has been walked, not assumed
 - [ ] `/todos` shows no "Coming soon" pill anywhere
 - [ ] No file outside the File Structure table was modified
