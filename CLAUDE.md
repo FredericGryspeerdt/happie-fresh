@@ -117,3 +117,7 @@ Workflow: `resolve-library-id` → `query-docs` → write code.
 
 Deployed on Deno Deploy (`fredericdev/happie-fresh`). Local dev uses file-based
 KV at `data/kv.db`; production uses remote Deno KV.
+
+**Data migrations** (`scripts/migrate.ts`) are run manually against production —
+never from the Deno Deploy build/pre-deploy command. See
+[`docs/running-migrations.md`](docs/running-migrations.md).
