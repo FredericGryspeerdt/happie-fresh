@@ -124,20 +124,24 @@ async function hasGlobalCatalogue(kv: Deno.Kv): Promise<boolean> {
 /**
  * Fail-fast pre-check, run before migrate() mutates anything: verifies the
  * primary household will be resolvable, so a misconfigured run stops before it
- * half-applies. No-ops when there is no global catalogue left to scope, so a
- * re-run of an already-migrated DB never throws here.
+ * half-applies. Re-runs of an already-migrated DB are a no-op here.
  */
 export async function assertPrimaryHouseholdResolvable(
   kv: Deno.Kv,
 ): Promise<void> {
-  if (!(await hasGlobalCatalogue(kv))) return;
   const primaryUsername = Deno.env.get("PRIMARY_USERNAME");
-  if (primaryUsername) {
-    if (!(await UserRepo.findByUsername(primaryUsername))) {
-      throw new Error(`PRIMARY_USERNAME '${primaryUsername}' not found.`);
-    }
-    return; // its household will exist once the user loop has run
+  // When a primary user is named explicitly, it MUST exist in this database —
+  // checked even when there's nothing to scope. A missing user almost always
+  // means the migration is pointed at the wrong database, so fail loudly
+  // instead of silently no-opping against the wrong (or an empty) KV.
+  if (primaryUsername && !(await UserRepo.findByUsername(primaryUsername))) {
+    throw new Error(
+      `PRIMARY_USERNAME '${primaryUsername}' not found — are you pointed at ` +
+        `the right database?`,
+    );
   }
+  if (!(await hasGlobalCatalogue(kv))) return;
+  if (primaryUsername) return; // existence verified above; household follows
   // Unset: only safe when the run will yield exactly one household.
   let userCount = 0;
   for await (const _ of kv.list({ prefix: ["users"] })) userCount++;

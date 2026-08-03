@@ -263,3 +263,27 @@ Deno.test({
     });
   },
 });
+
+Deno.test({
+  name:
+    "assertPrimaryHouseholdResolvable — throws when PRIMARY_USERNAME is absent from this DB (wrong database)",
+  sanitizeResources: false,
+  async fn() {
+    const kv = await getKv();
+    // Empty DB: no users, no households, no catalogue — as if pointed at the
+    // wrong database. With a primary user named explicitly, this must fail
+    // loudly instead of silently no-opping.
+    await clearCatalogue();
+    await clearIdentity();
+    Deno.env.set("PRIMARY_USERNAME", "frozemaric");
+    try {
+      await assertRejects(
+        () => assertPrimaryHouseholdResolvable(kv),
+        Error,
+        "not found",
+      );
+    } finally {
+      Deno.env.delete("PRIMARY_USERNAME");
+    }
+  },
+});

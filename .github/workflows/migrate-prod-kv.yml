@@ -30,7 +30,7 @@ on:
         required: true
         type: string
       confirm:
-        description: 'Type MIGRATE to confirm you are mutating PRODUCTION data'
+        description: "Type MIGRATE to confirm you are mutating PRODUCTION data"
         required: true
         type: string
 
