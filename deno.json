@@ -29,6 +29,7 @@
     "fresh": "jsr:@fresh/core@^2.2.0",
     "preact": "npm:preact@^10.27.2",
     "@preact/signals": "npm:@preact/signals@^2.5.0",
+    "@bwip-js/browser": "npm:@bwip-js/browser@^4.11.2",
     "@fresh/plugin-vite": "jsr:@fresh/plugin-vite@^1.0.8",
     "usehooks-ts": "npm:usehooks-ts@^3.1.1",
     "vite": "npm:vite@^7.1.3",
