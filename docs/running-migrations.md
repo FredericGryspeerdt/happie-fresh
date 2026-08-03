@@ -37,11 +37,18 @@ push/PR triggers).
 
 One-time setup — add these under **Settings → Secrets and variables → Actions**
 (ideally scoped to a `production` **Environment**, where you can also require a
-reviewer's approval):
+reviewer's approval). Store credentials as **Secrets** and the non-sensitive id
+as a **Variable**:
 
-- `DENO_KV_DATABASE_ID` — Deno Deploy dashboard → project → **KV** → database id
-- `DENO_KV_ACCESS_TOKEN` — dashboard → account settings → **Access Tokens**
-- `SEED_PASSWORD`
+| Name | Kind | Where to get it |
+|------|------|-----------------|
+| `DENO_KV_DATABASE_ID` | **Variable** | Deno Deploy dashboard → project → **KV** → database id. Not sensitive on its own (useless without the token). |
+| `DENO_KV_ACCESS_TOKEN` | **Secret** | dashboard → account settings → **Access Tokens** |
+| `SEED_PASSWORD` | **Secret** | the shared legacy password |
+
+The workflow reads the id from `vars.DENO_KV_DATABASE_ID` and the two
+credentials from `secrets.*`, so store each on the matching side — a value put
+on the wrong side reads back empty.
 
 To run: **Actions → Migrate production KV → Run workflow**, enter
 `primary_username`, and type `MIGRATE` in the confirm field.
