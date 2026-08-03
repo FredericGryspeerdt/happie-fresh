@@ -5,11 +5,12 @@ import { define } from "@/utils/index.ts";
 
 export const handler = define.handlers({
   async GET(ctx) {
-    await DishTagGroupRepo.ensureDefaults();
+    const householdId = ctx.state.householdId!;
+    await DishTagGroupRepo.ensureDefaults(householdId);
     ctx.state.appBar = { mode: "detail", title: "New dish", backUrl: "/menu" };
     const [tagGroups, items] = await Promise.all([
-      DishTagGroupRepo.getAll(),
-      ItemRepo.readAll(),
+      DishTagGroupRepo.getAll(householdId),
+      ItemRepo.readAll(householdId),
     ]);
     return page({ tagGroups, items });
   },

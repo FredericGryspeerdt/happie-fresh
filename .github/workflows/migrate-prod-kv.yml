@@ -1,0 +1,79 @@
+name: Migrate production KV
+
+# One-off / on-demand data migration (see scripts/migrate.ts, issue #42:
+# scope the catalogue to households). Run this MANUALLY against the production
+# KV — never from the Deno Deploy build/pre-deploy command, which runs on every
+# deploy and connects to an empty build-sandbox database, not production.
+#
+# The migration is idempotent: once the catalogue is scoped, re-runs are a no-op.
+#
+# Required configuration (Settings → Secrets and variables → Actions, ideally
+# scoped to a "production" Environment — see the `environment:` note below):
+#   secrets.DENO_KV_DATABASE_ID   the production KV database id
+#                                 (Deno Deploy dashboard → project → KV)
+#   secrets.DENO_KV_ACCESS_TOKEN  a Deno Deploy access token
+#                                 (dashboard → account settings → Access Tokens)
+#   secrets.SEED_PASSWORD         the shared legacy password used to rehash
+#                                 pre-PBKDF2 users
+#
+# NOTE: the "Run workflow" button only appears once this file is on the default
+# branch (main), so merge it first, then trigger it from the Actions tab.
+
+on:
+  workflow_dispatch:
+    inputs:
+      primary_username:
+        description: "Username whose household inherits the global catalogue"
+        required: true
+        type: string
+      confirm:
+        description: 'Type MIGRATE to confirm you are mutating PRODUCTION data'
+        required: true
+        type: string
+
+# Never let two migration runs touch the same KV at once.
+concurrency:
+  group: migrate-prod-kv
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    name: Migrate production KV
+    runs-on: ubuntu-latest
+    # Scopes the secrets to a "production" GitHub Environment and lets you
+    # require a reviewer's approval before the run (Settings → Environments →
+    # production → Required reviewers). Remove this line if you keep the secrets
+    # at the repository level and don't want an approval gate.
+    environment: production
+
+    steps:
+      - name: Require explicit confirmation
+        if: ${{ inputs.confirm != 'MIGRATE' }}
+        run: |
+          echo "::error::Confirmation failed — re-run and type MIGRATE in the confirm field."
+          exit 1
+
+      - name: Clone repository
+        uses: actions/checkout@v4
+
+      - name: Install Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Install dependencies
+        run: deno install
+
+      - name: Run migration against production KV
+        env:
+          # Locally (isDeploy=false) getKv() honors KV_PATH; an https:// value
+          # connects to the remote production KV via KV Connect.
+          KV_PATH: "https://api.deno.com/databases/${{ secrets.DENO_KV_DATABASE_ID }}/connect"
+          DENO_KV_ACCESS_TOKEN: ${{ secrets.DENO_KV_ACCESS_TOKEN }}
+          SEED_PASSWORD: ${{ secrets.SEED_PASSWORD }}
+          # Which household inherits the previously-global catalogue. Required in
+          # production, where more than one household exists.
+          PRIMARY_USERNAME: ${{ inputs.primary_username }}
+        # Mirrors `deno task db:migrate` without --env-file (env comes from the
+        # job env above, not a .env file).
+        run: deno run --unstable-kv -A scripts/migrate.ts

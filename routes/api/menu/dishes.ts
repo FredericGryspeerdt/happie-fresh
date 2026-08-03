@@ -1,28 +1,34 @@
-import { type Context } from "fresh";
 import { DishRepo } from "@/database/dish.repo.ts";
+import { define } from "@/utils/index.ts";
 
-export const handler = {
-  async GET(_ctx: Context<unknown>) {
-    const dishes = await DishRepo.getAll();
+export const handler = define.handlers({
+  async GET(ctx) {
+    const householdId = ctx.state.householdId;
+    if (!householdId) return new Response("Unauthorized", { status: 401 });
+    const dishes = await DishRepo.getAll(householdId);
     return new Response(JSON.stringify(dishes), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
   },
-  async POST(_ctx: Context<unknown>) {
-    const body = await _ctx.req.json();
+  async POST(ctx) {
+    const householdId = ctx.state.householdId;
+    if (!householdId) return new Response("Unauthorized", { status: 401 });
+    const body = await ctx.req.json();
     if (body.id) {
-      const updated = await DishRepo.update(body.id, body);
+      const updated = await DishRepo.update(householdId, body.id, body);
       if (!updated) return new Response("Dish not found", { status: 404 });
       return new Response(JSON.stringify(updated), { status: 200 });
     }
-    const created = await DishRepo.create(body);
+    const created = await DishRepo.create(householdId, body);
     return new Response(JSON.stringify(created), { status: 201 });
   },
-  async DELETE(_ctx: Context<unknown>) {
-    const { id } = await _ctx.req.json();
+  async DELETE(ctx) {
+    const householdId = ctx.state.householdId;
+    if (!householdId) return new Response("Unauthorized", { status: 401 });
+    const { id } = await ctx.req.json();
     if (!id) return new Response("ID is required", { status: 400 });
-    await DishRepo.delete(id);
+    await DishRepo.delete(householdId, id);
     return new Response(null, { status: 204 });
   },
-};
+});

@@ -20,9 +20,9 @@ export const handler = define.handlers({
     // bottom nav. The shell renders no chrome for mode:"none".
     ctx.state.appBar = { mode: "none" };
     const [items, shoppingList, categories] = await Promise.all([
-      ItemRepo.readAll(),
+      ItemRepo.readAll(householdId),
       ShoppingListItemRepo.getAll(listId),
-      CategoryRepo.getAll(),
+      CategoryRepo.getAll(householdId),
     ]);
     const initialQuery = ctx.url.searchParams.get("q") ?? "";
     return page({ list, items, shoppingList, categories, initialQuery });

@@ -11,26 +11,35 @@ const DEFAULT_GROUPS: { label: string; values: string[] }[] = [
 ];
 
 export class DishTagGroupRepo {
-  static async getAll(): Promise<DishTagGroupInterface[]> {
+  static async getAll(householdId: string): Promise<DishTagGroupInterface[]> {
     const kv = await getKv();
     const entries = kv.list<DishTagGroupInterface>({
-      prefix: ["dish_tag_groups"],
+      prefix: ["dish_tag_groups", householdId],
     });
     const groups: DishTagGroupInterface[] = [];
     for await (const entry of entries) groups.push(entry.value);
     return groups.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
   }
 
-  static async getById(id: string): Promise<DishTagGroupInterface | null> {
+  static async getById(
+    householdId: string,
+    id: string,
+  ): Promise<DishTagGroupInterface | null> {
     const kv = await getKv();
-    const res = await kv.get<DishTagGroupInterface>(["dish_tag_groups", id]);
+    const res = await kv.get<DishTagGroupInterface>([
+      "dish_tag_groups",
+      householdId,
+      id,
+    ]);
     return res.value;
   }
 
-  static async ensureDefaults(): Promise<void> {
+  static async ensureDefaults(householdId: string): Promise<void> {
     const kv = await getKv();
-    // Seed only when the collection is empty.
-    for await (const _ of kv.list({ prefix: ["dish_tag_groups"] })) return;
+    // Seed only when the household's collection is empty.
+    for await (
+      const _ of kv.list({ prefix: ["dish_tag_groups", householdId] })
+    ) return;
     let atomic = kv.atomic();
     DEFAULT_GROUPS.forEach((g, i) => {
       const group: DishTagGroupInterface = {
@@ -42,18 +51,19 @@ export class DishTagGroupRepo {
           label,
         })),
       };
-      atomic = atomic.set(["dish_tag_groups", group.id], group);
+      atomic = atomic.set(["dish_tag_groups", householdId, group.id], group);
     });
     const ok = await atomic.commit();
     if (!ok) throw new Error("Failed to seed dish tag groups.");
   }
 
   static async addValue(
+    householdId: string,
     groupId: string,
     label: string,
   ): Promise<DishTagValueInterface | null> {
     const kv = await getKv();
-    const group = await this.getById(groupId);
+    const group = await this.getById(householdId, groupId);
     if (!group) return null;
     const value: DishTagValueInterface = {
       id: crypto.randomUUID(),
@@ -63,7 +73,7 @@ export class DishTagGroupRepo {
       ...group,
       values: [...group.values, value],
     };
-    await kv.set(["dish_tag_groups", groupId], updated);
+    await kv.set(["dish_tag_groups", householdId, groupId], updated);
     return value;
   }
 }

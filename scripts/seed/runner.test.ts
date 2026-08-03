@@ -49,6 +49,8 @@ Deno.test({
       ["households"],
       ["categories"],
       ["items"],
+      ["dishes"],
+      ["dish_tag_groups"],
       ["shopping_lists"],
       ["shopping_list_items"],
       ["sessions"],
@@ -74,46 +76,49 @@ Deno.test({
   async fn() {
     await runSeed();
 
-    // Categories: count + contiguous order.
-    const seededCategories = await CategoryRepo.getAll();
-    assertEquals(seededCategories.length, categories.length);
-    assertEquals(
-      seededCategories.map((c) => c.order),
-      categories.map((_, i) => i),
-    );
-
-    // Catalogue: count + referential integrity + uncategorized preserved.
-    const seededItems = await ItemRepo.readAll();
-    assertEquals(seededItems.length, catalogue.length);
-    const categoryIds = new Set(seededCategories.map((c) => c.id));
-    for (const item of seededItems) {
-      if (item.categoryId !== undefined) {
-        assert(categoryIds.has(item.categoryId), "item has orphan categoryId");
-      }
-    }
-    const expectedUncategorized = catalogue.filter((i) =>
-      i.categorySlug === undefined
-    ).length;
-    const actualUncategorized =
-      seededItems.filter((i) => i.categoryId === undefined).length;
-    assertEquals(actualUncategorized, expectedUncategorized);
-
-    // Users, households, lists, and list items.
-    const catalogueNames = new Set(seededItems.map((i) => i.name));
     for (const fixtureUser of users) {
       const user = await UserRepo.findByUsername(fixtureUser.username);
       assertExists(user, `user '${fixtureUser.username}' missing`);
       assert(user.householdId.length > 0);
+      const hid = user.householdId;
 
-      const lists = await ShoppingListRepo.getAll(user.householdId);
+      // Categories: per household, count + contiguous order.
+      const seededCategories = await CategoryRepo.getAll(hid);
+      assertEquals(seededCategories.length, categories.length);
+      assertEquals(
+        seededCategories.map((c) => c.order),
+        categories.map((_, i) => i),
+      );
+
+      // Catalogue: per household, count + referential integrity + uncategorized.
+      const seededItems = await ItemRepo.readAll(hid);
+      assertEquals(seededItems.length, catalogue.length);
+      const categoryIds = new Set(seededCategories.map((c) => c.id));
+      for (const item of seededItems) {
+        if (item.categoryId !== undefined) {
+          assert(
+            categoryIds.has(item.categoryId),
+            "item has orphan categoryId",
+          );
+        }
+      }
+      const expectedUncategorized = catalogue.filter((i) =>
+        i.categorySlug === undefined
+      ).length;
+      const actualUncategorized = seededItems.filter((i) =>
+        i.categoryId === undefined
+      ).length;
+      assertEquals(actualUncategorized, expectedUncategorized);
+
+      // Lists + list items reference this household's catalogue.
+      const catalogueNames = new Set(seededItems.map((i) => i.name));
+      const lists = await ShoppingListRepo.getAll(hid);
       assertEquals(lists.length, fixtureUser.lists.length);
-
       for (const fixtureList of fixtureUser.lists) {
         const list = lists.find((l) => l.name === fixtureList.name);
         assertExists(list, `list '${fixtureList.name}' missing`);
         const listItems = await ShoppingListItemRepo.getAll(list.id);
         assertEquals(listItems.length, fixtureList.items.length);
-        // Every list item references a real catalogue item.
         for (const li of listItems) {
           const item = seededItems.find((i) => i.id === li.itemId);
           assertExists(item, "list item references unknown catalogue item");
@@ -153,13 +158,24 @@ Deno.test({
   sanitizeResources: false,
   async fn() {
     await runSeed();
-    const firstCategories = (await CategoryRepo.getAll()).length;
-    const firstItems = (await ItemRepo.readAll()).length;
+    const primary = await UserRepo.findByUsername(users[0].username);
+    assertExists(primary);
+    const firstCategories =
+      (await CategoryRepo.getAll(primary.householdId)).length;
+    const firstItems = (await ItemRepo.readAll(primary.householdId)).length;
 
     await runSeed(); // second run resets and rebuilds
 
-    assertEquals((await CategoryRepo.getAll()).length, firstCategories);
-    assertEquals((await ItemRepo.readAll()).length, firstItems);
+    const primary2 = await UserRepo.findByUsername(users[0].username);
+    assertExists(primary2);
+    assertEquals(
+      (await CategoryRepo.getAll(primary2.householdId)).length,
+      firstCategories,
+    );
+    assertEquals(
+      (await ItemRepo.readAll(primary2.householdId)).length,
+      firstItems,
+    );
     // Exactly the fixture number of users (no duplicates from the second run).
     for (const fixtureUser of users) {
       const user = await UserRepo.findByUsername(fixtureUser.username);
