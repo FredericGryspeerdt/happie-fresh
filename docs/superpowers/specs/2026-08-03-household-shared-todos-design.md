@@ -119,13 +119,15 @@ Notes on the shape:
 
 New: `database/todo.repo.ts`. Hand-rolled, copying `database/loyalty-card.repo.ts`
 — the cleanest household-scoped repo in the codebase. Static methods, `getKv()`
-at the top of each, `householdId` as the first parameter of every method.
+at the top of each, `householdId` as the first parameter of every method **except
+`create`**, which takes the DTO alone because `CreateTodoDto` already carries
+`householdId` (exactly as `LoyaltyCardRepo.create` does).
 
 Key: `["todos", householdId, id]`
 
 | Method | Behaviour |
 | --- | --- |
-| `create(householdId, dto: CreateTodoDto)` | mints `crypto.randomUUID()`, `kv.set`, returns the to-do |
+| `create(data: CreateTodoDto)` | mints `crypto.randomUUID()`, `kv.set`, returns the to-do |
 | `getAll(householdId)` | prefix scan, **sorted** (below) |
 | `getById(householdId, id)` | returns `null` when absent |
 | `update(householdId, id, patch: UpdateTodoDto)` | `mergeDefinedPatch`, then re-read via `getById`; returns `null` when absent |
@@ -193,7 +195,7 @@ Per §1 of `docs/ui-ux-patterns.md`:
 | --- | --- |
 | Create | **Pessimistic** — await the server, adopt the returned to-do. The server mints the id. |
 | Edit title/notes | **Optimistic**, debounced and merged via `utils/debounce-update.ts`, flushed when the sheet closes |
-| Tick off / un-tick | **Optimistic**, immediate `PATCH { completedAt }` — a discrete toggle, not debounced |
+| Tick off / un-tick | **Optimistic**, a single immediate `PATCH { completedAt }` — a discrete toggle, never debounced. Ticking off first holds the row for the ~300ms exit animation (§6); un-ticking is instant, mirroring `uncheckItem` |
 | Delete | **Optimistic**, after the confirmation sheet |
 
 Every optimistic path snapshots, rolls back on failure, and surfaces a `Snackbar`
