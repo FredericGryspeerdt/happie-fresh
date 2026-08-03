@@ -9,12 +9,14 @@ name: Migrate production KV
 #
 # Required configuration (Settings → Secrets and variables → Actions, ideally
 # scoped to a "production" Environment — see the `environment:` note below):
-#   secrets.DENO_KV_DATABASE_ID   the production KV database id
-#                                 (Deno Deploy dashboard → project → KV)
-#   secrets.DENO_KV_ACCESS_TOKEN  a Deno Deploy access token
+#   vars.DENO_KV_DATABASE_ID      the production KV database id — a plain
+#                                 Variable (not sensitive on its own; useless
+#                                 without the access token). Deno Deploy
+#                                 dashboard → project → KV.
+#   secrets.DENO_KV_ACCESS_TOKEN  a Deno Deploy access token — a Secret
 #                                 (dashboard → account settings → Access Tokens)
 #   secrets.SEED_PASSWORD         the shared legacy password used to rehash
-#                                 pre-PBKDF2 users
+#                                 pre-PBKDF2 users — a Secret
 #
 # NOTE: the "Run workflow" button only appears once this file is on the default
 # branch (main), so merge it first, then trigger it from the Actions tab.
@@ -68,7 +70,7 @@ jobs:
         env:
           # Locally (isDeploy=false) getKv() honors KV_PATH; an https:// value
           # connects to the remote production KV via KV Connect.
-          KV_PATH: "https://api.deno.com/databases/${{ secrets.DENO_KV_DATABASE_ID }}/connect"
+          KV_PATH: "https://api.deno.com/databases/${{ vars.DENO_KV_DATABASE_ID }}/connect"
           DENO_KV_ACCESS_TOKEN: ${{ secrets.DENO_KV_ACCESS_TOKEN }}
           SEED_PASSWORD: ${{ secrets.SEED_PASSWORD }}
           # Which household inherits the previously-global catalogue. Required in
