@@ -454,8 +454,12 @@ useEffect(() => {
 )}
 ```
 
-`fontSize: 16` on the primer (and on the real field it hands off to) is
-deliberate — below 16px, iOS Safari zooms the whole page in on focus.
+The primer's inline `fontSize: 16` is deliberate — below 16px, iOS Safari
+zooms the whole page in on focus. The real field it hands off to hits the
+same 16px floor by a different route: through the `.md-body-large` utility
+class (`assets/styles.css` ~lines 130–136) rather than an inline style. Same
+requirement, different mechanism — whatever the user can focus, one way or
+another, must resolve to ≥16px.
 
 **Don't** reach for this on a surface that's already mounted before the tap, or
 where the user is expected to tap the field themselves — the primer only earns
@@ -465,7 +469,7 @@ its keep when the real field doesn't exist yet at tap-time.
 (~lines 81–100) and the primer element (~lines 704–726), which hands off via
 `AddItems`'s `onSearchFocus` callback. `islands/todos/TodoBacklog.tsx` — the
 same shape for the create sheet: `primerRef`/`handoff`/`openCreate`/
-`closeCreate` (~lines 54–78) and the primer element (~lines 217–232).
+`closeCreate` (~lines 54–78) and the primer element (~lines 222–237).
 
 ---
 
@@ -474,8 +478,9 @@ same shape for the create sheet: `primerRef`/`handoff`/`openCreate`/
 **Rule:** Most create sheets close on save (New list, Add card, Add dish).
 Where a user plausibly adds several things in one sitting — the to-do backlog
 — the sheet **stays open** after a successful save: it clears its fields and
-keeps focus on the title field, and closes only via its own "Close" button or
-the scrim.
+keeps focus on the title field. Dismissing it is a separate, deliberate step —
+same as any other `Sheet` (`components/md3/Sheet.tsx`): its own "Close"
+button, tapping the scrim, pressing Escape, or swiping it down.
 
 **Why:** It removes two taps per item (no re-opening the sheet for each
 entry), and it keeps the mobile keyboard up between entries instead of
@@ -498,13 +503,17 @@ const submitNew = async () => {
     say("Couldn't add that to-do. Try again?");
     return;
   }
-  // Keep the sheet open and the field focused for the next entry.
+  // Keep the sheet open and the field focused for the next entry. The
+  // Enter-key path never loses focus, but a tap on the "Add" button does —
+  // so focus must be reclaimed explicitly (same as handleCreate in
+  // islands/add-items.tsx).
   newTitle.value = "";
   newNotes.value = "";
+  titleRef.current?.focus();
 };
 ```
 
-**See:** `islands/todos/TodoBacklog.tsx` — the create `Sheet` (~line 242) and
+**See:** `islands/todos/TodoBacklog.tsx` — the create `Sheet` (~line 247) and
 `submitNew` (~line 93).
 
 ---

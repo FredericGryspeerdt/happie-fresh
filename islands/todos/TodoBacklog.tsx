@@ -100,9 +100,14 @@ export default function TodoBacklog({ initialTodos }: Props) {
       return;
     }
     // Keep the sheet open and the field focused so several to-dos can be
-    // captured in a row without the mobile keyboard dismissing.
+    // captured in a row without the mobile keyboard dismissing. Clearing the
+    // fields doesn't restore focus by itself — the Enter-key path never lost
+    // it, but a pointer tap on the "Add" button below moves focus to the
+    // button, so it must be reclaimed explicitly (mirrors handleCreate in
+    // islands/add-items.tsx).
     newTitle.value = "";
     newNotes.value = "";
+    titleRef.current?.focus();
   };
 
   const closeEditor = () => {
