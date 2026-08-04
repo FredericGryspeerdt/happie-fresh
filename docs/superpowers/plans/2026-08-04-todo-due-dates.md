@@ -1626,6 +1626,8 @@ git commit -m "feat(todos): group the backlog by urgency and add the due picker"
 
 ### Task 8: Verify end to end in the browser
 
+> **This task is the controller's, not a subagent's.** Browser and preview tooling belong to the orchestrating session; a subagent cannot open the app. Do not dispatch this one — run it yourself after Task 7's review comes back clean.
+
 **Files:**
 - Verify only: `routes/todos/index.tsx` (should need **no** change — it already passes the whole ordered list to the island)
 
