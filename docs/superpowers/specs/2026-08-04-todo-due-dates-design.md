@@ -140,10 +140,20 @@ prefix arrives soonest-first so Overdue/Today/This week/Later each come out
 ascending, and the undated tail arrives newest-first so **No date** keeps
 iteration 1's quick-capture feedback intact.
 
-**This changes behaviour the existing repo tests assert.** Iteration 1's ordering
-tests expect open to-dos newest-created first. Those expectations must be
-**updated to the new contract**, not deleted — and new cases added for dated
-ordering and the dated/undated boundary.
+**The existing repo ordering tests keep passing unchanged**, and must not be
+touched. They construct only undated to-dos, and undated to-dos still sort
+newest-created first — the new rule only reorders to-dos that *have* a `dueAt`.
+New cases are **added** for dated-ascending order and the dated/undated boundary.
+If an existing ordering test ever needs weakening to pass, the comparator is
+wrong, not the test.
+
+What the type change does break is compilation of the **test helpers**: once
+`dueAt` is a required key, every helper that builds a `TodoInterface` or
+`CreateTodoDto` must supply it. Four of them do:
+`draft()` in `database/todo.repo.test.ts`, `seed()` in
+`routes/api/todos/[id].test.ts`, `makeTodo()` in `hooks/useTodos.test.ts`, and
+`todo()` in `islands/todos/TodoBacklog.test.tsx`. Each gains `dueAt: null` in its
+defaults, which leaves every existing assertion behaving exactly as before.
 
 **`groupOpenTodos(todos, now)`** is a new pure function in
 `utils/todo-due.ts`, used by both the SSR loader and the island so both render
