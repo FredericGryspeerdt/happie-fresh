@@ -25,6 +25,14 @@ but must also work well on desktop. Mobile is the priority because much of the
 functionality is meant to be used on the go — e.g. checking off items while
 shopping, or quickly adding something to a list from wherever you are.
 
+## Domain Language
+
+**Before naming anything user-facing or domain-level, read
+[`CONTEXT.md`](CONTEXT.md).** It is the project's domain glossary — the
+ubiquitous language for core concepts like "household," "to-do," and "backlog,"
+and what to avoid instead (e.g. "task," "list," "account"). Keep it updated when
+you introduce a new domain concept.
+
 ## UI/UX Patterns
 
 **Before building or changing anything the user sees, read

@@ -9,6 +9,9 @@ Deno KV + Tailwind v4). The shopping list is the first of many planned modules.
 
 - **General project guidance** — stack, architecture, data flow, commands,
   coding conventions: see [`CLAUDE.md`](CLAUDE.md).
+- **Domain language** — read [`CONTEXT.md`](CONTEXT.md) **before naming anything
+  user-facing or domain-level.** It's the project's domain glossary (ubiquitous
+  language) — what to call things, and what to avoid instead.
 - **UI/UX patterns** — read [`docs/ui-ux-patterns.md`](docs/ui-ux-patterns.md)
   **before building or changing anything the user sees.** It captures the
   established front-end conventions (optimistic vs. pessimistic mutations, the

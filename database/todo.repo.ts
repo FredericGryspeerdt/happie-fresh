@@ -34,11 +34,22 @@ export class TodoRepo {
 
     return todos.sort((a, b) => {
       if (a.completedAt === null && b.completedAt === null) {
-        return b.createdAt.localeCompare(a.createdAt);
+        // Plain string comparison, not localeCompare: two to-dos captured in
+        // the same rapid-capture burst can share a millisecond-precision
+        // createdAt, so ties are broken by id for a total, stable order —
+        // otherwise they'd fall back to KV iteration order and could swap
+        // places relative to the optimistic prepend on reload.
+        if (a.createdAt !== b.createdAt) {
+          return a.createdAt < b.createdAt ? 1 : -1;
+        }
+        return a.id.localeCompare(b.id);
       }
       if (a.completedAt === null) return -1;
       if (b.completedAt === null) return 1;
-      return b.completedAt.localeCompare(a.completedAt);
+      if (a.completedAt !== b.completedAt) {
+        return a.completedAt < b.completedAt ? 1 : -1;
+      }
+      return a.id.localeCompare(b.id);
     });
   }
 

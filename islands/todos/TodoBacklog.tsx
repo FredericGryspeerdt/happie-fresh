@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from "preact/hooks";
 import { useSignal } from "@preact/signals";
 import type { TodoInterface } from "@/models/index.ts";
-import { useTodos } from "@/hooks/useTodos.ts";
+import { EXIT_MS, useTodos } from "@/hooks/useTodos.ts";
 import { PullToRefresh } from "@/components/md3/PullToRefresh.tsx";
 import { Sheet } from "@/components/md3/Sheet.tsx";
 import { Button } from "@/components/md3/Button.tsx";
@@ -36,6 +36,7 @@ export default function TodoBacklog({ initialTodos }: Props) {
   const editingId = useSignal<string | null>(null);
   const confirmingId = useSignal<string | null>(null);
   const snack = useSignal<{ msg: string } | null>(null);
+  const snackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ── create-sheet focus handoff ───────────────────────────────────────────
   // `autofocus` doesn't work on the title input below because it's dynamically
@@ -73,7 +74,10 @@ export default function TodoBacklog({ initialTodos }: Props) {
   useEffect(() => {
     if (createOpen.value) {
       titleRef.current?.focus();
-      handoff.value = true;
+      // Confirm the field actually took focus before declaring the hand-off
+      // done — if it didn't, the primer must stay mounted (closeCreate still
+      // resets this to false, so it never wedges the primer permanently).
+      handoff.value = document.activeElement === titleRef.current;
     }
   }, [createOpen.value]);
 
@@ -87,8 +91,13 @@ export default function TodoBacklog({ initialTodos }: Props) {
 
   const say = (msg: string) => {
     snack.value = { msg };
-    setTimeout(() => (snack.value = null), 4000);
+    if (snackTimer.current) clearTimeout(snackTimer.current);
+    snackTimer.current = setTimeout(() => (snack.value = null), 4000);
   };
+
+  useEffect(() => () => {
+    if (snackTimer.current) clearTimeout(snackTimer.current);
+  }, []);
 
   const submitNew = async () => {
     const title = newTitle.value.trim();
@@ -116,7 +125,8 @@ export default function TodoBacklog({ initialTodos }: Props) {
     editingId.value = null;
   };
 
-  // The 300ms here must match EXIT_MS in useTodos (patterns doc §6).
+  // EXIT_MS is imported from useTodos so this transition and the exit-wait it
+  // must match can't drift apart (patterns doc §6).
   const row = (t: TodoInterface, isDone: boolean) => (
     <div
       key={t.id}
@@ -127,7 +137,11 @@ export default function TodoBacklog({ initialTodos }: Props) {
           ? "translateX(12px)"
           : "translateX(0)",
         transition:
-          "opacity .3s var(--md-emphasized), transform .3s var(--md-emphasized)",
+          `opacity ${EXIT_MS}ms var(--md-emphasized), transform ${EXIT_MS}ms var(--md-emphasized)`,
+        // A row mid-exit-animation stays in the list (see useTodos.tickOff/
+        // removeTodo) but must not be tappable — invisible-but-present rows
+        // would otherwise accept a second tap during the fade.
+        pointerEvents: exiting.includes(t.id) ? "none" : undefined,
       }}
     >
       <Pressable
@@ -161,7 +175,11 @@ export default function TodoBacklog({ initialTodos }: Props) {
   );
 
   return (
-    <PullToRefresh onRefresh={refresh}>
+    <PullToRefresh
+      onRefresh={refresh}
+      disabled={createOpen.value || editingId.value !== null ||
+        confirmingId.value !== null}
+    >
       <div class="px-4 pt-4 pb-[calc(96px+env(safe-area-inset-bottom))] flex flex-col gap-4">
         {open.length === 0 && done.length === 0
           ? (

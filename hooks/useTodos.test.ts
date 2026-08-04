@@ -101,6 +101,23 @@ Deno.test("tickOff — an edit landing during the exit animation is not dropped"
   assertEquals(hook.doneTodos.value[0].title, "Edited during animation");
 });
 
+Deno.test("unTick — rolls back and reports failure when the server rejects", async () => {
+  using _u = stub(
+    api.todos,
+    "update",
+    (_id: string, _patch: unknown) => Promise.resolve(null),
+  );
+  const hook = useTodos([
+    makeTodo({ id: "t1", completedAt: "2026-08-02T12:00:00.000Z" }),
+  ]);
+
+  const ok = await hook.unTick("t1");
+
+  assertEquals(ok, false);
+  assertEquals(hook.openTodos.value, []);
+  assertEquals(hook.doneTodos.value.map((t) => t.id), ["t1"]);
+});
+
 Deno.test("unTick — moves the to-do back to open with a null completedAt", async () => {
   using _u = stub(
     api.todos,
@@ -167,6 +184,45 @@ Deno.test("editTodo — echoes locally but never persists a blank title", async 
 
   assertEquals(patches, []); // nothing written
   assertEquals(hook.openTodos.value[0].title, "   "); // local echo only
+});
+
+Deno.test("editTodo — a blank-title edit doesn't discard the rest of the merged patch", async () => {
+  // Regression for the old guard: `if (patch.title !== undefined &&
+  // !patch.title.trim()) return;` aborted the whole flush, so a merged patch
+  // of {notes, title: ""} silently dropped the notes write too. Against that
+  // guard this test asserts `patches === []`; the fix must make it `[{notes:
+  // "n"}]` instead — only the blank title key is dropped, not the patch.
+  const patches: unknown[] = [];
+  using _u = stub(api.todos, "update", (_id: string, patch: unknown) => {
+    patches.push(patch);
+    return Promise.resolve(makeTodo());
+  });
+  const hook = useTodos([makeTodo({ id: "t1" })]);
+
+  using time = new FakeTime();
+  hook.editTodo("t1", { notes: "n" });
+  hook.editTodo("t1", { title: "   " }); // merged into the same pending patch
+  await time.tickAsync(600);
+
+  assertEquals(patches, [{ notes: "n" }]);
+});
+
+Deno.test("flushTodo — restores the last non-empty title when the sheet closes on a blank field", () => {
+  using _u = stub(
+    api.todos,
+    "update",
+    (_id: string, _patch: unknown) => Promise.resolve(makeTodo()),
+  );
+  const hook = useTodos([
+    makeTodo({ id: "t1", title: "Take out the bins" }),
+  ]);
+
+  hook.editTodo("t1", { title: "" }); // select-all-delete
+  assertEquals(hook.openTodos.value[0].title, ""); // local echo only, still blank
+
+  hook.flushTodo("t1"); // sheet closes
+
+  assertEquals(hook.openTodos.value[0].title, "Take out the bins");
 });
 
 Deno.test("editTodo — persists a non-blank title after the debounce", async () => {

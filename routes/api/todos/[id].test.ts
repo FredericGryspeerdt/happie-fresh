@@ -113,6 +113,38 @@ Deno.test({
 });
 
 Deno.test({
+  name: "PATCH rejects a non-string title (400) and leaves the to-do alone",
+  sanitizeResources: false,
+  async fn() {
+    await clearTodos();
+    const todo = await seed();
+    assertEquals(
+      (await handler.PATCH(ctx(patch({ title: null }), todo.id, AUTH))).status,
+      400,
+    );
+    const still = await TodoRepo.getById("h1", todo.id);
+    assertEquals(still?.title, "Take out the bins");
+  },
+});
+
+Deno.test({
+  name:
+    "PATCH rejects a non-string completedAt (400) and leaves the to-do alone",
+  sanitizeResources: false,
+  async fn() {
+    await clearTodos();
+    const todo = await seed();
+    assertEquals(
+      (await handler.PATCH(ctx(patch({ completedAt: 123 }), todo.id, AUTH)))
+        .status,
+      400,
+    );
+    const still = await TodoRepo.getById("h1", todo.id);
+    assertEquals(still?.completedAt, null);
+  },
+});
+
+Deno.test({
   name: "PATCH ignores client-supplied createdBy and createdAt",
   sanitizeResources: false,
   async fn() {

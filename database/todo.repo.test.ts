@@ -94,6 +94,30 @@ Deno.test({
 });
 
 Deno.test({
+  name: "getAll — ties on identical createdAt break by id for a stable order",
+  sanitizeResources: false,
+  async fn() {
+    const hh = "hh-order-tie";
+    const sameInstant = "2026-08-03T10:00:00.000Z";
+    const t1 = await TodoRepo.create(
+      draft(hh, "captured first", { createdAt: sameInstant }),
+    );
+    const t2 = await TodoRepo.create(
+      draft(hh, "captured second", { createdAt: sameInstant }),
+    );
+
+    const expectedIds = [t1.id, t2.id].sort((a, b) => a.localeCompare(b));
+
+    // Fetching repeatedly must always agree on the same order (not KV
+    // iteration order, which could otherwise vary run to run).
+    const first = await TodoRepo.getAll(hh);
+    const second = await TodoRepo.getAll(hh);
+    assertEquals(first.map((t) => t.id), expectedIds);
+    assertEquals(second.map((t) => t.id), expectedIds);
+  },
+});
+
+Deno.test({
   name: "getById — returns null for an unknown id",
   sanitizeResources: false,
   async fn() {
