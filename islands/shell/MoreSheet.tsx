@@ -47,7 +47,10 @@ export default function MoreSheet({ open, onClose }: MoreSheetProps) {
           leading={badge("checklist")}
           headline="To-dos"
           trailing={chevron()}
-          onClick={() => soon("To-dos")}
+          onClick={() => {
+            onClose();
+            navigateTo("/todos");
+          }}
         />
         <ListItem
           leading={badge("plate")}

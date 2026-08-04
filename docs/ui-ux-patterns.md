@@ -398,6 +398,117 @@ useEffect(() => {
 
 ---
 
+## 12. Keyboard primer / focus hand-off for dynamically mounted inputs
+
+**Rule:** When a tap should open a surface whose real input field doesn't exist
+yet — it mounts later, on a signal flip — don't call `.focus()` on that field
+after the fact, and don't reach for `autofocus`. Instead, focus a hidden 1×1
+**primer** `<input>` (`aria-hidden`, `tabIndex={-1}`, opacity 0)
+**synchronously inside the tap handler**. The primer holds focus (and the
+mobile keyboard) while the real field mounts, hands focus to it once it
+exists, then unmounts.
+
+**Why:** Mobile browsers only raise the soft keyboard from a `.focus()` call
+made within the user-activation window of a real tap. The real field mounts on
+a later, signal-driven re-render, so focusing it after the fact is usually too
+late — and at tap-time there's nothing to focus anyway. `autofocus` doesn't
+solve this either: browsers only honor it during initial document parse, so
+it's inert on an element that mounts dynamically afterwards. This repo has
+been bitten twice by skipping the hand-off: PR #45 fixed a regression where
+the primer unmounted before the real field confirmed focus, dropping focus to
+`<body>` and dismissing the keyboard; and the to-dos create sheet originally
+shipped with a bare `autofocus` on its title input that never fired, until it
+was replaced with this pattern.
+
+**How:**
+
+```ts
+const primerRef = useRef<HTMLInputElement>(null);
+const realRef = useRef<HTMLInputElement>(null);
+const handoff = useSignal(false);
+
+const openSurface = () => {
+  handoff.value = false;
+  primerRef.current?.focus(); // inside the tap — this is what raises the keyboard
+  open.value = true;
+};
+
+useEffect(() => {
+  if (open.value) {
+    realRef.current?.focus(); // hand off once the real field exists
+    handoff.value = true;
+  }
+}, [open.value]);
+
+// Stays mounted (and focusable) until the hand-off completes, then unmounts —
+// leaving the real field as the keyboard's only accessory-bar entry.
+{(!open.value || !handoff.value) && (
+  <input
+    ref={primerRef}
+    type="text"
+    aria-hidden="true"
+    tabIndex={-1}
+    class="fixed top-0 left-0 opacity-0 pointer-events-none"
+    style={{ width: 1, height: 1, fontSize: 16 }}
+  />
+)}
+```
+
+`fontSize: 16` on the primer (and on the real field it hands off to) is
+deliberate — below 16px, iOS Safari zooms the whole page in on focus.
+
+**Don't** reach for this on a surface that's already mounted before the tap, or
+where the user is expected to tap the field themselves — the primer only earns
+its keep when the real field doesn't exist yet at tap-time.
+
+**See:** `islands/items.tsx` — `primerRef`/`handoff`/`openAdd`/`closeAdd`
+(~lines 81–100) and the primer element (~lines 704–726), which hands off via
+`AddItems`'s `onSearchFocus` callback. `islands/todos/TodoBacklog.tsx` — the
+same shape for the create sheet: `primerRef`/`handoff`/`openCreate`/
+`closeCreate` (~lines 54–78) and the primer element (~lines 217–232).
+
+---
+
+## 13. Create sheets that stay open for rapid capture
+
+**Rule:** Most create sheets close on save (New list, Add card, Add dish).
+Where a user plausibly adds several things in one sitting — the to-do backlog
+— the sheet **stays open** after a successful save: it clears its fields and
+keeps focus on the title field, and closes only via its own "Close" button or
+the scrim.
+
+**Why:** It removes two taps per item (no re-opening the sheet for each
+entry), and it keeps the mobile keyboard up between entries instead of
+dismissing and re-raising it — the same class of problem the keyboard primer
+(§12) exists to solve.
+
+**Don't** use this for creates that need a decision per item (choosing a
+category, a barcode format) — there the sheet closing *is* the confirmation
+that the item was captured correctly.
+
+**How:**
+
+```ts
+const submitNew = async () => {
+  const title = newTitle.value.trim();
+  if (!title) return;
+  const notes = newNotes.value.trim();
+  const created = await addTodo({ title, notes: notes || undefined });
+  if (!created) {
+    say("Couldn't add that to-do. Try again?");
+    return;
+  }
+  // Keep the sheet open and the field focused for the next entry.
+  newTitle.value = "";
+  newNotes.value = "";
+};
+```
+
+**See:** `islands/todos/TodoBacklog.tsx` — the create `Sheet` (~line 242) and
+`submitNew` (~line 93).
+
+---
+
 ## Review checklist for user-facing changes
 
 Before merging anything the user sees, tick these (section refs in parens):
@@ -432,4 +543,4 @@ in the same change.
 
 Candidate topics still to document as they solidify: form validation & inline
 errors, confirmation/destructive-action flow, empty & loading states for whole
-screens, drag-to-reorder, keyboard/focus management, and offline behavior.
+screens, drag-to-reorder, and offline behavior.
