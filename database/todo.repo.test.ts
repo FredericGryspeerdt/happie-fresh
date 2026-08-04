@@ -25,6 +25,7 @@ function draft(
     createdBy: "user-1",
     createdAt: new Date().toISOString(),
     completedAt: null,
+    dueAt: null,
     ...overrides,
   };
 }

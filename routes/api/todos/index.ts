@@ -26,6 +26,7 @@ export const handler = define.handlers({
       createdBy: userId,
       createdAt: new Date().toISOString(),
       completedAt: null,
+      dueAt: null,
     });
     return json(todo, 201);
   },

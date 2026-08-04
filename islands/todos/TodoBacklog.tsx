@@ -103,7 +103,11 @@ export default function TodoBacklog({ initialTodos }: Props) {
     const title = newTitle.value.trim();
     if (!title) return;
     const notes = newNotes.value.trim();
-    const created = await addTodo({ title, notes: notes || undefined });
+    const created = await addTodo({
+      title,
+      notes: notes || undefined,
+      dueAt: null,
+    });
     if (!created) {
       say("Couldn't add that to-do. Try again?");
       return;
