@@ -54,3 +54,15 @@ Deno.test("TodoBacklog — no Done heading when nothing is done yet", () => {
   // SSR output says "Done" — this really is the section heading.
   assertFalse(html.includes(">Done<"));
 });
+
+Deno.test("TodoBacklog — create sheet's title input does not rely on the bare autofocus attribute", () => {
+  const html = render(h(TodoBacklog, { initialTodos: [] }));
+
+  // `autofocus` is only honoured by browsers during initial document parse;
+  // it's inert for the create sheet's title input, which mounts dynamically
+  // when the sheet opens (gated on createOpen.value). Focus is instead set
+  // programmatically — see the "create-sheet focus handoff" comment in
+  // TodoBacklog.tsx — so the attribute must not appear anywhere in the SSR
+  // output.
+  assertFalse(html.includes("autofocus"));
+});

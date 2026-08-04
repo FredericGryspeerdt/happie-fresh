@@ -1,4 +1,4 @@
-import { useMemo } from "preact/hooks";
+import { useEffect, useMemo, useRef } from "preact/hooks";
 import { useSignal } from "@preact/signals";
 import type { TodoInterface } from "@/models/index.ts";
 import { useTodos } from "@/hooks/useTodos.ts";
@@ -36,6 +36,46 @@ export default function TodoBacklog({ initialTodos }: Props) {
   const editingId = useSignal<string | null>(null);
   const confirmingId = useSignal<string | null>(null);
   const snack = useSignal<{ msg: string } | null>(null);
+
+  // ── create-sheet focus handoff ───────────────────────────────────────────
+  // `autofocus` doesn't work on the title input below because it's dynamically
+  // mounted (gated on createOpen.value — see the comment above the sheet), and
+  // browsers only honor `autofocus` during initial document parse.
+  //
+  // Focusing it from an effect after the sheet opens fixes that on desktop,
+  // but on mobile a programmatic .focus() called after an async signal-driven
+  // re-render runs outside the tap's user-activation window, so the soft
+  // keyboard won't raise (see the primer comment near the FAB in
+  // islands/items.tsx — this is the same "autofocus regression" PR #45 fixed).
+  // So we reuse that primer pattern here: the FAB tap focuses `primerRef`
+  // synchronously (within the tap), keeping the keyboard up across the async
+  // re-render that mounts the sheet body, then hands focus to the real title
+  // field once it exists.
+  const primerRef = useRef<HTMLInputElement>(null);
+  const titleRef = useRef<HTMLInputElement>(null);
+  // Set once the title field has taken focus, i.e. the keyboard hand-off is
+  // done and the primer can safely leave the DOM.
+  const handoff = useSignal(false);
+
+  const openCreate = () => {
+    newTitle.value = "";
+    newNotes.value = "";
+    handoff.value = false;
+    primerRef.current?.focus();
+    createOpen.value = true;
+  };
+
+  const closeCreate = () => {
+    createOpen.value = false;
+    handoff.value = false;
+  };
+
+  useEffect(() => {
+    if (createOpen.value) {
+      titleRef.current?.focus();
+      handoff.value = true;
+    }
+  }, [createOpen.value]);
 
   const open = openTodos.value;
   const done = doneTodos.value;
@@ -170,30 +210,44 @@ export default function TodoBacklog({ initialTodos }: Props) {
           icon="plus"
           label="New to-do"
           aria-label="New to-do"
-          onClick={() => {
-            newTitle.value = "";
-            newNotes.value = "";
-            createOpen.value = true;
-          }}
+          onClick={openCreate}
         />
       </div>
 
       {
+        /* Primer — see the "create-sheet focus handoff" comment above. Present
+          whenever the sheet is closed (so it's focusable synchronously inside
+          the FAB tap) or still waiting on the hand-off; unmounts once the real
+          title field takes focus. */
+      }
+      {(!createOpen.value || !handoff.value) && (
+        <input
+          ref={primerRef}
+          type="text"
+          aria-hidden="true"
+          tabIndex={-1}
+          class="fixed top-0 left-0 opacity-0 pointer-events-none"
+          style={{ width: 1, height: 1, fontSize: 16 }}
+        />
+      )}
+
+      {
         /* Create sheet — stays open between saves for rapid capture.
           Body gated on createOpen: <Sheet> renders its children even when
-          closed (see islands/items.tsx:442), so an ungated `autofocus` would
-          steal focus and raise the mobile keyboard on page load. Gating also
-          means `autofocus` fires on mount, i.e. exactly when the sheet opens. */
+          closed (see islands/items.tsx:442), so an ungated title input would
+          stay mounted (and stealing focus, see below) while the sheet is
+          closed. Gating also means the title input mounts fresh each time the
+          sheet opens, which is exactly when the focus effect above should run. */
       }
       <Sheet
         open={createOpen.value}
-        onClose={() => (createOpen.value = false)}
+        onClose={closeCreate}
         title="New to-do"
       >
         {createOpen.value && (
           <div class="flex flex-col gap-3 pb-1">
             <input
-              autofocus
+              ref={titleRef}
               value={newTitle.value}
               onInput={(e) => (newTitle.value = e.currentTarget.value)}
               onKeyDown={(e) => {
@@ -222,7 +276,7 @@ export default function TodoBacklog({ initialTodos }: Props) {
             <Button
               variant="text"
               full
-              onClick={() => (createOpen.value = false)}
+              onClick={closeCreate}
             >
               Close
             </Button>
