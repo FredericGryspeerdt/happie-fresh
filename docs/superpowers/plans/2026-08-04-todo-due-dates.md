@@ -67,12 +67,18 @@ Task order follows the dependency chain: model → pure date logic → persisten
 - Modify: `routes/api/todos/[id].test.ts` (the `seed()` helper only)
 - Modify: `hooks/useTodos.test.ts` (the `makeTodo()` helper only)
 - Modify: `islands/todos/TodoBacklog.test.tsx` (the `todo()` helper only)
+- Modify: `routes/api/todos/index.ts` (one line — see Step 4b)
+- Modify: `islands/todos/TodoBacklog.tsx` (one line — see Step 4b)
 
 **Interfaces:**
 - Consumes: nothing.
 - Produces: `TodoInterface.dueAt: string | null`, and `TodoInput = Pick<TodoInterface, "title" | "notes" | "dueAt">`. `CreateTodoDto` and `UpdateTodoDto` are derived and pick `dueAt` up automatically.
 
-Making `dueAt` a required key **breaks compilation of four test helpers** that build `TodoInterface` / `CreateTodoDto`. Fixing them is part of this task, and each gains `dueAt: null` in its defaults so every existing assertion behaves exactly as before. This task deliberately has no new test of its own — `deno check` plus the untouched 274 are the gate.
+Making `dueAt` a required key **breaks compilation in six places**: four test helpers that build `TodoInterface` / `CreateTodoDto`, and two runtime call sites that construct a to-do. Fixing all six is part of this task — otherwise the branch stays red until Task 4 and Task 7, and every task must end green. Each gains a bare `dueAt: null`, so behaviour is identical (a to-do created today has no due moment) and every existing assertion behaves exactly as before.
+
+The two runtime edits are deliberately placeholders that later tasks replace: Task 4 swaps the API one for a parsed client value, Task 7 swaps the island one for the picker's. **Do not build any date logic here.**
+
+This task deliberately has no new test of its own — `deno check` plus the untouched 274 are the gate.
 
 - [ ] **Step 1: Add the field**
 
