@@ -4,6 +4,14 @@ This is a **Fresh** project (Deno-based full-stack framework) for a shopping
 list application. It uses **Deno KV** for data storage and **Tailwind CSS v4**
 for styling.
 
+# Domain Language
+
+**Before naming anything user-facing or domain-level, read
+[`CONTEXT.md`](../CONTEXT.md).** It is the project's domain glossary — the
+ubiquitous language for core concepts like "household," "to-do," and "backlog,"
+and what to avoid instead. Keep it updated when you introduce a new domain
+concept.
+
 # UI/UX Patterns
 
 **Before building or changing anything the user sees, read

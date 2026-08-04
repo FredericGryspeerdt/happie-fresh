@@ -12,6 +12,7 @@ import {
   DishTagValueInterface,
 } from "@/models/index.ts";
 import { LoyaltyCardInput, LoyaltyCardInterface } from "@/models/index.ts";
+import { TodoInput, TodoInterface, UpdateTodoDto } from "@/models/index.ts";
 
 export const api = {
   items: {
@@ -230,6 +231,38 @@ export const api = {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id }),
       });
+    },
+  },
+  todos: {
+    getAll: async (): Promise<TodoInterface[]> => {
+      const res = await fetch("/api/todos");
+      if (!res.ok) return [];
+      return res.json();
+    },
+    create: async (input: TodoInput): Promise<TodoInterface | null> => {
+      const res = await fetch("/api/todos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+      });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    update: async (
+      id: string,
+      patch: UpdateTodoDto,
+    ): Promise<TodoInterface | null> => {
+      const res = await fetch(`/api/todos/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(patch),
+      });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    delete: async (id: string): Promise<boolean> => {
+      const res = await fetch(`/api/todos/${id}`, { method: "DELETE" });
+      return res.ok;
     },
   },
   dishTagGroups: {
