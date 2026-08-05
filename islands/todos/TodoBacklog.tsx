@@ -190,6 +190,24 @@ export default function TodoBacklog({ initialTodos }: Props) {
     return toLocalInputValue(d.toISOString());
   };
 
+  /**
+   * Clear a to-do's notification from the shade once it's done. Only possible
+   * because the sweep tags per to-do (`todo-<id>`); a shared tag would give no
+   * way to address one. Best-effort: no service worker, no notifications, or an
+   * unsupported browser all just mean nothing to close.
+   */
+  const clearNotificationFor = async (id: string) => {
+    try {
+      if (!("serviceWorker" in navigator)) return;
+      const reg = await navigator.serviceWorker.getRegistration("/push-sw.js");
+      if (!reg) return;
+      const notes = await reg.getNotifications({ tag: `todo-${id}` });
+      for (const n of notes) n.close();
+    } catch {
+      // Never let notification housekeeping break ticking a to-do off.
+    }
+  };
+
   const openDuePicker = (id: string, current: string | null) => {
     dueDraft.value = current
       ? toLocalInputValue(current)
@@ -237,6 +255,9 @@ export default function TodoBacklog({ initialTodos }: Props) {
         onClick={async () => {
           const ok = isDone ? await unTick(t.id) : await tickOff(t.id);
           if (!ok) say("That didn't save. Try again?");
+          // Only on tick-off, not un-tick: reopening a to-do should not
+          // resurrect a notification for a moment that has already passed.
+          else if (!isDone) await clearNotificationFor(t.id);
         }}
         aria-label={isDone ? `Reopen ${t.title}` : `Tick off ${t.title}`}
         class="pt-0.5"
