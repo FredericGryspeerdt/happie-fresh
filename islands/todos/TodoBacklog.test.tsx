@@ -130,3 +130,31 @@ Deno.test("TodoBacklog — no Show earlier button when nothing is outside the wi
   assertStringIncludes(html, "Done recently");
   assertFalse(html.includes("Show earlier"));
 });
+
+Deno.test("TodoBacklog — Done section (and its reveal) still renders when every done to-do is outside the window, with no open to-dos", () => {
+  const old = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const html = render(h(TodoBacklog, {
+    initialTodos: [
+      todo({ id: "t1", title: "Done ages ago", completedAt: old }),
+    ],
+  }));
+
+  assertStringIncludes(html, ">Done<"); // section exists even with zero visible rows
+  assertStringIncludes(html, "Show earlier (1)"); // the only way to reach it
+  assertFalse(html.includes("Done ages ago")); // outside the window until revealed
+  assertFalse(html.includes("Nothing to do")); // this isn't the empty state
+});
+
+Deno.test("TodoBacklog — Done section (and its reveal) still renders when every done to-do is outside the window, alongside an open to-do", () => {
+  const old = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const html = render(h(TodoBacklog, {
+    initialTodos: [
+      todo({ id: "t1", title: "Take out the bins" }),
+      todo({ id: "t2", title: "Done ages ago", completedAt: old }),
+    ],
+  }));
+
+  assertStringIncludes(html, "Take out the bins");
+  assertStringIncludes(html, ">Done<");
+  assertStringIncludes(html, "Show earlier (1)");
+});

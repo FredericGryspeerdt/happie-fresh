@@ -300,7 +300,7 @@ export default function TodoBacklog({ initialTodos }: Props) {
                 </div>
               ))}
 
-              {visibleDone.length > 0 && (
+              {done.length > 0 && (
                 <div class="flex flex-col gap-1">
                   <div class="md-label-medium uppercase text-on-surface-variant px-1 pt-2">
                     Done
