@@ -10,6 +10,8 @@ import { Icon } from "@/components/md3/Icon.tsx";
 import { Snackbar } from "@/components/md3/Snackbar.tsx";
 import { Pressable } from "@/components/md3/Pressable.tsx";
 import Fab from "@/islands/shell/Fab.tsx";
+import DueChip from "@/islands/todos/DueChip.tsx";
+import { GROUP_LABELS, groupOpenTodos } from "@/utils/todo-due.ts";
 
 interface Props {
   initialTodos: TodoInterface[];
@@ -24,6 +26,7 @@ export default function TodoBacklog({ initialTodos }: Props) {
     addTodo,
     editTodo,
     flushTodo,
+    setDueAt,
     tickOff,
     unTick,
     removeTodo,
@@ -33,8 +36,12 @@ export default function TodoBacklog({ initialTodos }: Props) {
   const createOpen = useSignal(false);
   const newTitle = useSignal("");
   const newNotes = useSignal("");
+  const newDue = useSignal("");
   const editingId = useSignal<string | null>(null);
   const confirmingId = useSignal<string | null>(null);
+  const dueEditingId = useSignal<string | null>(null);
+  const dueDraft = useSignal("");
+  const showEarlierDone = useSignal(false);
   const snack = useSignal<{ msg: string } | null>(null);
   const snackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -61,6 +68,7 @@ export default function TodoBacklog({ initialTodos }: Props) {
   const openCreate = () => {
     newTitle.value = "";
     newNotes.value = "";
+    newDue.value = "";
     handoff.value = false;
     primerRef.current?.focus();
     createOpen.value = true;
@@ -85,6 +93,24 @@ export default function TodoBacklog({ initialTodos }: Props) {
   const done = doneTodos.value;
   const exiting = exitingIds.value;
 
+  // One clock for the whole render: a row and its section header must never
+  // disagree because the render straddled a second.
+  const now = new Date();
+
+  const groups = groupOpenTodos(open, now);
+
+  // Done is windowed to a rolling 7 days (spec + ADR 0002): a done one-off is
+  // finished forever, so the long tail has almost no value — but this is a
+  // *render* window, not a fetch window. The loader still pulls the whole
+  // backlog, because keys are ["todos", householdId, id] and filtering by
+  // completion date would scan everything anyway.
+  const doneCutoff = now.getTime() - 7 * 24 * 60 * 60 * 1000;
+  const recentDone = done.filter((t) =>
+    new Date(t.completedAt!).getTime() >= doneCutoff
+  );
+  const earlierDoneCount = done.length - recentDone.length;
+  const visibleDone = showEarlierDone.value ? done : recentDone;
+
   const editing = () =>
     open.find((t) => t.id === editingId.value) ??
       done.find((t) => t.id === editingId.value);
@@ -103,7 +129,11 @@ export default function TodoBacklog({ initialTodos }: Props) {
     const title = newTitle.value.trim();
     if (!title) return;
     const notes = newNotes.value.trim();
-    const created = await addTodo({ title, notes: notes || undefined });
+    const created = await addTodo({
+      title,
+      notes: notes || undefined,
+      dueAt: newDue.value ? new Date(newDue.value).toISOString() : null,
+    });
     if (!created) {
       say("Couldn't add that to-do. Try again?");
       return;
@@ -116,6 +146,7 @@ export default function TodoBacklog({ initialTodos }: Props) {
     // islands/add-items.tsx).
     newTitle.value = "";
     newNotes.value = "";
+    newDue.value = "";
     titleRef.current?.focus();
   };
 
@@ -123,6 +154,54 @@ export default function TodoBacklog({ initialTodos }: Props) {
     const id = editingId.value;
     if (id) flushTodo(id);
     editingId.value = null;
+  };
+
+  /**
+   * `<input type="datetime-local">` speaks **local wall-clock with no zone**, so
+   * both directions need converting: an existing UTC instant becomes a local
+   * "YYYY-MM-DDTHH:mm" for the input, and the value the user picks becomes a UTC
+   * instant via `new Date(local).toISOString()`. Never round-trip the raw value.
+   */
+  const toLocalInputValue = (iso: string): string => {
+    const d = new Date(iso);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${
+      pad(d.getHours())
+    }:${pad(d.getMinutes())}`;
+  };
+
+  /** 09:00 tomorrow, as the pre-filled default when no due moment is set. A
+   *  household to-do wants telling at the start of a day, and midnight — the
+   *  obvious alternative — is the worst possible moment to be reminded. */
+  const defaultDueInputValue = (): string => {
+    const d = new Date(now);
+    d.setDate(d.getDate() + 1);
+    d.setHours(9, 0, 0, 0);
+    return toLocalInputValue(d.toISOString());
+  };
+
+  const openDuePicker = (id: string, current: string | null) => {
+    dueDraft.value = current
+      ? toLocalInputValue(current)
+      : defaultDueInputValue();
+    dueEditingId.value = id;
+  };
+
+  const commitDue = async () => {
+    const id = dueEditingId.value;
+    const local = dueDraft.value;
+    dueEditingId.value = null;
+    if (!id || !local) return;
+    const ok = await setDueAt(id, new Date(local).toISOString());
+    if (!ok) say("Couldn't save that due date. Try again?");
+  };
+
+  const clearDue = async () => {
+    const id = dueEditingId.value;
+    dueEditingId.value = null;
+    if (!id) return;
+    const ok = await setDueAt(id, null);
+    if (!ok) say("Couldn't remove that due date. Try again?");
   };
 
   // EXIT_MS is imported from useTodos so this transition and the exit-wait it
@@ -154,23 +233,32 @@ export default function TodoBacklog({ initialTodos }: Props) {
       >
         <RoundCheck checked={isDone} />
       </Pressable>
-      <Pressable
-        onClick={() => (editingId.value = t.id)}
-        class="flex-1 min-w-0 text-left"
-      >
-        <div
-          class={`md-body-large ${
-            isDone ? "text-on-surface-variant line-through" : "text-on-surface"
-          }`}
+      <div class="flex-1 min-w-0 flex flex-col gap-1.5 items-start">
+        <Pressable
+          onClick={() => (editingId.value = t.id)}
+          class="w-full text-left"
         >
-          {t.title}
-        </div>
-        {t.notes && (
-          <div class="md-body-small text-on-surface-variant truncate">
-            📝 {t.notes}
+          <div
+            class={`md-body-large ${
+              isDone
+                ? "text-on-surface-variant line-through"
+                : "text-on-surface"
+            }`}
+          >
+            {t.title}
           </div>
-        )}
-      </Pressable>
+          {t.notes && (
+            <div class="md-body-small text-on-surface-variant truncate">
+              📝 {t.notes}
+            </div>
+          )}
+        </Pressable>
+        <DueChip
+          dueAt={t.dueAt}
+          now={now}
+          onClick={() => openDuePicker(t.id, t.dueAt)}
+        />
+      </div>
     </div>
   );
 
@@ -178,7 +266,7 @@ export default function TodoBacklog({ initialTodos }: Props) {
     <PullToRefresh
       onRefresh={refresh}
       disabled={createOpen.value || editingId.value !== null ||
-        confirmingId.value !== null}
+        confirmingId.value !== null || dueEditingId.value !== null}
     >
       <div class="px-4 pt-4 pb-[calc(96px+env(safe-area-inset-bottom))] flex flex-col gap-4">
         {open.length === 0 && done.length === 0
@@ -206,18 +294,29 @@ export default function TodoBacklog({ initialTodos }: Props) {
           )
           : (
             <>
-              {open.length > 0 && (
-                <div class="flex flex-col">
-                  {open.map((t) => row(t, false))}
+              {groups.map((g) => (
+                <div key={g.key} class="flex flex-col gap-1">
+                  <div class="md-label-medium uppercase text-on-surface-variant px-1 pt-2">
+                    {GROUP_LABELS[g.key]}
+                  </div>
+                  {g.todos.map((t) => row(t, false))}
                 </div>
-              )}
+              ))}
 
               {done.length > 0 && (
                 <div class="flex flex-col gap-1">
                   <div class="md-label-medium uppercase text-on-surface-variant px-1 pt-2">
                     Done
                   </div>
-                  {done.map((t) => row(t, true))}
+                  {visibleDone.map((t) => row(t, true))}
+                  {earlierDoneCount > 0 && !showEarlierDone.value && (
+                    <Pressable
+                      onClick={() => (showEarlierDone.value = true)}
+                      class="self-start md-label-large text-primary px-1 py-2"
+                    >
+                      Show earlier ({earlierDoneCount})
+                    </Pressable>
+                  )}
                 </div>
               )}
             </>
@@ -291,6 +390,13 @@ export default function TodoBacklog({ initialTodos }: Props) {
               aria-label="Notes (optional)"
               class="w-full md-body-large text-on-surface bg-surface-chigh border-0 rounded-[var(--md-shape-lg)] py-3 px-4 outline-none resize-none"
             />
+            <input
+              type="datetime-local"
+              value={newDue.value}
+              onChange={(e) => (newDue.value = e.currentTarget.value)}
+              aria-label="Due date and time (optional)"
+              class="w-full md-body-large text-on-surface bg-surface-chigh border-0 rounded-[var(--md-shape-lg)] py-3 px-4 outline-none"
+            />
             <Button variant="filled" full onClick={submitNew}>Add</Button>
             {
               /* "Close", not "Done" — "Done" beside "Add" reads as a second
@@ -333,6 +439,20 @@ export default function TodoBacklog({ initialTodos }: Props) {
                 placeholder="Notes (optional)"
                 aria-label="Notes"
                 class="w-full md-body-large text-on-surface bg-surface-chigh border-0 rounded-[var(--md-shape-lg)] py-3 px-4 outline-none resize-none"
+              />
+              <input
+                type="datetime-local"
+                value={t.dueAt ? toLocalInputValue(t.dueAt) : ""}
+                onChange={async (e) => {
+                  const v = e.currentTarget.value;
+                  const ok = await setDueAt(
+                    t.id,
+                    v ? new Date(v).toISOString() : null,
+                  );
+                  if (!ok) say("Couldn't save that due date. Try again?");
+                }}
+                aria-label="Due date and time"
+                class="w-full md-body-large text-on-surface bg-surface-chigh border-0 rounded-[var(--md-shape-lg)] py-3 px-4 outline-none"
               />
               <Button variant="filled" full onClick={closeEditor}>Done</Button>
               <Button
@@ -383,6 +503,34 @@ export default function TodoBacklog({ initialTodos }: Props) {
             Keep it
           </Button>
         </div>
+      </Sheet>
+
+      {
+        /* Due-date picker. Native <input type="datetime-local"> rather than a
+          custom MD3 picker: on mobile it opens the platform's own control,
+          which is familiar, accessible and localised for free, and resolves
+          local wall-clock time natively — exactly what docs/adr/0004 needs. */
+      }
+      <Sheet
+        open={dueEditingId.value !== null}
+        onClose={() => (dueEditingId.value = null)}
+        title="When is it due?"
+      >
+        {dueEditingId.value !== null && (
+          <div class="flex flex-col gap-3 pb-1">
+            <input
+              type="datetime-local"
+              value={dueDraft.value}
+              onInput={(e) => (dueDraft.value = e.currentTarget.value)}
+              aria-label="Due date and time"
+              class="w-full md-body-large text-on-surface bg-surface-chigh border-0 rounded-[var(--md-shape-lg)] py-3 px-4 outline-none"
+            />
+            <Button variant="filled" full onClick={commitDue}>Save</Button>
+            <Button variant="text" full onClick={clearDue}>
+              Remove due date
+            </Button>
+          </div>
+        )}
       </Sheet>
 
       <Snackbar data={snack.value} />

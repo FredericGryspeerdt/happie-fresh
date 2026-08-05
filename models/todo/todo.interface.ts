@@ -14,17 +14,25 @@ export interface TodoInterface {
    * docs/adr/0002.
    */
   completedAt: string | null;
+  /**
+   * When this is due, as a UTC instant, or null if it has no due moment.
+   * Always a moment and never just a day — see docs/adr/0004. Entered and
+   * displayed in the viewer's timezone; neither this record nor the server
+   * knows what that zone is.
+   */
+  dueAt: string | null;
 }
 
 // Derived type for creation (no ID — the server mints it).
 export type CreateTodoDto = Omit<TodoInterface, "id">;
 
 /**
- * What the client sends to create a to-do. The server fills in `householdId`,
- * `createdBy`, `createdAt`, `completedAt` and `id` — the client never sends
- * (and cannot spoof) the household.
+ * What the client sends to create a to-do: a title, optional notes, and an
+ * optional due moment. The server fills in `householdId`, `createdBy`,
+ * `createdAt`, `completedAt` and `id` — the client never sends (and cannot
+ * spoof) the household.
  */
-export type TodoInput = Pick<TodoInterface, "title" | "notes">;
+export type TodoInput = Pick<TodoInterface, "title" | "notes" | "dueAt">;
 
 // Derived type for patch/update: never the id or householdId, everything else optional.
 export type UpdateTodoDto = Partial<Omit<TodoInterface, "id" | "householdId">>;

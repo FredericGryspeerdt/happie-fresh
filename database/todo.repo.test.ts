@@ -1,5 +1,6 @@
 import { assertEquals } from "jsr:@std/assert@^1.0.19";
 import { TodoRepo } from "@/database/todo.repo.ts";
+import { getKv } from "@/database/db.ts";
 import type { CreateTodoDto } from "@/models/index.ts";
 
 // Isolated in-memory KV for this test process. getKv() reads KV_PATH lazily on
@@ -25,6 +26,7 @@ function draft(
     createdBy: "user-1",
     createdAt: new Date().toISOString(),
     completedAt: null,
+    dueAt: null,
     ...overrides,
   };
 }
@@ -202,5 +204,113 @@ Deno.test({
       await TodoRepo.update("hh-theirs", mine.id, { title: "x" }),
       null,
     );
+  },
+});
+
+Deno.test({
+  name: "getAll — dated open to-dos come before undated ones, soonest first",
+  sanitizeResources: false,
+  async fn() {
+    const hh = "hh-order-due";
+    await TodoRepo.create(draft(hh, "undated newer", {
+      createdAt: "2026-08-03T10:00:00.000Z",
+    }));
+    await TodoRepo.create(draft(hh, "undated older", {
+      createdAt: "2026-08-01T10:00:00.000Z",
+    }));
+    await TodoRepo.create(draft(hh, "due later", {
+      createdAt: "2026-08-01T10:00:00.000Z",
+      dueAt: "2026-09-01T09:00:00.000Z",
+    }));
+    await TodoRepo.create(draft(hh, "due soon", {
+      createdAt: "2026-08-01T10:00:00.000Z",
+      dueAt: "2026-08-10T09:00:00.000Z",
+    }));
+
+    const all = await TodoRepo.getAll(hh);
+
+    assertEquals(all.map((t) => t.title), [
+      "due soon",
+      "due later",
+      "undated newer",
+      "undated older",
+    ]);
+  },
+});
+
+Deno.test({
+  name: "getAll — ties on identical dueAt break by id for a stable order",
+  sanitizeResources: false,
+  async fn() {
+    const hh = "hh-order-due-tie";
+    const a = await TodoRepo.create(draft(hh, "a", {
+      dueAt: "2026-08-10T09:00:00.000Z",
+    }));
+    const b = await TodoRepo.create(draft(hh, "b", {
+      dueAt: "2026-08-10T09:00:00.000Z",
+    }));
+
+    const all = await TodoRepo.getAll(hh);
+    const expected = [a.id, b.id].sort((x, y) => x.localeCompare(y));
+
+    assertEquals(all.map((t) => t.id), expected);
+  },
+});
+
+Deno.test({
+  name: "getAll — done to-dos stay after every open one, dated or not",
+  sanitizeResources: false,
+  async fn() {
+    const hh = "hh-order-due-done";
+    await TodoRepo.create(draft(hh, "done", {
+      completedAt: "2026-08-04T12:00:00.000Z",
+      dueAt: "2026-08-01T09:00:00.000Z",
+    }));
+    await TodoRepo.create(draft(hh, "open undated"));
+
+    const all = await TodoRepo.getAll(hh);
+
+    assertEquals(all.map((t) => t.title), ["open undated", "done"]);
+  },
+});
+
+Deno.test({
+  name: "getAll — a record stored without dueAt reads back as null",
+  sanitizeResources: false,
+  async fn() {
+    const hh = "hh-legacy";
+    const kv = await getKv();
+    const id = "legacy-1";
+    // Write a pre-dueAt record shape directly, bypassing create().
+    await kv.set(["todos", hh, id], {
+      id,
+      householdId: hh,
+      title: "written before dueAt existed",
+      createdBy: "user-1",
+      createdAt: "2026-07-01T10:00:00.000Z",
+      completedAt: null,
+    });
+
+    const all = await TodoRepo.getAll(hh);
+
+    assertEquals(all.length, 1);
+    assertEquals(all[0].dueAt, null);
+    assertEquals((await TodoRepo.getById(hh, id))?.dueAt, null);
+  },
+});
+
+Deno.test({
+  name: "update — clearing dueAt to null sticks",
+  sanitizeResources: false,
+  async fn() {
+    const hh = "hh-clear-due";
+    const todo = await TodoRepo.create(draft(hh, "Book the venue", {
+      dueAt: "2026-08-10T09:00:00.000Z",
+    }));
+
+    const updated = await TodoRepo.update(hh, todo.id, { dueAt: null });
+
+    assertEquals(updated?.dueAt, null);
+    assertEquals(updated?.title, "Book the venue");
   },
 });

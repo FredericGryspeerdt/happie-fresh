@@ -40,3 +40,17 @@ length-4 keys. This is an accepted bet.
 Grouping arrives as **labels**, not lists — composable with filters and with
 assignment, and there is an existing pattern to follow in
 `DishTagGroupInterface`.
+
+## Update (2026-08-04): one of the rejection arguments has retired
+
+The decision stands, but the first rejection argument above no longer applies. It
+leaned on recurring examples — monthly bills, weekly bins, the yearly dentist —
+to claim that lists solve grouping and not recurrence. Those are **chores**, and
+a to-do is now defined as strictly one-off (see `CONTEXT.md`); recurrence has
+left the to-dos roadmap for a future Chores module with its own model.
+
+The conclusion survives on the two remaining arguments, and the capture-friction
+one is now *stronger*: a to-do exists because a one-off would otherwise be
+forgotten, so making someone choose a container before they can write it down is
+worse here than it would have been for a routine task they were never going to
+forget anyway.

@@ -124,3 +124,55 @@ Deno.test({
     assertEquals(list, []);
   },
 });
+
+Deno.test({
+  name: "POST accepts a dueAt and stores it canonicalised to UTC",
+  sanitizeResources: false,
+  async fn() {
+    await clearTodos();
+    const created = await (await handler.POST(
+      ctx(
+        post({ title: "Book the venue", dueAt: "2026-08-05T18:00:00+02:00" }),
+        AUTH,
+      ),
+    )).json();
+
+    assertEquals(created.dueAt, "2026-08-05T16:00:00.000Z");
+  },
+});
+
+Deno.test({
+  name: "POST defaults dueAt to null when absent or explicitly null",
+  sanitizeResources: false,
+  async fn() {
+    await clearTodos();
+    const absent = await (await handler.POST(
+      ctx(post({ title: "no date" }), AUTH),
+    )).json();
+    assertEquals(absent.dueAt, null);
+
+    const explicit = await (await handler.POST(
+      ctx(post({ title: "null date", dueAt: null }), AUTH),
+    )).json();
+    assertEquals(explicit.dueAt, null);
+  },
+});
+
+Deno.test({
+  name: "POST rejects a dueAt that is neither null nor a valid date (400)",
+  sanitizeResources: false,
+  async fn() {
+    await clearTodos();
+    assertEquals(
+      (await handler.POST(
+        ctx(post({ title: "x", dueAt: "not a date" }), AUTH),
+      )).status,
+      400,
+    );
+    assertEquals(
+      (await handler.POST(ctx(post({ title: "x", dueAt: 12345 }), AUTH)))
+        .status,
+      400,
+    );
+  },
+});
