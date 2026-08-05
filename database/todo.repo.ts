@@ -5,6 +5,7 @@ import type {
 } from "@/models/index.ts";
 import { getKv } from "./db.ts";
 import { mergeDefinedPatch } from "./merge-patch.ts";
+import { TodoNotificationRepo } from "./todo-notification.repo.ts";
 import { compareTodos } from "@/utils/todo-due.ts";
 
 /**
@@ -80,6 +81,9 @@ export class TodoRepo {
 
   static async delete(householdId: string, id: string): Promise<void> {
     const kv = await getKv();
+    // Markers must not outlive their to-do: ids are never reused, so orphans
+    // could never be reclaimed and would accumulate forever.
+    await TodoNotificationRepo.deleteForTodo(householdId, id);
     await kv.delete(["todos", householdId, id]);
   }
 }
