@@ -67,3 +67,66 @@ Deno.test("TodoBacklog — create sheet's title input does not rely on the bare 
   // output.
   assertFalse(html.includes("autofocus"));
 });
+
+Deno.test("TodoBacklog — renders a section header per populated group", () => {
+  const soon = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+  const past = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  const html = render(h(TodoBacklog, {
+    initialTodos: [
+      todo({ id: "t1", title: "Overdue one", dueAt: past }),
+      todo({ id: "t2", title: "Due later today", dueAt: soon }),
+      todo({ id: "t3", title: "Undated one", dueAt: null }),
+    ],
+  }));
+
+  assertStringIncludes(html, ">Overdue<");
+  assertStringIncludes(html, ">Today<");
+  assertStringIncludes(html, ">No date<");
+  assertStringIncludes(html, "Overdue one");
+  assertStringIncludes(html, "Undated one");
+});
+
+Deno.test("TodoBacklog — omits headers for empty groups", () => {
+  const html = render(h(TodoBacklog, {
+    initialTodos: [todo({ id: "t1", title: "Undated one", dueAt: null })],
+  }));
+
+  assertStringIncludes(html, ">No date<");
+  assertFalse(html.includes(">Overdue<"));
+  assertFalse(html.includes(">This week<"));
+});
+
+Deno.test("TodoBacklog — an undated to-do offers the add-due affordance", () => {
+  const html = render(h(TodoBacklog, {
+    initialTodos: [todo({ id: "t1", dueAt: null })],
+  }));
+
+  assertStringIncludes(html, "Add a due date");
+});
+
+Deno.test("TodoBacklog — Done hides to-dos completed more than 7 days ago", () => {
+  const recent = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString();
+  const old = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const html = render(h(TodoBacklog, {
+    initialTodos: [
+      todo({ id: "t1", title: "Done recently", completedAt: recent }),
+      todo({ id: "t2", title: "Done ages ago", completedAt: old }),
+    ],
+  }));
+
+  assertStringIncludes(html, "Done recently");
+  assertFalse(html.includes("Done ages ago"));
+  assertStringIncludes(html, "Show earlier");
+});
+
+Deno.test("TodoBacklog — no Show earlier button when nothing is outside the window", () => {
+  const recent = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString();
+  const html = render(h(TodoBacklog, {
+    initialTodos: [
+      todo({ id: "t1", title: "Done recently", completedAt: recent }),
+    ],
+  }));
+
+  assertStringIncludes(html, "Done recently");
+  assertFalse(html.includes("Show earlier"));
+});
