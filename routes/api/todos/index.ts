@@ -1,5 +1,6 @@
 import { badRequest, define, json } from "@/utils/index.ts";
 import { TodoRepo } from "@/database/index.ts";
+import { parseDueAt } from "@/utils/todo-due.ts";
 
 export const handler = define.handlers({
   async GET(ctx) {
@@ -19,6 +20,15 @@ export const handler = define.handlers({
     if (!title) return badRequest("title required");
     const rawNotes = String(body.notes ?? "").trim();
 
+    let dueAt: string | null = null;
+    if (body.dueAt !== undefined) {
+      const parsed = parseDueAt(body.dueAt);
+      if (parsed === undefined) {
+        return badRequest("dueAt must be null or a valid date string");
+      }
+      dueAt = parsed;
+    }
+
     const todo = await TodoRepo.create({
       householdId,
       title,
@@ -26,7 +36,7 @@ export const handler = define.handlers({
       createdBy: userId,
       createdAt: new Date().toISOString(),
       completedAt: null,
-      dueAt: null,
+      dueAt,
     });
     return json(todo, 201);
   },

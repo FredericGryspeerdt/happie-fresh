@@ -223,3 +223,57 @@ Deno.test({
     assertEquals((await handler.DELETE(ctx(del(), "any"))).status, 401);
   },
 });
+
+Deno.test({
+  name: "PATCH sets dueAt, canonicalising to UTC",
+  sanitizeResources: false,
+  async fn() {
+    await clearTodos();
+    const t = await seed();
+    const updated = await (await handler.PATCH(
+      ctx(patch({ dueAt: "2026-08-05T18:00:00+02:00" }), t.id, AUTH),
+    )).json();
+
+    assertEquals(updated.dueAt, "2026-08-05T16:00:00.000Z");
+  },
+});
+
+Deno.test({
+  name: "PATCH clears dueAt with null",
+  sanitizeResources: false,
+  async fn() {
+    await clearTodos();
+    const t = await TodoRepo.create({
+      householdId: "h1",
+      title: "Book the venue",
+      createdBy: "u1",
+      createdAt: "2026-08-03T10:00:00.000Z",
+      completedAt: null,
+      dueAt: "2026-08-10T09:00:00.000Z",
+    });
+
+    const updated = await (await handler.PATCH(
+      ctx(patch({ dueAt: null }), t.id, AUTH),
+    )).json();
+
+    assertEquals(updated.dueAt, null);
+  },
+});
+
+Deno.test({
+  name: "PATCH rejects an invalid dueAt (400) and leaves the to-do alone",
+  sanitizeResources: false,
+  async fn() {
+    await clearTodos();
+    const t = await seed();
+    assertEquals(
+      (await handler.PATCH(ctx(patch({ dueAt: "nope" }), t.id, AUTH))).status,
+      400,
+    );
+    assertEquals(
+      (await handler.PATCH(ctx(patch({ dueAt: 7 }), t.id, AUTH))).status,
+      400,
+    );
+    assertEquals((await TodoRepo.getById("h1", t.id))?.dueAt, null);
+  },
+});

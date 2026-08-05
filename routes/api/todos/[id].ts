@@ -7,6 +7,7 @@ import {
 } from "@/utils/index.ts";
 import { TodoRepo } from "@/database/index.ts";
 import type { UpdateTodoDto } from "@/models/index.ts";
+import { parseDueAt } from "@/utils/todo-due.ts";
 
 export const handler = define.handlers({
   async PATCH(ctx) {
@@ -45,6 +46,13 @@ export const handler = define.handlers({
         }
         patch.completedAt = body.completedAt;
       }
+    }
+    if (body.dueAt !== undefined) {
+      const parsed = parseDueAt(body.dueAt);
+      if (parsed === undefined) {
+        return badRequest("dueAt must be null or a valid date string");
+      }
+      patch.dueAt = parsed;
     }
 
     const updated = await TodoRepo.update(householdId, ctx.params.id, patch);
