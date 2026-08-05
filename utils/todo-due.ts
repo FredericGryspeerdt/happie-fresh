@@ -69,8 +69,8 @@ function endOfWeekWindow(now: Date): Date {
 
 function classify(todo: TodoInterface, now: Date): TodoGroupKey {
   if (todo.dueAt === null) return "noDate";
+  if (isOverdue(todo.dueAt, now)) return "overdue";
   const due = new Date(todo.dueAt);
-  if (due.getTime() < now.getTime()) return "overdue";
 
   const tomorrow = new Date(
     now.getFullYear(),
@@ -103,6 +103,57 @@ export function groupOpenTodos(
   return GROUP_ORDER
     .filter((key) => buckets.has(key))
     .map((key) => ({ key, todos: buckets.get(key)! }));
+}
+
+/**
+ * Total order for a household's to-dos — the exact ordering
+ * `TodoRepo.getAll` stores its result in: open before done; within open,
+ * dated before undated, dated soonest-first, undated newest-created-first;
+ * within done, most recently done first. Every leaf ties break by
+ * `id.localeCompare` for a stable, total order.
+ *
+ * Exported so `hooks/useTodos.ts` can re-sort after an optimistic patch that
+ * changes a to-do's rank (`setDueAt`, `unTick`) without moving its array
+ * position — the array position *is* the order (see `groupOpenTodos`'s
+ * doc comment), so any mutation that doesn't preserve rank must re-sort with
+ * this exact comparator or the list silently drifts out of order until the
+ * next reload.
+ */
+export function compareTodos(a: TodoInterface, b: TodoInterface): number {
+  const aOpen = a.completedAt === null;
+  const bOpen = b.completedAt === null;
+
+  // Open before done.
+  if (aOpen !== bOpen) return aOpen ? -1 : 1;
+
+  if (aOpen) {
+    const aDated = a.dueAt !== null;
+    const bDated = b.dueAt !== null;
+    // Dated before undated.
+    if (aDated !== bDated) return aDated ? -1 : 1;
+
+    if (aDated) {
+      // Soonest due first.
+      if (a.dueAt !== b.dueAt) return a.dueAt! < b.dueAt! ? -1 : 1;
+      return a.id.localeCompare(b.id);
+    }
+
+    // Undated: newest created first. Plain string comparison, not
+    // localeCompare — two to-dos captured in the same rapid-capture burst
+    // can share a millisecond-precision createdAt, so ties break by id for
+    // a total, stable order; otherwise they'd fall back to KV iteration
+    // order and could swap places relative to the optimistic prepend.
+    if (a.createdAt !== b.createdAt) {
+      return a.createdAt < b.createdAt ? 1 : -1;
+    }
+    return a.id.localeCompare(b.id);
+  }
+
+  // Both done: most recently done first.
+  if (a.completedAt !== b.completedAt) {
+    return a.completedAt! < b.completedAt! ? 1 : -1;
+  }
+  return a.id.localeCompare(b.id);
 }
 
 /**

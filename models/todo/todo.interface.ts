@@ -27,9 +27,10 @@ export interface TodoInterface {
 export type CreateTodoDto = Omit<TodoInterface, "id">;
 
 /**
- * What the client sends to create a to-do. The server fills in `householdId`,
- * `createdBy`, `createdAt`, `completedAt` and `id` — the client never sends
- * (and cannot spoof) the household.
+ * What the client sends to create a to-do: a title, optional notes, and an
+ * optional due moment. The server fills in `householdId`, `createdBy`,
+ * `createdAt`, `completedAt` and `id` — the client never sends (and cannot
+ * spoof) the household.
  */
 export type TodoInput = Pick<TodoInterface, "title" | "notes" | "dueAt">;
 

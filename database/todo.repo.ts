@@ -5,6 +5,7 @@ import type {
 } from "@/models/index.ts";
 import { getKv } from "./db.ts";
 import { mergeDefinedPatch } from "./merge-patch.ts";
+import { compareTodos } from "@/utils/todo-due.ts";
 
 /**
  * `dueAt` was added after the first to-dos were written, so older records have
@@ -35,7 +36,11 @@ export class TodoRepo {
    * Every consumer gets the same order, so the SSR render and the hydrated view
    * agree and the island only has to bucket: open to-dos first — those with a
    * due moment ordered soonest-first, then undated ones newest-created first —
-   * and finally done ones, most recently done first.
+   * and finally done ones, most recently done first. The full ordering
+   * semantics (and why they're what they are) live on `compareTodos` in
+   * utils/todo-due.ts, which `hooks/useTodos.ts` also uses to re-sort after an
+   * optimistic patch changes a to-do's rank — this method and that hook must
+   * never disagree about order, hence the shared comparator.
    *
    * Dated-ascending-then-undated-newest is what lets `groupOpenTodos` in
    * utils/todo-due.ts bucket in a single pass without sorting: each urgency
@@ -48,42 +53,7 @@ export class TodoRepo {
     const todos: TodoInterface[] = [];
     for await (const { value } of iter) todos.push(normalise(value));
 
-    return todos.sort((a, b) => {
-      const aOpen = a.completedAt === null;
-      const bOpen = b.completedAt === null;
-
-      // Open before done.
-      if (aOpen !== bOpen) return aOpen ? -1 : 1;
-
-      if (aOpen) {
-        const aDated = a.dueAt !== null;
-        const bDated = b.dueAt !== null;
-        // Dated before undated.
-        if (aDated !== bDated) return aDated ? -1 : 1;
-
-        if (aDated) {
-          // Soonest due first.
-          if (a.dueAt !== b.dueAt) return a.dueAt! < b.dueAt! ? -1 : 1;
-          return a.id.localeCompare(b.id);
-        }
-
-        // Undated: newest created first. Plain string comparison, not
-        // localeCompare — two to-dos captured in the same rapid-capture burst
-        // can share a millisecond-precision createdAt, so ties break by id for
-        // a total, stable order; otherwise they'd fall back to KV iteration
-        // order and could swap places relative to the optimistic prepend.
-        if (a.createdAt !== b.createdAt) {
-          return a.createdAt < b.createdAt ? 1 : -1;
-        }
-        return a.id.localeCompare(b.id);
-      }
-
-      // Both done: most recently done first.
-      if (a.completedAt !== b.completedAt) {
-        return a.completedAt! < b.completedAt! ? 1 : -1;
-      }
-      return a.id.localeCompare(b.id);
-    });
+    return todos.sort(compareTodos);
   }
 
   static async getById(

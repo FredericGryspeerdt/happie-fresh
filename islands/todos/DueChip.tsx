@@ -20,31 +20,37 @@ interface Props {
  */
 export default function DueChip({ dueAt, now, onClick }: Props) {
   const overdue = isOverdue(dueAt, now);
-  const tone = overdue
-    ? "text-error border-error"
-    : "text-on-surface-variant border-outline-variant";
+  const textTone = overdue ? "text-error" : "text-on-surface-variant";
+  const borderTone = overdue ? "border-error" : "border-outline-variant";
 
   return (
     <Pressable
       onClick={onClick}
-      aria-label={dueAt ? `Change due date` : "Add a due date"}
-      // py-1/px-2 plus the row's own spacing keeps this above the mobile
-      // mis-tap threshold; it sits beside a checkbox and a full-row tap target.
-      class={`inline-flex items-center gap-1 self-start border rounded-[var(--md-shape-full)] py-1 px-2 md-label-medium ${tone}`}
+      aria-label={dueAt ? "Change due date" : "Add a due date"}
+      // The visible pill (the inner span below) stays exactly its previous
+      // size — the padding here is invisible: no border, no background, just
+      // room around it. It only grows the *tap target* to a real ≥44px
+      // effective height; it sits beside a checkbox and a full-row tap
+      // target, so 26px of visible chip alone would be an easy mis-tap.
+      class={`inline-flex items-center self-start rounded-[var(--md-shape-full)] py-2.5 ${textTone}`}
     >
-      {dueAt
-        ? (
-          <>
-            <Icon name="calendar" size={13} />
-            {formatDueAt(dueAt, now)}
-          </>
-        )
-        : (
-          <>
-            <Icon name="plus" size={13} />
-            due
-          </>
-        )}
+      <span
+        class={`inline-flex items-center gap-1 border rounded-[var(--md-shape-full)] py-1 px-2 md-label-medium ${textTone} ${borderTone}`}
+      >
+        {dueAt
+          ? (
+            <>
+              <Icon name="calendar" size={13} />
+              {formatDueAt(dueAt, now)}
+            </>
+          )
+          : (
+            <>
+              <Icon name="plus" size={13} />
+              due
+            </>
+          )}
+      </span>
     </Pressable>
   );
 }

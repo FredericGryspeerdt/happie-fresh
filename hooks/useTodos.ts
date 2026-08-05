@@ -3,6 +3,7 @@ import type { TodoInput, TodoInterface } from "@/models/index.ts";
 import { api } from "@/services/api.ts";
 import { createDebouncedMergeScheduler } from "@/utils/debounce-update.ts";
 import { beginBusy, endBusy } from "@/utils/loading.ts";
+import { compareTodos } from "@/utils/todo-due.ts";
 
 type TodoEdit = { title?: string; notes?: string };
 
@@ -134,6 +135,11 @@ export function useTodos(initialTodos: TodoInterface[]) {
    * No exit animation: the to-do stays open, it only moves between urgency
    * groups, and the island derives those from `openTodos`. Works on done to-dos
    * too, since the edit sheet opens for them.
+   *
+   * Changing `dueAt` changes the to-do's rank (`compareTodos`), so a plain
+   * `.map` that preserves array position would leave the list mis-ordered
+   * until the next reload — re-sort with the same comparator `TodoRepo.getAll`
+   * uses so the optimistic state matches what a refresh would produce.
    */
   const setDueAt = async (
     id: string,
@@ -146,7 +152,7 @@ export function useTodos(initialTodos: TodoInterface[]) {
     const openSnapshot = openTodos.value;
     const doneSnapshot = doneTodos.value;
     const apply = (list: TodoInterface[]) =>
-      list.map((t) => (t.id === id ? { ...t, dueAt } : t));
+      list.map((t) => (t.id === id ? { ...t, dueAt } : t)).sort(compareTodos);
 
     if (inOpen) openTodos.value = apply(openTodos.value);
     else doneTodos.value = apply(doneTodos.value);
@@ -219,7 +225,11 @@ export function useTodos(initialTodos: TodoInterface[]) {
     const reopened = { ...todo, completedAt: null };
 
     doneTodos.value = doneTodos.value.filter((t) => t.id !== id);
-    openTodos.value = [reopened, ...openTodos.value];
+    // A reopened to-do's rank among open ones depends on whether it's dated
+    // (dueAt-ascending) or not (newest-created-first) — a plain prepend is
+    // only correct by accident for an undated to-do, so re-sort with the
+    // same comparator TodoRepo.getAll uses instead of assuming the front.
+    openTodos.value = [...openTodos.value, reopened].sort(compareTodos);
 
     startPending();
     try {

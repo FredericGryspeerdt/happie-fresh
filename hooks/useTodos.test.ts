@@ -314,3 +314,68 @@ Deno.test("setDueAt — returns false for an unknown id without calling the api"
   assertEquals(await hook.setDueAt("nope", null), false);
   assertEquals(calls, []);
 });
+
+Deno.test("setDueAt — dating a previously-undated to-do places it in dueAt order among siblings, not at the end", async () => {
+  using _u = stub(
+    api.todos,
+    "update",
+    (_id: string, _patch: unknown) => Promise.resolve(makeTodo()),
+  );
+  const hook = useTodos([
+    makeTodo({ id: "a", dueAt: "2026-08-06T09:00:00.000Z" }),
+    makeTodo({ id: "b", dueAt: "2026-08-20T09:00:00.000Z" }),
+    // Undated to-dos sort after dated ones (TodoRepo.getAll's order), so "c"
+    // starts in the tail position.
+    makeTodo({ id: "c", dueAt: null, createdAt: "2026-08-04T10:00:00.000Z" }),
+  ]);
+
+  // Due moment sits between a's and b's — "c" must move to the middle, not
+  // stay at its stale tail array position.
+  const ok = await hook.setDueAt("c", "2026-08-10T09:00:00.000Z");
+
+  assertEquals(ok, true);
+  assertEquals(hook.openTodos.value.map((t) => t.id), ["a", "c", "b"]);
+});
+
+Deno.test("setDueAt — re-dating a dated to-do moves it to the right position among its siblings", async () => {
+  using _u = stub(
+    api.todos,
+    "update",
+    (_id: string, _patch: unknown) => Promise.resolve(makeTodo()),
+  );
+  const hook = useTodos([
+    makeTodo({ id: "a", dueAt: "2026-08-06T09:00:00.000Z" }),
+    makeTodo({ id: "b", dueAt: "2026-08-10T09:00:00.000Z" }),
+    makeTodo({ id: "c", dueAt: "2026-08-20T09:00:00.000Z" }),
+  ]);
+
+  // "a" starts earliest (array position 0) but is re-dated later than both
+  // siblings — it must move to the end, not keep its stale index.
+  const ok = await hook.setDueAt("a", "2026-08-25T09:00:00.000Z");
+
+  assertEquals(ok, true);
+  assertEquals(hook.openTodos.value.map((t) => t.id), ["b", "c", "a"]);
+});
+
+Deno.test("unTick — a reopened dated to-do lands in dueAt order among open dated to-dos, not at the front", async () => {
+  using _u = stub(
+    api.todos,
+    "update",
+    (_id: string, _patch: unknown) => Promise.resolve(makeTodo()),
+  );
+  const hook = useTodos([
+    makeTodo({ id: "a", dueAt: "2026-08-06T09:00:00.000Z" }),
+    makeTodo({ id: "b", dueAt: "2026-08-20T09:00:00.000Z" }),
+    makeTodo({
+      id: "c",
+      dueAt: "2026-08-10T09:00:00.000Z",
+      completedAt: "2026-08-02T12:00:00.000Z",
+    }),
+  ]);
+
+  const ok = await hook.unTick("c");
+
+  assertEquals(ok, true);
+  assertEquals(hook.doneTodos.value, []);
+  assertEquals(hook.openTodos.value.map((t) => t.id), ["a", "c", "b"]);
+});

@@ -1,5 +1,6 @@
 import { assertEquals } from "jsr:@std/assert@^1.0.19";
 import {
+  compareTodos,
   formatDueAt,
   GROUP_LABELS,
   groupOpenTodos,
@@ -181,4 +182,42 @@ Deno.test("parseDueAt — undefined signals unusable input", () => {
   assertEquals(parseDueAt(12345), undefined);
   assertEquals(parseDueAt(undefined), undefined);
   assertEquals(parseDueAt({}), undefined);
+});
+
+// ── compareTodos ─────────────────────────────────────────────────────────────
+
+Deno.test("compareTodos — produces the full documented order for a mixed list", () => {
+  const dueSoon = todo("due-soon", "2026-08-06T09:00:00.000Z");
+  const dueLater = todo("due-later", "2026-08-20T09:00:00.000Z");
+  const undatedNewer = todo("undated-newer", null, "2026-08-03T10:00:00.000Z");
+  const undatedOlder = todo("undated-older", null, "2026-08-01T10:00:00.000Z");
+  const doneLater = {
+    ...todo("done-later", null),
+    completedAt: "2026-08-04T12:00:00.000Z",
+  };
+  const doneEarlier = {
+    ...todo("done-earlier", null),
+    completedAt: "2026-08-02T12:00:00.000Z",
+  };
+
+  const shuffled = [
+    doneEarlier,
+    undatedOlder,
+    dueLater,
+    doneLater,
+    undatedNewer,
+    dueSoon,
+  ];
+
+  assertEquals(
+    [...shuffled].sort(compareTodos).map((t) => t.id),
+    [
+      "due-soon",
+      "due-later",
+      "undated-newer",
+      "undated-older",
+      "done-later",
+      "done-earlier",
+    ],
+  );
 });
