@@ -52,11 +52,15 @@ export function usePushNotifications() {
     return "default";
   };
 
-  // `navigator` does not exist during SSR, so detect() must not run there — it
-  // would throw and take the whole page down. Server-rendering as "default" also
-  // keeps SSR output deterministic and testable; hydration immediately replaces
-  // it with the device's real state.
-  state.value = typeof navigator === "undefined" ? "default" : detect();
+  // detect() must not run during SSR — it reaches for Notification and
+  // PushManager, and would report "unsupported" for every visitor. The guard is
+  // `document`, NOT `navigator`: Deno defines a `navigator` global on the server
+  // (with no serviceWorker), so a navigator check silently takes the browser
+  // branch and server-renders every device as unsupported.
+  //
+  // Rendering "default" also keeps SSR output deterministic and testable;
+  // hydration immediately replaces it with the device's real state.
+  state.value = typeof document === "undefined" ? "default" : detect();
 
   const register = () =>
     navigator.serviceWorker.register(SW_PATH, { scope: "/" });

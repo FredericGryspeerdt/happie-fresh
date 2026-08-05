@@ -518,6 +518,29 @@ const submitNew = async () => {
 
 ---
 
+## 14. Permission prompts are only ever asked on a tap
+
+**Rule:** never call a permission API (`Notification.requestPermission`, and the
+same goes for geolocation or camera if they ever arrive) outside a user gesture,
+and never on page load. Offer it from a button the member taps, and give it a
+durable home as well as any contextual nudge.
+
+**Why:** a denial is effectively permanent — re-granting means digging through
+browser site settings, which no family member will do — so there is exactly one
+attempt to spend, and it should only be spent once intent is unambiguous. Safari
+additionally *requires* a user gesture, so a prompt fired after an async save
+silently fails. And a nudge that can be dismissed with no other route back is a
+trap, which is why the More sheet row exists alongside it.
+
+**Also handle** the states people actually land in: already denied (say so, don't
+show a dead button), granted but nothing stored (subscribe silently), and — on
+iOS — not yet installed to the home screen, where the API exists but cannot work.
+
+**See:** `islands/shell/usePushNotifications.ts` and
+`islands/shell/NotificationSetting.tsx`; the nudge in `islands/todos/TodoBacklog.tsx`.
+
+---
+
 ## Review checklist for user-facing changes
 
 Before merging anything the user sees, tick these (section refs in parens):

@@ -4,6 +4,7 @@ import { ListItem } from "@/components/md3/ListItem.tsx";
 import { Icon, type IconName } from "@/components/md3/Icon.tsx";
 import { Snackbar } from "@/components/md3/Snackbar.tsx";
 import { navigateTo } from "@/utils/loading.ts";
+import NotificationSetting from "@/islands/shell/NotificationSetting.tsx";
 
 interface MoreSheetProps {
   open: boolean;
@@ -85,6 +86,11 @@ export default function MoreSheet({ open, onClose }: MoreSheetProps) {
           trailing={chevron()}
           onClick={() => soon("Settings")}
         />
+        {
+          /* onOpen={onClose} so the notifications sheet never stacks on top of
+            this one — the same reason the due picker is a sibling sheet. */
+        }
+        <NotificationSetting onOpen={onClose} />
         <ListItem
           leading={badge("swap")}
           headline="Switch household"

@@ -12,6 +12,7 @@ import { Pressable } from "@/components/md3/Pressable.tsx";
 import Fab from "@/islands/shell/Fab.tsx";
 import DueChip from "@/islands/todos/DueChip.tsx";
 import { GROUP_LABELS, groupOpenTodos } from "@/utils/todo-due.ts";
+import { usePushNotifications } from "@/islands/shell/usePushNotifications.ts";
 
 interface Props {
   initialTodos: TodoInterface[];
@@ -32,6 +33,15 @@ export default function TodoBacklog({ initialTodos }: Props) {
     removeTodo,
     refresh,
   } = useMemo(() => useTodos(initialTodos), []);
+
+  const {
+    state: pushState,
+    busy: pushBusy,
+    enable: enablePush,
+  } = useMemo(() => usePushNotifications(), []);
+  // Session-only: the durable control lives in the More sheet, so dismissing
+  // here never strands anyone.
+  const nudgeDismissed = useSignal(false);
 
   const createOpen = useSignal(false);
   const newTitle = useSignal("");
@@ -294,6 +304,33 @@ export default function TodoBacklog({ initialTodos }: Props) {
           )
           : (
             <>
+              {!nudgeDismissed.value && pushState.value === "default" &&
+                open.some((t) => t.dueAt !== null) && (
+                <div class="flex flex-col gap-2 bg-secondary-container text-on-secondary-container rounded-[var(--md-shape-lg)] px-4 py-3">
+                  <div class="md-body-medium">
+                    Get reminded when a to-do is due
+                  </div>
+                  <div class="flex gap-2">
+                    <Button
+                      variant="filled"
+                      loading={pushBusy.value}
+                      onClick={async () => {
+                        const ok = await enablePush();
+                        if (!ok) say("Couldn't turn reminders on. Try again?");
+                        else nudgeDismissed.value = true;
+                      }}
+                    >
+                      Turn on reminders
+                    </Button>
+                    <Button
+                      variant="text"
+                      onClick={() => (nudgeDismissed.value = true)}
+                    >
+                      Not now
+                    </Button>
+                  </div>
+                </div>
+              )}
               {groups.map((g) => (
                 <div key={g.key} class="flex flex-col gap-1">
                   <div class="md-label-medium uppercase text-on-surface-variant px-1 pt-2">
