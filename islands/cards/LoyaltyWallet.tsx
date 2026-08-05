@@ -36,12 +36,14 @@ function maskValue(value: string): string {
 
 export default function LoyaltyWallet({ initialCards }: Props) {
   // useMemo([]) so the hook's signals are created once from SSR props.
-  const { sorted, cards, addCard, removeCard, refresh } = useMemo(
+  const { sorted, cards, addCard, updateCard, removeCard, refresh } = useMemo(
     () => useLoyaltyCards(initialCards),
     [],
   );
 
-  const addOpen = useSignal(false);
+  const sheetOpen = useSignal(false);
+  // null while adding; the card id while editing an existing card.
+  const editingId = useSignal<string | null>(null);
   const scannerOpen = useSignal(false);
   const present = useSignal<LoyaltyCardInterface | null>(null);
   const saving = useSignal(false);
@@ -67,12 +69,24 @@ export default function LoyaltyWallet({ initialCards }: Props) {
   };
 
   const openAdd = () => {
+    editingId.value = null;
     form.label.value = "";
     form.value.value = "";
     form.format.value = "code128";
     form.color.value = nextColor(cards.value.length);
-    form.manualFormat.value = false;
-    addOpen.value = true;
+    form.manualFormat.value = false; // start in Auto
+    sheetOpen.value = true;
+  };
+
+  const openEdit = (card: LoyaltyCardInterface) => {
+    editingId.value = card.id;
+    form.label.value = card.label;
+    form.value.value = card.value;
+    form.format.value = card.format;
+    form.color.value = card.color ?? DEFAULT_CARD_COLOR;
+    form.manualFormat.value = true; // show the stored type as selected
+    present.value = null;
+    sheetOpen.value = true;
   };
 
   const onScanDetect = (value: string, format: BarcodeFormat) => {
@@ -82,20 +96,26 @@ export default function LoyaltyWallet({ initialCards }: Props) {
     scannerOpen.value = false;
   };
 
-  const handleSave = async () => {
-    saving.value = true;
-    const created = await addCard({
+  const handleSubmit = async () => {
+    const input = {
       label: form.label.value.trim(),
       value: form.value.value.trim(),
       format: form.format.value,
       color: form.color.value,
-    });
+    };
+    saving.value = true;
+    const id = editingId.value;
+    const saved = id ? await updateCard(id, input) : await addCard(input);
     saving.value = false;
-    if (!created) {
-      toast("Couldn't save that card — try again.");
+    if (!saved) {
+      toast(
+        id
+          ? "Couldn't save your changes — try again."
+          : "Couldn't save that card — try again.",
+      );
       return;
     }
-    addOpen.value = false;
+    sheetOpen.value = false;
   };
 
   const handleDelete = (id: string) => {
@@ -105,6 +125,7 @@ export default function LoyaltyWallet({ initialCards }: Props) {
   };
 
   const list = sorted.value;
+  const editing = editingId.value !== null;
 
   return (
     <PullToRefresh onRefresh={refresh}>
@@ -179,17 +200,19 @@ export default function LoyaltyWallet({ initialCards }: Props) {
       </div>
 
       <Sheet
-        open={addOpen.value}
-        onClose={() => (addOpen.value = false)}
-        title="Add a card"
+        open={sheetOpen.value}
+        onClose={() => (sheetOpen.value = false)}
+        title={editing ? "Edit card" : "Add a card"}
       >
         <CardForm
           form={form}
           scannerAvailable={scannerAvailable.value}
           saving={saving.value}
+          submitLabel={editing ? "Save changes" : "Save card"}
+          submitIcon={editing ? "check" : "plus"}
           onScan={() => (scannerOpen.value = true)}
-          onSubmit={handleSave}
-          onCancel={() => (addOpen.value = false)}
+          onSubmit={handleSubmit}
+          onCancel={() => (sheetOpen.value = false)}
         />
       </Sheet>
 
@@ -205,6 +228,7 @@ export default function LoyaltyWallet({ initialCards }: Props) {
         <CardPresent
           card={present.value}
           onClose={() => (present.value = null)}
+          onEdit={openEdit}
           onDelete={handleDelete}
         />
       )}

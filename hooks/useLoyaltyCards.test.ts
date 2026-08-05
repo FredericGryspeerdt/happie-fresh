@@ -89,3 +89,42 @@ Deno.test("refresh — re-pulls cards from the API", async () => {
   }
   assertEquals(hook.cards.value.map((c) => c.label), ["Fresh", "New"]);
 });
+
+Deno.test("updateCard — optimistic: adopts the server-returned card", async () => {
+  const server = { ...card("1", "Colruyt"), color: "rose" };
+  const update = stub(api.cards, "update", () => Promise.resolve(server));
+  const hook = useLoyaltyCards([card("1", "Aldi"), card("2", "Lidl")]);
+  try {
+    const result = await hook.updateCard("1", {
+      label: "Colruyt",
+      value: "9520123456788",
+      format: "ean13",
+      color: "rose",
+    });
+    assertEquals(result, server);
+    const one = hook.cards.value.find((c) => c.id === "1");
+    assertEquals(one?.label, "Colruyt");
+    assertEquals(one?.color, "rose");
+    assertEquals(update.calls.length, 1);
+  } finally {
+    update.restore();
+  }
+});
+
+Deno.test("updateCard — rolls back and returns null on failure", async () => {
+  const update = stub(api.cards, "update", () => Promise.resolve(null));
+  const original = card("1", "Aldi");
+  const hook = useLoyaltyCards([original, card("2", "Lidl")]);
+  try {
+    const result = await hook.updateCard("1", {
+      label: "Broken",
+      value: "bad",
+      format: "ean13",
+    });
+    assertEquals(result, null);
+    // Local state is restored to the pre-edit card.
+    assertEquals(hook.cards.value.find((c) => c.id === "1")?.label, "Aldi");
+  } finally {
+    update.restore();
+  }
+});

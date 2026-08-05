@@ -42,6 +42,28 @@ export function useLoyaltyCards(initialCards: LoyaltyCardInterface[]) {
     }
   };
 
+  const updateCard = async (
+    id: string,
+    input: LoyaltyCardInput,
+  ): Promise<LoyaltyCardInterface | null> => {
+    // Optimistic: apply the edit locally now, snapshot for rollback.
+    const snapshot = cards.value;
+    cards.value = cards.value.map((c) => c.id === id ? { ...c, ...input } : c);
+    startPending();
+    try {
+      const updated = await api.cards.update(id, input);
+      if (!updated) {
+        cards.value = snapshot; // rollback
+        return null;
+      }
+      // Adopt the server's canonical card (in case it normalised anything).
+      cards.value = cards.value.map((c) => (c.id === id ? updated : c));
+      return updated;
+    } finally {
+      endPending();
+    }
+  };
+
   const removeCard = async (id: string): Promise<void> => {
     cards.value = cards.value.filter((c) => c.id !== id);
     startPending();
@@ -63,5 +85,13 @@ export function useLoyaltyCards(initialCards: LoyaltyCardInterface[]) {
     }
   };
 
-  return { cards, pendingCount, sorted, addCard, removeCard, refresh };
+  return {
+    cards,
+    pendingCount,
+    sorted,
+    addCard,
+    updateCard,
+    removeCard,
+    refresh,
+  };
 }

@@ -8,15 +8,18 @@ import { formatLabel } from "@/utils/barcode.ts";
 interface CardPresentProps {
   card: LoyaltyCardInterface;
   onClose: () => void;
+  onEdit: (card: LoyaltyCardInterface) => void;
   onDelete: (id: string) => void;
 }
 
 /**
  * Full-screen "show at the till" view: a large, high-contrast barcode on white
- * so in-store scanners read it reliably, plus the label, number and a
- * confirm-guarded remove action.
+ * so in-store scanners read it reliably, plus the label, number and
+ * confirm-guarded edit/remove actions.
  */
-export function CardPresent({ card, onClose, onDelete }: CardPresentProps) {
+export function CardPresent(
+  { card, onClose, onEdit, onDelete }: CardPresentProps,
+) {
   const confirming = useSignal(false);
   const isQr = card.format === "qrcode";
 
@@ -28,11 +31,18 @@ export function CardPresent({ card, onClose, onDelete }: CardPresentProps) {
       >
         <IconButton name="back" aria-label="Close" onClick={onClose} />
         <span class="md-title-medium truncate px-2">{card.label}</span>
-        <IconButton
-          name="trash"
-          aria-label="Remove card"
-          onClick={() => (confirming.value = true)}
-        />
+        <div class="flex items-center shrink-0">
+          <IconButton
+            name="edit"
+            aria-label="Edit card"
+            onClick={() => onEdit(card)}
+          />
+          <IconButton
+            name="trash"
+            aria-label="Remove card"
+            onClick={() => (confirming.value = true)}
+          />
+        </div>
       </div>
 
       <div class="flex-1 min-h-0 flex flex-col items-center justify-center gap-6 px-6">
