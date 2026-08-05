@@ -7,6 +7,16 @@ import { getKv } from "./db.ts";
 import { mergeDefinedPatch } from "./merge-patch.ts";
 
 /**
+ * `dueAt` was added after the first to-dos were written, so older records have
+ * no such key and `value.dueAt` is `undefined`. Normalising here — once, at the
+ * read boundary — keeps every consumer free of `?? null` defensiveness. No
+ * migration is needed: the field is additive and optional in storage.
+ */
+function normalise(value: TodoInterface): TodoInterface {
+  return value.dueAt === undefined ? { ...value, dueAt: null } : value;
+}
+
+/**
  * To-dos are shared within a household. Keys are scoped by household so a
  * member only ever reads or writes their own household's to-dos
  * (`["todos", householdId, id]`), mirroring `LoyaltyCardRepo`. A household has
@@ -23,31 +33,54 @@ export class TodoRepo {
 
   /**
    * Every consumer gets the same order, so the SSR render and the hydrated view
-   * agree and the island only has to find the partition point: open to-dos
-   * first (newest created first), then done ones (most recently done first).
+   * agree and the island only has to bucket: open to-dos first — those with a
+   * due moment ordered soonest-first, then undated ones newest-created first —
+   * and finally done ones, most recently done first.
+   *
+   * Dated-ascending-then-undated-newest is what lets `groupOpenTodos` in
+   * utils/todo-due.ts bucket in a single pass without sorting: each urgency
+   * group comes out ascending, and "No date" keeps the newest-first order that
+   * makes quick capture feel responsive.
    */
   static async getAll(householdId: string): Promise<TodoInterface[]> {
     const kv = await getKv();
     const iter = kv.list<TodoInterface>({ prefix: ["todos", householdId] });
     const todos: TodoInterface[] = [];
-    for await (const { value } of iter) todos.push(value);
+    for await (const { value } of iter) todos.push(normalise(value));
 
     return todos.sort((a, b) => {
-      if (a.completedAt === null && b.completedAt === null) {
-        // Plain string comparison, not localeCompare: two to-dos captured in
-        // the same rapid-capture burst can share a millisecond-precision
-        // createdAt, so ties are broken by id for a total, stable order —
-        // otherwise they'd fall back to KV iteration order and could swap
-        // places relative to the optimistic prepend on reload.
+      const aOpen = a.completedAt === null;
+      const bOpen = b.completedAt === null;
+
+      // Open before done.
+      if (aOpen !== bOpen) return aOpen ? -1 : 1;
+
+      if (aOpen) {
+        const aDated = a.dueAt !== null;
+        const bDated = b.dueAt !== null;
+        // Dated before undated.
+        if (aDated !== bDated) return aDated ? -1 : 1;
+
+        if (aDated) {
+          // Soonest due first.
+          if (a.dueAt !== b.dueAt) return a.dueAt! < b.dueAt! ? -1 : 1;
+          return a.id.localeCompare(b.id);
+        }
+
+        // Undated: newest created first. Plain string comparison, not
+        // localeCompare — two to-dos captured in the same rapid-capture burst
+        // can share a millisecond-precision createdAt, so ties break by id for
+        // a total, stable order; otherwise they'd fall back to KV iteration
+        // order and could swap places relative to the optimistic prepend.
         if (a.createdAt !== b.createdAt) {
           return a.createdAt < b.createdAt ? 1 : -1;
         }
         return a.id.localeCompare(b.id);
       }
-      if (a.completedAt === null) return -1;
-      if (b.completedAt === null) return 1;
+
+      // Both done: most recently done first.
       if (a.completedAt !== b.completedAt) {
-        return a.completedAt < b.completedAt ? 1 : -1;
+        return a.completedAt! < b.completedAt! ? 1 : -1;
       }
       return a.id.localeCompare(b.id);
     });
@@ -59,7 +92,7 @@ export class TodoRepo {
   ): Promise<TodoInterface | null> {
     const kv = await getKv();
     const result = await kv.get<TodoInterface>(["todos", householdId, id]);
-    return result.value;
+    return result.value === null ? null : normalise(result.value);
   }
 
   static async update(
