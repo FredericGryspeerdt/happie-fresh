@@ -126,6 +126,45 @@ export function useTodos(initialTodos: TodoInterface[]) {
     restoreBlankTitle(id);
   };
 
+  /**
+   * Set or clear a to-do's due moment. Optimistic with rollback and an
+   * immediate PATCH — deliberately **not** debounced, because picking a date is
+   * a discrete commit like ticking off, not incremental typing.
+   *
+   * No exit animation: the to-do stays open, it only moves between urgency
+   * groups, and the island derives those from `openTodos`. Works on done to-dos
+   * too, since the edit sheet opens for them.
+   */
+  const setDueAt = async (
+    id: string,
+    dueAt: string | null,
+  ): Promise<boolean> => {
+    const inOpen = openTodos.value.some((t) => t.id === id);
+    const inDone = doneTodos.value.some((t) => t.id === id);
+    if (!inOpen && !inDone) return false;
+
+    const openSnapshot = openTodos.value;
+    const doneSnapshot = doneTodos.value;
+    const apply = (list: TodoInterface[]) =>
+      list.map((t) => (t.id === id ? { ...t, dueAt } : t));
+
+    if (inOpen) openTodos.value = apply(openTodos.value);
+    else doneTodos.value = apply(doneTodos.value);
+
+    startPending();
+    try {
+      const saved = await api.todos.update(id, { dueAt });
+      if (!saved) {
+        openTodos.value = openSnapshot;
+        doneTodos.value = doneSnapshot;
+        return false;
+      }
+      return true;
+    } finally {
+      endPending();
+    }
+  };
+
   const tickOff = async (id: string): Promise<boolean> => {
     // A second tap during the exit animation (ordinary on mobile) must not
     // start a second run — the row stays in openTodos for EXIT_MS on purpose,
@@ -251,6 +290,7 @@ export function useTodos(initialTodos: TodoInterface[]) {
     addTodo,
     editTodo,
     flushTodo,
+    setDueAt,
     tickOff,
     unTick,
     removeTodo,

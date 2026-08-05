@@ -241,3 +241,76 @@ Deno.test("editTodo — persists a non-blank title after the debounce", async ()
   assertEquals(patches, [{ title: "Take out the recycling" }]);
   assertEquals(hook.openTodos.value[0].title, "Take out the recycling");
 });
+
+Deno.test("setDueAt — sets the due moment optimistically", async () => {
+  const patches: unknown[] = [];
+  using _u = stub(api.todos, "update", (_id: string, patch: unknown) => {
+    patches.push(patch);
+    return Promise.resolve(makeTodo());
+  });
+  const hook = useTodos([makeTodo({ id: "t1" })]);
+
+  const ok = await hook.setDueAt("t1", "2026-08-10T09:00:00.000Z");
+
+  assertEquals(ok, true);
+  assertEquals(patches, [{ dueAt: "2026-08-10T09:00:00.000Z" }]);
+  assertEquals(hook.openTodos.value[0].dueAt, "2026-08-10T09:00:00.000Z");
+});
+
+Deno.test("setDueAt — clears the due moment with null", async () => {
+  using _u = stub(
+    api.todos,
+    "update",
+    (_id: string, _patch: unknown) => Promise.resolve(makeTodo()),
+  );
+  const hook = useTodos([
+    makeTodo({ id: "t1", dueAt: "2026-08-10T09:00:00.000Z" }),
+  ]);
+
+  const ok = await hook.setDueAt("t1", null);
+
+  assertEquals(ok, true);
+  assertEquals(hook.openTodos.value[0].dueAt, null);
+});
+
+Deno.test("setDueAt — rolls back and reports failure when the server rejects", async () => {
+  using _u = stub(
+    api.todos,
+    "update",
+    (_id: string, _patch: unknown) => Promise.resolve(null),
+  );
+  const hook = useTodos([makeTodo({ id: "t1", dueAt: null })]);
+
+  const ok = await hook.setDueAt("t1", "2026-08-10T09:00:00.000Z");
+
+  assertEquals(ok, false);
+  assertEquals(hook.openTodos.value[0].dueAt, null);
+});
+
+Deno.test("setDueAt — works on a done to-do", async () => {
+  using _u = stub(
+    api.todos,
+    "update",
+    (_id: string, _patch: unknown) => Promise.resolve(makeTodo()),
+  );
+  const hook = useTodos([
+    makeTodo({ id: "t1", completedAt: "2026-08-02T12:00:00.000Z" }),
+  ]);
+
+  const ok = await hook.setDueAt("t1", "2026-08-10T09:00:00.000Z");
+
+  assertEquals(ok, true);
+  assertEquals(hook.doneTodos.value[0].dueAt, "2026-08-10T09:00:00.000Z");
+});
+
+Deno.test("setDueAt — returns false for an unknown id without calling the api", async () => {
+  const calls: unknown[] = [];
+  using _u = stub(api.todos, "update", (_id: string, patch: unknown) => {
+    calls.push(patch);
+    return Promise.resolve(makeTodo());
+  });
+  const hook = useTodos([makeTodo({ id: "t1" })]);
+
+  assertEquals(await hook.setDueAt("nope", null), false);
+  assertEquals(calls, []);
+});
