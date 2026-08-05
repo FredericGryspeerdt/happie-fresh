@@ -1689,3 +1689,176 @@ If everything passes, report done with the observations. If anything fails, repo
 ## Deliberately not built
 
 Re-read before adding anything: notifications, reminders, recurrence (ADR 0003 — future Chores module), assignment, `completedBy`, filters, labels, a meeting/review flow, a per-household timezone or week-boundary setting, a custom MD3 date picker, and any change to `services/api.ts` (`dueAt` rides the existing DTOs).
+
+---
+
+### Task 9: Due controls in the create and edit sheets
+
+**Files:**
+- Modify: `islands/todos/TodoBacklog.tsx`
+- Modify: `hooks/useTodos.ts`
+- Modify: `hooks/useTodos.test.ts`
+
+**Interfaces:**
+- Consumes: `toLocalInputValue` (already in the island), `setDueAt` and `addTodo` from `useTodos`, `compareTodos` from `@/utils/todo-due.ts`.
+- Produces: no new exported surface. `addTodo`'s signature is unchanged — `TodoInput` already carries `dueAt`.
+
+Grilling Q5 chose "edit sheet + create sheet + a chip on the row". Only the chip was built; the spec's scope line says three places. This task closes that, and fixes a bug the change creates.
+
+**The bug it creates, which must be fixed in the same task.** `addTodo` currently prepends the created to-do to `openTodos`. That was correct only because a new to-do was always undated, and undated to-dos sort newest-first — so the front was its rightful place. **Once the create sheet can set a due date, a new to-do can be dated**, and prepending puts it at the front of a list whose order is `compareTodos`. That is the same defect the final review found in `setDueAt`. Sort after adopting the server's record.
+
+**Why the controls are plain inline inputs rather than the picker sheet.** The picker is itself a `Sheet`; opening it from inside the create or edit sheet would stack sheet on sheet. Both these surfaces are already open modals with room for a field, so they get an inline `<input type="datetime-local">` — the same native control, no new component, no nesting.
+
+**Commit semantics differ between the two, deliberately.** In the create sheet the value is part of the not-yet-created to-do, so it is held in island state and passed to `addTodo`. In the edit sheet the to-do already exists, so a change is a discrete commit through `setDueAt` — the same reasoning that kept `setDueAt` out of the debounced text scheduler. Use `onChange` (fires when a complete value is committed), not `onInput`.
+
+- [ ] **Step 1: Write the failing hook tests**
+
+Add to `hooks/useTodos.test.ts`:
+
+```ts
+Deno.test("addTodo — a dated new to-do lands in dueAt order, not at the front", async () => {
+  const created = makeTodo({ id: "new", dueAt: "2026-08-20T09:00:00.000Z" });
+  using _c = stub(
+    api.todos,
+    "create",
+    (_input: unknown) => Promise.resolve(created),
+  );
+  const hook = useTodos([
+    makeTodo({ id: "sooner", dueAt: "2026-08-10T09:00:00.000Z" }),
+    makeTodo({ id: "later", dueAt: "2026-08-25T09:00:00.000Z" }),
+  ]);
+
+  await hook.addTodo({
+    title: "new",
+    notes: undefined,
+    dueAt: "2026-08-20T09:00:00.000Z",
+  });
+
+  assertEquals(hook.openTodos.value.map((t) => t.id), [
+    "sooner",
+    "new",
+    "later",
+  ]);
+});
+
+Deno.test("addTodo — an undated new to-do still goes to the front of the undated tail", async () => {
+  const created = makeTodo({
+    id: "new",
+    dueAt: null,
+    createdAt: "2026-08-05T12:00:00.000Z",
+  });
+  using _c = stub(
+    api.todos,
+    "create",
+    (_input: unknown) => Promise.resolve(created),
+  );
+  const hook = useTodos([
+    makeTodo({ id: "dated", dueAt: "2026-08-10T09:00:00.000Z" }),
+    makeTodo({ id: "older", dueAt: null, createdAt: "2026-08-01T09:00:00.000Z" }),
+  ]);
+
+  await hook.addTodo({ title: "new", notes: undefined, dueAt: null });
+
+  assertEquals(hook.openTodos.value.map((t) => t.id), [
+    "dated",
+    "new",
+    "older",
+  ]);
+});
+```
+
+- [ ] **Step 2: Run them to verify they fail**
+
+Run: `deno test --unstable-kv -A hooks/useTodos.test.ts`
+Expected: FAIL — the dated case comes back `["new","sooner","later"]` because `addTodo` prepends.
+
+- [ ] **Step 3: Sort in `addTodo`**
+
+In `hooks/useTodos.ts`, in `addTodo`, replace the prepend with a sorted insert:
+
+```ts
+      const created = await api.todos.create(input);
+      if (created) {
+        // Sort rather than prepend: a new to-do can now carry a dueAt (set in
+        // the create sheet), so the front is not automatically its place. Same
+        // invariant setDueAt and unTick maintain — array position IS the order.
+        openTodos.value = [...openTodos.value, created].sort(compareTodos);
+      }
+      return created;
+```
+
+- [ ] **Step 4: Run them to verify they pass**
+
+Run: `deno test --unstable-kv -A hooks/useTodos.test.ts`
+Expected: PASS.
+
+- [ ] **Step 5: Add the create-sheet due control**
+
+In `islands/todos/TodoBacklog.tsx`, add a signal beside `newTitle` / `newNotes`:
+
+```tsx
+  const newDue = useSignal("");
+```
+
+Clear it wherever `newTitle` / `newNotes` are cleared — in `openCreate` and after a successful save in `submitNew` — so rapid capture starts each to-do fresh.
+
+In `submitNew`, pass it through:
+
+```tsx
+    const created = await addTodo({
+      title,
+      notes: notes || undefined,
+      dueAt: newDue.value ? new Date(newDue.value).toISOString() : null,
+    });
+```
+
+And add the field inside the create sheet's gated body, after the notes textarea and before the Add button:
+
+```tsx
+            <input
+              type="datetime-local"
+              value={newDue.value}
+              onChange={(e) => (newDue.value = e.currentTarget.value)}
+              aria-label="Due date and time (optional)"
+              class="w-full md-body-large text-on-surface bg-surface-chigh border-0 rounded-[var(--md-shape-lg)] py-3 px-4 outline-none"
+            />
+```
+
+Empty means no due date — do not pre-fill it, because most captured to-dos have no deadline and a pre-filled date would silently attach one.
+
+- [ ] **Step 6: Add the edit-sheet due control**
+
+In the edit sheet's body, after the notes textarea and before the Done button:
+
+```tsx
+              <input
+                type="datetime-local"
+                value={t.dueAt ? toLocalInputValue(t.dueAt) : ""}
+                onChange={async (e) => {
+                  const v = e.currentTarget.value;
+                  const ok = await setDueAt(
+                    t.id,
+                    v ? new Date(v).toISOString() : null,
+                  );
+                  if (!ok) say("Couldn't save that due date. Try again?");
+                }}
+                aria-label="Due date and time"
+                class="w-full md-body-large text-on-surface bg-surface-chigh border-0 rounded-[var(--md-shape-lg)] py-3 px-4 outline-none"
+              />
+```
+
+Clearing the field sets `null`, which is how a due date is removed from this surface.
+
+- [ ] **Step 7: Verify check and the whole suite**
+
+Run: `deno task check && deno task test`
+Expected: both PASS, 324 passed (322 + 2).
+
+There is no SSR assertion for either input: both sheets gate their bodies on being open, so neither renders in a server-rendered page. The hook tests above cover the ordering consequence, and the controller verifies the wiring in the browser.
+
+- [ ] **Step 8: Commit**
+
+```bash
+git add islands/todos/TodoBacklog.tsx hooks/useTodos.ts hooks/useTodos.test.ts
+git commit -m "feat(todos): set a due date from the create and edit sheets"
+```
