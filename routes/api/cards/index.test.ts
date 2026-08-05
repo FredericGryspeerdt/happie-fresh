@@ -37,6 +37,13 @@ const del = (body: unknown) =>
     body: JSON.stringify(body),
   });
 
+const patch = (body: unknown) =>
+  new Request("http://x/api/cards", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+
 const validCard = {
   label: "Delhaize",
   value: "9520123456788",
@@ -153,5 +160,98 @@ Deno.test({
       ctx(new Request("http://x/api/cards"), AUTH),
     )).json();
     assertEquals(list, []);
+  },
+});
+
+Deno.test({
+  name: "PATCH updates a card's fields (200) and persists them",
+  sanitizeResources: false,
+  async fn() {
+    await clearCards();
+    const created = await (await handler.POST(ctx(post(validCard), AUTH)))
+      .json();
+    const res = await handler.PATCH(
+      ctx(
+        patch({
+          id: created.id,
+          label: "Delhaize Plus",
+          value: "4006381333931",
+          format: "ean13",
+          color: "rose",
+        }),
+        AUTH,
+      ),
+    );
+    assertEquals(res.status, 200);
+    const updated = await res.json();
+    assertEquals(updated.label, "Delhaize Plus");
+    assertEquals(updated.value, "4006381333931");
+    assertEquals(updated.color, "rose");
+    // id/householdId are untouched.
+    assertEquals(updated.id, created.id);
+    assertEquals(updated.householdId, "h1");
+
+    const list = await (await handler.GET(
+      ctx(new Request("http://x/api/cards"), AUTH),
+    )).json();
+    assertEquals(list.length, 1);
+    assertEquals(list[0].label, "Delhaize Plus");
+  },
+});
+
+Deno.test({
+  name: "PATCH requires a household (401) and an id (400)",
+  sanitizeResources: false,
+  async fn() {
+    await clearCards();
+    assertEquals(
+      (await handler.PATCH(ctx(patch({ ...validCard, id: "x" })))).status,
+      401,
+    );
+    assertEquals(
+      (await handler.PATCH(ctx(patch({ ...validCard }), AUTH))).status,
+      400,
+    );
+  },
+});
+
+Deno.test({
+  name: "PATCH rejects an invalid value (400)",
+  sanitizeResources: false,
+  async fn() {
+    await clearCards();
+    const created = await (await handler.POST(ctx(post(validCard), AUTH)))
+      .json();
+    const res = await handler.PATCH(
+      ctx(
+        patch({ ...validCard, id: created.id, value: "9520123456789" }),
+        AUTH,
+      ),
+    );
+    assertEquals(res.status, 400);
+  },
+});
+
+Deno.test({
+  name: "PATCH returns 404 for an unknown id and never crosses households",
+  sanitizeResources: false,
+  async fn() {
+    await clearCards();
+    // Unknown id.
+    assertEquals(
+      (await handler.PATCH(ctx(patch({ ...validCard, id: "nope" }), AUTH)))
+        .status,
+      404,
+    );
+    // A card owned by another household must be invisible to this one.
+    const theirs = await (await handler.POST(
+      ctx(post(validCard), { userId: "u2", householdId: "h2" }),
+    )).json();
+    assertEquals(
+      (await handler.PATCH(
+        ctx(patch({ ...validCard, id: theirs.id, label: "Hijacked" }), AUTH),
+      )).status,
+      404,
+    );
   },
 });
