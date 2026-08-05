@@ -3,10 +3,10 @@
   "tasks": {
     "check": "deno fmt --check && deno lint && deno check",
     "test": "deno test --unstable-kv -A",
-    "dev": "deno run --env-file --unstable-kv -A vite",
-    "dev:mobile": "MOBILE_HTTPS=1 deno run --env-file --unstable-kv -A vite --host",
+    "dev": "deno run --env-file --unstable-kv --unstable-cron -A vite",
+    "dev:mobile": "MOBILE_HTTPS=1 deno run --env-file --unstable-kv --unstable-cron -A vite --host",
     "build": "vite build",
-    "preview": "deno serve --env-file --unstable-kv -A _fresh/server.js",
+    "preview": "deno serve --env-file --unstable-kv --unstable-cron -A _fresh/server.js",
     "db:seed": "deno run --env-file --unstable-kv -A scripts/seed.ts",
     "db:migrate": "deno run --env-file --unstable-kv -A scripts/migrate.ts",
     "db:view": "deno run --env-file --unstable-kv -A scripts/db-viewer.ts",
