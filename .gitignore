@@ -22,6 +22,9 @@ kv.db-wal
 
 .superpowers/
 
+# Local HTTPS dev certificates for on-device testing (machine-specific)
+certs/
+
 # macOS Finder metadata
 .DS_Store
 

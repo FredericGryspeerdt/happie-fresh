@@ -4,6 +4,7 @@
     "check": "deno fmt --check && deno lint && deno check",
     "test": "deno test --unstable-kv -A",
     "dev": "deno run --env-file --unstable-kv -A vite",
+    "dev:mobile": "MOBILE_HTTPS=1 deno run --env-file --unstable-kv -A vite --host",
     "build": "vite build",
     "preview": "deno serve --env-file --unstable-kv -A _fresh/server.js",
     "db:seed": "deno run --env-file --unstable-kv -A scripts/seed.ts",

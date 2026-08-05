@@ -40,7 +40,11 @@ export const handler = define.handlers<Data>({
       value: session.id,
       maxAge: 60 * 60 * 24, // 24 hours
       sameSite: "Lax",
-      domain: ctx.url.hostname,
+      // No `domain`: a host-only cookie is scoped to whatever host served it,
+      // which is what we want. Pinning it to `ctx.url.hostname` broke on-device
+      // testing — behind the Fresh Vite plugin the inner request URL is always
+      // localhost, so a phone hitting the LAN address got `Domain=localhost`
+      // and the browser silently rejected the cookie (endless login loop).
       path: "/",
       secure: true,
     });
