@@ -379,3 +379,57 @@ Deno.test("unTick — a reopened dated to-do lands in dueAt order among open dat
   assertEquals(hook.doneTodos.value, []);
   assertEquals(hook.openTodos.value.map((t) => t.id), ["a", "c", "b"]);
 });
+
+Deno.test("addTodo — a dated new to-do lands in dueAt order, not at the front", async () => {
+  const created = makeTodo({ id: "new", dueAt: "2026-08-20T09:00:00.000Z" });
+  using _c = stub(
+    api.todos,
+    "create",
+    (_input: unknown) => Promise.resolve(created),
+  );
+  const hook = useTodos([
+    makeTodo({ id: "sooner", dueAt: "2026-08-10T09:00:00.000Z" }),
+    makeTodo({ id: "later", dueAt: "2026-08-25T09:00:00.000Z" }),
+  ]);
+
+  await hook.addTodo({
+    title: "new",
+    notes: undefined,
+    dueAt: "2026-08-20T09:00:00.000Z",
+  });
+
+  assertEquals(hook.openTodos.value.map((t) => t.id), [
+    "sooner",
+    "new",
+    "later",
+  ]);
+});
+
+Deno.test("addTodo — an undated new to-do still goes to the front of the undated tail", async () => {
+  const created = makeTodo({
+    id: "new",
+    dueAt: null,
+    createdAt: "2026-08-05T12:00:00.000Z",
+  });
+  using _c = stub(
+    api.todos,
+    "create",
+    (_input: unknown) => Promise.resolve(created),
+  );
+  const hook = useTodos([
+    makeTodo({ id: "dated", dueAt: "2026-08-10T09:00:00.000Z" }),
+    makeTodo({
+      id: "older",
+      dueAt: null,
+      createdAt: "2026-08-01T09:00:00.000Z",
+    }),
+  ]);
+
+  await hook.addTodo({ title: "new", notes: undefined, dueAt: null });
+
+  assertEquals(hook.openTodos.value.map((t) => t.id), [
+    "dated",
+    "new",
+    "older",
+  ]);
+});

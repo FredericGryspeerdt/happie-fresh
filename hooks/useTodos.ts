@@ -81,7 +81,12 @@ export function useTodos(initialTodos: TodoInterface[]) {
     startPending();
     try {
       const created = await api.todos.create(input);
-      if (created) openTodos.value = [created, ...openTodos.value];
+      if (created) {
+        // Sort rather than prepend: a new to-do can now carry a dueAt (set in
+        // the create sheet), so the front is not automatically its place. Same
+        // invariant setDueAt and unTick maintain — array position IS the order.
+        openTodos.value = [...openTodos.value, created].sort(compareTodos);
+      }
       return created;
     } finally {
       endPending();

@@ -36,6 +36,7 @@ export default function TodoBacklog({ initialTodos }: Props) {
   const createOpen = useSignal(false);
   const newTitle = useSignal("");
   const newNotes = useSignal("");
+  const newDue = useSignal("");
   const editingId = useSignal<string | null>(null);
   const confirmingId = useSignal<string | null>(null);
   const dueEditingId = useSignal<string | null>(null);
@@ -67,6 +68,7 @@ export default function TodoBacklog({ initialTodos }: Props) {
   const openCreate = () => {
     newTitle.value = "";
     newNotes.value = "";
+    newDue.value = "";
     handoff.value = false;
     primerRef.current?.focus();
     createOpen.value = true;
@@ -130,7 +132,7 @@ export default function TodoBacklog({ initialTodos }: Props) {
     const created = await addTodo({
       title,
       notes: notes || undefined,
-      dueAt: null,
+      dueAt: newDue.value ? new Date(newDue.value).toISOString() : null,
     });
     if (!created) {
       say("Couldn't add that to-do. Try again?");
@@ -144,6 +146,7 @@ export default function TodoBacklog({ initialTodos }: Props) {
     // islands/add-items.tsx).
     newTitle.value = "";
     newNotes.value = "";
+    newDue.value = "";
     titleRef.current?.focus();
   };
 
@@ -387,6 +390,13 @@ export default function TodoBacklog({ initialTodos }: Props) {
               aria-label="Notes (optional)"
               class="w-full md-body-large text-on-surface bg-surface-chigh border-0 rounded-[var(--md-shape-lg)] py-3 px-4 outline-none resize-none"
             />
+            <input
+              type="datetime-local"
+              value={newDue.value}
+              onChange={(e) => (newDue.value = e.currentTarget.value)}
+              aria-label="Due date and time (optional)"
+              class="w-full md-body-large text-on-surface bg-surface-chigh border-0 rounded-[var(--md-shape-lg)] py-3 px-4 outline-none"
+            />
             <Button variant="filled" full onClick={submitNew}>Add</Button>
             {
               /* "Close", not "Done" — "Done" beside "Add" reads as a second
@@ -429,6 +439,20 @@ export default function TodoBacklog({ initialTodos }: Props) {
                 placeholder="Notes (optional)"
                 aria-label="Notes"
                 class="w-full md-body-large text-on-surface bg-surface-chigh border-0 rounded-[var(--md-shape-lg)] py-3 px-4 outline-none resize-none"
+              />
+              <input
+                type="datetime-local"
+                value={t.dueAt ? toLocalInputValue(t.dueAt) : ""}
+                onChange={async (e) => {
+                  const v = e.currentTarget.value;
+                  const ok = await setDueAt(
+                    t.id,
+                    v ? new Date(v).toISOString() : null,
+                  );
+                  if (!ok) say("Couldn't save that due date. Try again?");
+                }}
+                aria-label="Due date and time"
+                class="w-full md-body-large text-on-surface bg-surface-chigh border-0 rounded-[var(--md-shape-lg)] py-3 px-4 outline-none"
               />
               <Button variant="filled" full onClick={closeEditor}>Done</Button>
               <Button
