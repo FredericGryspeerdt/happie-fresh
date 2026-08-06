@@ -39,6 +39,25 @@ export default defineConfig({
     fresh(),
     tailwindcss(),
   ],
+  ssr: {
+    // web-push reaches the server graph through the Deno.cron sweep in main.ts,
+    // and it depends on CommonJS packages (asn1.js and friends) that neither
+    // Vite's dev SSR module runner nor the production Rollup pass can turn into
+    // working ESM — both emit a bundle that dies on `exports is not defined`.
+    // Externalising covers transitive deps too, so Deno imports them natively,
+    // exactly as it already does under `deno test`.
+    //
+    // Both settings are needed: `ssr.external` governs dev, and the SSR build
+    // needs the Rollup-level external below or it inlines web-push anyway.
+    external: ["web-push"],
+  },
+  environments: {
+    ssr: {
+      build: {
+        rollupOptions: { external: [/^web-push($|\/)/] },
+      },
+    },
+  },
   server: {
     // Both only take effect for `deno task dev:mobile`; `undefined` leaves
     // Vite's defaults (localhost, HTTP) untouched for the normal dev flow.

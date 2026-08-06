@@ -158,3 +158,21 @@ Deno.test("TodoBacklog — Done section (and its reveal) still renders when ever
   assertStringIncludes(html, ">Done<");
   assertStringIncludes(html, "Show earlier (1)");
 });
+
+Deno.test("TodoBacklog — offers the reminder nudge when a to-do has a due date", () => {
+  const html = render(h(TodoBacklog, {
+    initialTodos: [
+      todo({ id: "t1", dueAt: new Date(Date.now() + 86400000).toISOString() }),
+    ],
+  }));
+
+  assertStringIncludes(html, "Get reminded when a to-do is due");
+});
+
+Deno.test("TodoBacklog — no nudge when nothing has a due date", () => {
+  const html = render(h(TodoBacklog, {
+    initialTodos: [todo({ id: "t1", dueAt: null })],
+  }));
+
+  assertFalse(html.includes("Get reminded when a to-do is due"));
+});

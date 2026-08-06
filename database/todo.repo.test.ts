@@ -1,6 +1,7 @@
 import { assertEquals } from "jsr:@std/assert@^1.0.19";
 import { TodoRepo } from "@/database/todo.repo.ts";
 import { getKv } from "@/database/db.ts";
+import { TodoNotificationRepo } from "@/database/todo-notification.repo.ts";
 import type { CreateTodoDto } from "@/models/index.ts";
 
 // Isolated in-memory KV for this test process. getKv() reads KV_PATH lazily on
@@ -312,5 +313,33 @@ Deno.test({
 
     assertEquals(updated?.dueAt, null);
     assertEquals(updated?.title, "Book the venue");
+  },
+});
+
+Deno.test({
+  name: "delete — also removes the to-do's notification markers",
+  sanitizeResources: false,
+  async fn() {
+    const hh = "hh-todo-cascade";
+    const todo = await TodoRepo.create(draft(hh, "Book the venue"));
+    await TodoNotificationRepo.claim(
+      hh,
+      todo.id,
+      "due@2026-08-06T07:00:00.000Z",
+      { sent: true },
+    );
+
+    await TodoRepo.delete(hh, todo.id);
+
+    // Claimable again only because the marker is gone.
+    assertEquals(
+      await TodoNotificationRepo.claim(
+        hh,
+        todo.id,
+        "due@2026-08-06T07:00:00.000Z",
+        { sent: true },
+      ),
+      true,
+    );
   },
 });

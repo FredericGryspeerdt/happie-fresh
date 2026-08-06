@@ -12,6 +12,7 @@ import { Pressable } from "@/components/md3/Pressable.tsx";
 import Fab from "@/islands/shell/Fab.tsx";
 import DueChip from "@/islands/todos/DueChip.tsx";
 import { GROUP_LABELS, groupOpenTodos } from "@/utils/todo-due.ts";
+import { usePushNotifications } from "@/islands/shell/usePushNotifications.ts";
 
 interface Props {
   initialTodos: TodoInterface[];
@@ -32,6 +33,15 @@ export default function TodoBacklog({ initialTodos }: Props) {
     removeTodo,
     refresh,
   } = useMemo(() => useTodos(initialTodos), []);
+
+  const {
+    state: pushState,
+    busy: pushBusy,
+    enable: enablePush,
+  } = useMemo(() => usePushNotifications(), []);
+  // Session-only: the durable control lives in the More sheet, so dismissing
+  // here never strands anyone.
+  const nudgeDismissed = useSignal(false);
 
   const createOpen = useSignal(false);
   const newTitle = useSignal("");
@@ -180,6 +190,24 @@ export default function TodoBacklog({ initialTodos }: Props) {
     return toLocalInputValue(d.toISOString());
   };
 
+  /**
+   * Clear a to-do's notification from the shade once it's done. Only possible
+   * because the sweep tags per to-do (`todo-<id>`); a shared tag would give no
+   * way to address one. Best-effort: no service worker, no notifications, or an
+   * unsupported browser all just mean nothing to close.
+   */
+  const clearNotificationFor = async (id: string) => {
+    try {
+      if (!("serviceWorker" in navigator)) return;
+      const reg = await navigator.serviceWorker.getRegistration("/push-sw.js");
+      if (!reg) return;
+      const notes = await reg.getNotifications({ tag: `todo-${id}` });
+      for (const n of notes) n.close();
+    } catch {
+      // Never let notification housekeeping break ticking a to-do off.
+    }
+  };
+
   const openDuePicker = (id: string, current: string | null) => {
     dueDraft.value = current
       ? toLocalInputValue(current)
@@ -227,6 +255,9 @@ export default function TodoBacklog({ initialTodos }: Props) {
         onClick={async () => {
           const ok = isDone ? await unTick(t.id) : await tickOff(t.id);
           if (!ok) say("That didn't save. Try again?");
+          // Only on tick-off, not un-tick: reopening a to-do should not
+          // resurrect a notification for a moment that has already passed.
+          else if (!isDone) await clearNotificationFor(t.id);
         }}
         aria-label={isDone ? `Reopen ${t.title}` : `Tick off ${t.title}`}
         class="pt-0.5"
@@ -294,6 +325,33 @@ export default function TodoBacklog({ initialTodos }: Props) {
           )
           : (
             <>
+              {!nudgeDismissed.value && pushState.value === "default" &&
+                open.some((t) => t.dueAt !== null) && (
+                <div class="flex flex-col gap-2 bg-secondary-container text-on-secondary-container rounded-[var(--md-shape-lg)] px-4 py-3">
+                  <div class="md-body-medium">
+                    Get reminded when a to-do is due
+                  </div>
+                  <div class="flex gap-2">
+                    <Button
+                      variant="filled"
+                      loading={pushBusy.value}
+                      onClick={async () => {
+                        const ok = await enablePush();
+                        if (!ok) say("Couldn't turn reminders on. Try again?");
+                        else nudgeDismissed.value = true;
+                      }}
+                    >
+                      Turn on reminders
+                    </Button>
+                    <Button
+                      variant="text"
+                      onClick={() => (nudgeDismissed.value = true)}
+                    >
+                      Not now
+                    </Button>
+                  </div>
+                </div>
+              )}
               {groups.map((g) => (
                 <div key={g.key} class="flex flex-col gap-1">
                   <div class="md-label-medium uppercase text-on-surface-variant px-1 pt-2">

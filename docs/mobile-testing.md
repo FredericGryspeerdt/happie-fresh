@@ -117,6 +117,38 @@ but not step 4 of the trust setup above. Full trust is a separate toggle.
 
 **The page never loads at all.** AP isolation on the network — see above.
 
+## Testing on a Deno Deploy preview URL
+
+Deno Deploy gives **every preview deployment its own isolated KV database**, so a
+preview starts with no accounts at all and your production credentials will not
+work there. Passwords are PBKDF2-hashed and cannot be read back, so an unknown
+one can only be reset, never recovered.
+
+`deno task db:login` provisions a login against whichever database `KV_PATH`
+points at. Unlike `deno task db:seed` it never deletes anything, which is why it
+is allowed to target a remote database at all.
+
+```bash
+KV_PATH="https://api.deno.com/v2/databases/<PREVIEW_DB_ID>/connect" \
+DENO_KV_ACCESS_TOKEN="<deno-deploy-org-access-token>" \
+LOGIN_PASSWORD="<a password you choose>" \
+deno task db:login --username tester --confirm-remote
+```
+
+Find `<PREVIEW_DB_ID>` in the Deno Deploy console under **Databases**, choosing
+the entry for this branch or preview timeline — **not** production. The script
+echoes the database id it is about to write to, and refuses any remote target
+without `--confirm-remote`, because a preview URL and a production URL differ
+only by that id. `--list` shows which usernames already exist.
+
+The same command works locally (omit `--confirm-remote`), and re-running it for
+an existing username just resets that password.
+
+> For push notifications specifically, the preview also needs `VAPID_PUBLIC_KEY`,
+> `VAPID_PRIVATE_KEY` and `VAPID_SUBJECT` set for the **preview** environment in
+> Deno Deploy, not only production. Without them `/api/push/vapid-key` returns
+> `503` and the notifications sheet cannot subscribe.
+
 ## What you can and cannot test today
 
 Working now: the web manifest, Add to Home Screen, app icons, standalone
