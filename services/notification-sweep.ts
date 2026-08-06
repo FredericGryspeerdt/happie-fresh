@@ -77,10 +77,14 @@ export async function sweepDueNotifications(): Promise<
     sent += result.sent;
   }
 
-  if (claimed > 0) {
-    console.info(
-      `[sweep] claimed=${claimed} sent=${sent} suppressed=${suppressed}`,
-    );
-  }
+  // Logged on every run, including empty ones. A sweep that only spoke up when
+  // it claimed something made "cron never fired here" and "cron fired and
+  // selected nothing" indistinguishable in the deployment logs — which are the
+  // only view into this, since nothing about a missed notification is visible
+  // in the app. One line per five minutes is worth that.
+  console.info(
+    `[sweep] scanned=${todos.length} due=${due.length} claimed=${claimed} ` +
+      `sent=${sent} suppressed=${suppressed}`,
+  );
   return { claimed, sent, suppressed };
 }
