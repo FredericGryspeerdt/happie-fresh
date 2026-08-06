@@ -2,13 +2,14 @@ import type { Signal } from "@preact/signals";
 import type { BarcodeFormat } from "@/models/index.ts";
 import {
   detectFormat,
+  formatLabel,
   SUPPORTED_FORMATS,
   validateBarcode,
 } from "@/utils/barcode.ts";
 import { Barcode } from "@/components/md3/Barcode.tsx";
 import { Button } from "@/components/md3/Button.tsx";
 import { Chip } from "@/components/md3/Chip.tsx";
-import { Icon } from "@/components/md3/Icon.tsx";
+import { Icon, type IconName } from "@/components/md3/Icon.tsx";
 import { Pressable } from "@/components/md3/Pressable.tsx";
 import { CARD_COLORS } from "./palette.ts";
 
@@ -25,6 +26,8 @@ interface CardFormProps {
   form: CardFormSignals;
   scannerAvailable: boolean;
   saving: boolean;
+  submitLabel?: string;
+  submitIcon?: IconName;
   onScan: () => void;
   onSubmit: () => void;
   onCancel: () => void;
@@ -36,18 +39,33 @@ const fieldLabel =
   "md-label-medium uppercase tracking-wide text-on-surface-variant px-1 mb-1";
 
 export function CardForm(
-  { form, scannerAvailable, saving, onScan, onSubmit, onCancel }: CardFormProps,
+  {
+    form,
+    scannerAvailable,
+    saving,
+    submitLabel = "Save card",
+    submitIcon = "plus",
+    onScan,
+    onSubmit,
+    onCancel,
+  }: CardFormProps,
 ) {
   const value = form.value.value;
   const format = form.format.value;
   const trimmed = value.trim();
   const check = validateBarcode(value, format);
   const canSave = form.label.value.trim().length > 0 && check.ok;
+  const isAuto = !form.manualFormat.value;
 
   const onValueInput = (next: string) => {
     form.value.value = next;
     // Keep the format in sync with the value until the user picks one by hand.
     if (!form.manualFormat.value) form.format.value = detectFormat(next);
+  };
+
+  const pickAuto = () => {
+    form.manualFormat.value = false;
+    form.format.value = detectFormat(form.value.value);
   };
 
   const pickFormat = (f: BarcodeFormat) => {
@@ -108,10 +126,19 @@ export function CardForm(
       <div class="flex flex-col">
         <label class={fieldLabel}>Barcode type</label>
         <div class="flex gap-2 overflow-x-auto pr-1 pb-1">
+          <Chip
+            selected={isAuto}
+            leadingCheck={false}
+            onClick={pickAuto}
+          >
+            {isAuto && trimmed.length > 0
+              ? `Auto · ${formatLabel(format)}`
+              : "Auto"}
+          </Chip>
           {SUPPORTED_FORMATS.map((f) => (
             <Chip
               key={f.format}
-              selected={format === f.format}
+              selected={!isAuto && format === f.format}
               leadingCheck={false}
               onClick={() => pickFormat(f.format)}
             >
@@ -185,12 +212,12 @@ export function CardForm(
         <Button
           variant="filled"
           full
-          icon="plus"
+          icon={submitIcon}
           disabled={!canSave}
           loading={saving}
           onClick={onSubmit}
         >
-          Save card
+          {submitLabel}
         </Button>
       </div>
     </div>
