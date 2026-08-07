@@ -2,6 +2,7 @@ import { Context } from "fresh";
 import { getCookies } from "$std/http/cookie.ts";
 import { SessionRepo } from "@/database/session.repo.ts";
 import { UserRepo } from "@/database/user.repo.ts";
+import { setSessionCookie } from "@/utils/index.ts";
 
 interface State {
   userId?: string;
@@ -36,7 +37,23 @@ export async function handler(
       const user = await UserRepo.findById(session.userId);
       ctx.state.userId = session.userId;
       ctx.state.householdId = user?.householdId;
-      return await ctx.next();
+
+      const response = await ctx.next();
+
+      try {
+        const renewed = await SessionRepo.touch(session);
+        if (renewed) {
+          const maxAge = Math.floor(
+            (new Date(renewed.expiresAt).getTime() - Date.now()) / 1000,
+          );
+          setSessionCookie(response.headers, renewed.id, maxAge);
+        }
+      } catch {
+        // Renewal is best-effort — the session stays valid until its
+        // current expiresAt, so never fail the request over it.
+      }
+
+      return response;
     }
   }
 
