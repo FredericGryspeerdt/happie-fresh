@@ -4,6 +4,7 @@ import {
   json,
   noContent,
   notFound,
+  requireManager,
 } from "@/utils/index.ts";
 import { TodoRepo } from "@/database/index.ts";
 import type { UpdateTodoDto } from "@/models/index.ts";
@@ -63,6 +64,11 @@ export const handler = define.handlers({
   async DELETE(ctx) {
     const householdId = ctx.state.householdId;
     if (!householdId) return new Response("Unauthorized", { status: 401 });
+    // "Not needed" is a deletion (ADR 0002) and deletions are manager-only
+    // (ADR 0006): a kid ticks things off; deciding "we dropped it" is a
+    // manager call.
+    const forbidden = requireManager(ctx);
+    if (forbidden) return forbidden;
 
     const existing = await TodoRepo.getById(householdId, ctx.params.id);
     if (!existing) return notFound("no such to-do");
