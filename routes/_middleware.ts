@@ -2,19 +2,17 @@ import { Context } from "fresh";
 import { getCookies } from "$std/http/cookie.ts";
 import { SessionRepo } from "@/database/session.repo.ts";
 import { UserRepo } from "@/database/user.repo.ts";
+import { MemberRepo } from "@/database/member.repo.ts";
 import {
+  ACTING_MEMBER_COOKIE_NAME,
   deleteSessionCookie,
   SESSION_COOKIE_NAME,
   setSessionCookie,
 } from "@/utils/index.ts";
-
-interface State {
-  userId?: string;
-  householdId?: string;
-}
+import { type StateInterface } from "@/utils/define.ts";
 
 export async function handler(
-  ctx: Context<State>,
+  ctx: Context<StateInterface>,
 ) {
   const req = ctx.req;
   const url = new URL(req.url);
@@ -38,9 +36,29 @@ export async function handler(
   if (sessionId) {
     const session = await SessionRepo.findById(sessionId);
     if (session && new Date(session.expiresAt) > new Date()) {
-      const user = await UserRepo.findById(session.userId);
+      let user = await UserRepo.findById(session.userId);
+      // Legacy records predate members — backfill the link once, lazily, here
+      // (sessions outlive deploys, so a login-time hook would miss everyone
+      // already signed in). No-op when memberId is already set.
+      if (user && !user.memberId) user = await UserRepo.ensureMember(user);
       ctx.state.userId = session.userId;
       ctx.state.householdId = user?.householdId;
+
+      if (user?.householdId) {
+        // The device's claimed member, when the claim still resolves. A cookie
+        // pointing at a removed member is treated as no claim: the chip island
+        // re-opens the picker (Q6/Q9 — graceful dangle, never a crash).
+        const claimedId = cookies[ACTING_MEMBER_COOKIE_NAME];
+        const claimed = claimedId
+          ? await MemberRepo.getById(user.householdId, claimedId)
+          : null;
+        ctx.state.actingClaimed = claimed !== null;
+        ctx.state.actingMember = claimed ??
+          (user.memberId
+            ? await MemberRepo.getById(user.householdId, user.memberId) ??
+              undefined
+            : undefined);
+      }
 
       const response = await ctx.next();
 
