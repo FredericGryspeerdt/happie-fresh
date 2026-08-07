@@ -96,6 +96,12 @@ export class UserRepo {
    * deploys, so a login-time hook would miss everyone already signed in) and
    * from the data migration. Concurrency-safe: the atomic check makes the
    * loser of a race discard its member and adopt the winner's.
+   *
+   * **Counting contract**: A truthy `user.memberId` input does NOT guarantee
+   * no member will be created — a dangling link (memberId set but member
+   * deleted) is healed by creating a new member. Callers counting creations
+   * (e.g. migrations) must compare the returned record's `memberId` against
+   * the input's pre-call `memberId`, not test the input's truthiness.
    */
   static async ensureMember(user: UserInterface): Promise<UserInterface> {
     const kv = await getKv();
