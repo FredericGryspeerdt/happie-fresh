@@ -12,8 +12,9 @@ export const handler: Handlers = {
     }
 
     const headers = new Headers();
-    // Must mirror the attributes used in routes/login.tsx — a host-only cookie
-    // is only cleared by a host-only delete, so no `domain` here either.
+    // Must mirror the attributes used in utils/session-cookie.ts — a
+    // host-only cookie is only cleared by a host-only delete, so no
+    // `domain` here either.
     deleteCookie(headers, "sessionId", { path: "/" });
     headers.set("location", "/login");
 

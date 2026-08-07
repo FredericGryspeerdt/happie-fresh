@@ -82,8 +82,9 @@ signal once on mount and returns the same instance on subsequent renders.
 
 **Routing**: File-system based. `routes/api/*.ts` return JSON responses.
 `routes/*.tsx` return pages. Dynamic segments use `[id]` folders.
-`_middleware.ts` handles cookie-based session auth (24h expiry) with redirect to
-`/login` for unauthorized page requests and 401 for API requests.
+`_middleware.ts` handles cookie-based session auth (sliding 30-day expiry,
+90-day absolute cap) with redirect to `/login` for unauthorized page requests
+and 401 for API requests.
 
 **KV key pattern**: `[collection_name, id]` (e.g., `["items", "uuid"]`). IDs via
 `crypto.randomUUID()`.
