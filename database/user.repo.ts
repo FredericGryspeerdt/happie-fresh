@@ -88,18 +88,26 @@ export class UserRepo {
   }
 
   /**
-   * Backfills the user→member link for records created before members existed.
-   * Called lazily from the auth middleware (sessions outlive deploys, so a
-   * login-time hook would miss everyone already signed in) and from the data
-   * migration. Concurrency-safe: the atomic check makes the loser of a race
-   * discard its member and adopt the winner's.
+   * Backfills the user→member link for records created before members
+   * existed, and re-heals a login whose linked member was removed (e.g. a
+   * manager deletes the login's own member) — the two cases are deliberately
+   * the same path: both leave the user without a member that actually
+   * resolves. Called lazily from the auth middleware (sessions outlive
+   * deploys, so a login-time hook would miss everyone already signed in) and
+   * from the data migration. Concurrency-safe: the atomic check makes the
+   * loser of a race discard its member and adopt the winner's.
    */
   static async ensureMember(user: UserInterface): Promise<UserInterface> {
-    if (user.memberId) return user;
     const kv = await getKv();
     const entry = await kv.get<UserInterface>(["users", user.id]);
     if (!entry.value) return user;
-    if (entry.value.memberId) return entry.value;
+    if (entry.value.memberId) {
+      const member = await MemberRepo.getById(
+        entry.value.householdId,
+        entry.value.memberId,
+      );
+      if (member) return entry.value;
+    }
 
     const member = await MemberRepo.create({
       householdId: entry.value.householdId,

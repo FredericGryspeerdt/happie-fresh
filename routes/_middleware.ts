@@ -37,27 +37,34 @@ export async function handler(
     const session = await SessionRepo.findById(sessionId);
     if (session && new Date(session.expiresAt) > new Date()) {
       let user = await UserRepo.findById(session.userId);
-      // Legacy records predate members — backfill the link once, lazily, here
-      // (sessions outlive deploys, so a login-time hook would miss everyone
-      // already signed in). No-op when memberId is already set.
-      if (user && !user.memberId) user = await UserRepo.ensureMember(user);
       ctx.state.userId = session.userId;
       ctx.state.householdId = user?.householdId;
 
       if (user?.householdId) {
         // The device's claimed member, when the claim still resolves. A cookie
         // pointing at a removed member is treated as no claim: the chip island
-        // re-opens the picker (Q6/Q9 — graceful dangle, never a crash).
+        // re-opens the picker (graceful dangle, never a crash).
         const claimedId = cookies[ACTING_MEMBER_COOKIE_NAME];
         const claimed = claimedId
           ? await MemberRepo.getById(user.householdId, claimedId)
           : null;
         ctx.state.actingClaimed = claimed !== null;
-        ctx.state.actingMember = claimed ??
-          (user.memberId
-            ? await MemberRepo.getById(user.householdId, user.memberId) ??
-              undefined
-            : undefined);
+
+        let acting = claimed;
+        if (!acting && user.memberId) {
+          acting = await MemberRepo.getById(user.householdId, user.memberId);
+        }
+        if (!acting) {
+          // Legacy user (no member link) or a dangling link (the household
+          // removed the login's own member): heal both the same way, lazily —
+          // sessions outlive deploys, so a login-time hook would miss everyone
+          // already signed in.
+          user = await UserRepo.ensureMember(user);
+          if (user.memberId) {
+            acting = await MemberRepo.getById(user.householdId, user.memberId);
+          }
+        }
+        ctx.state.actingMember = acting ?? undefined;
       }
 
       const response = await ctx.next();

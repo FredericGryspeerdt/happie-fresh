@@ -52,6 +52,21 @@ Deno.test({
 });
 
 Deno.test({
+  name: "ensureMember — re-heals a dangling member link",
+  sanitizeResources: false,
+  async fn() {
+    const user = await UserRepo.create({ username: "dana", passwordHash: "x" });
+    await MemberRepo.delete(user.householdId, user.memberId!);
+
+    const healed = await UserRepo.ensureMember(user);
+    assertEquals(typeof healed.memberId, "string");
+    assertEquals(healed.memberId !== user.memberId, true);
+    const member = await MemberRepo.getById(user.householdId, healed.memberId!);
+    assertEquals(member?.isManager, true);
+  },
+});
+
+Deno.test({
   name: "ensureMember — concurrent calls converge on a single member",
   sanitizeResources: false,
   async fn() {
