@@ -5,6 +5,7 @@ export * from "./db.ts";
 export * from "./shopping-list.repo.ts";
 export * from "./shopping-list-item.repo.ts";
 export * from "./household.repo.ts";
+export * from "./member.repo.ts";
 export * from "./category.repo.ts";
 export * from "./dish.repo.ts";
 export * from "./dish-tag-group.repo.ts";
