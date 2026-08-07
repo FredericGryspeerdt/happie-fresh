@@ -98,6 +98,35 @@ Deno.test({
 });
 
 Deno.test({
+  name:
+    "middleware — invalid session cookie gets cleared on the /login redirect",
+  sanitizeResources: false,
+  async fn() {
+    const response = await handler(fakeCtx(pageRequest("no-such-session")));
+
+    assertEquals(response.status, 303);
+    // Without this, a dead 30-day cookie causes a KV miss on every request.
+    const cookie = response.headers.get("set-cookie")!;
+    assertMatch(cookie, /^sessionId=;/);
+    assertMatch(cookie, /Expires=Thu, 01 Jan 1970 00:00:00 GMT/i);
+  },
+});
+
+Deno.test({
+  name:
+    "middleware — no Set-Cookie on the /login redirect without a session cookie",
+  sanitizeResources: false,
+  async fn() {
+    const response = await handler(
+      fakeCtx(new Request("http://localhost:8000/shopping")),
+    );
+
+    assertEquals(response.status, 303);
+    assertEquals(response.headers.get("set-cookie"), null);
+  },
+});
+
+Deno.test({
   name: "middleware — unknown session still gets 401 on /api",
   sanitizeResources: false,
   async fn() {

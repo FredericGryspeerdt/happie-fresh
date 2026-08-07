@@ -1,9 +1,10 @@
-import { setCookie } from "$std/http/cookie.ts";
+import { deleteCookie, setCookie } from "$std/http/cookie.ts";
+
+export const SESSION_COOKIE_NAME = "sessionId";
 
 /**
- * The single place that knows the session cookie's attributes. Login and
- * the auth middleware both go through here; routes/logout.ts must keep its
- * deleteCookie attributes in sync with these.
+ * The single place that knows the session cookie's attributes. Login, logout,
+ * and the auth middleware all go through here.
  */
 export function setSessionCookie(
   headers: Headers,
@@ -11,7 +12,7 @@ export function setSessionCookie(
   maxAgeSeconds: number,
 ): void {
   setCookie(headers, {
-    name: "sessionId",
+    name: SESSION_COOKIE_NAME,
     value: sessionId,
     maxAge: maxAgeSeconds,
     sameSite: "Lax",
@@ -27,4 +28,13 @@ export function setSessionCookie(
     // the iOS PWA).
     httpOnly: true,
   });
+}
+
+/**
+ * Browsers only clear a cookie when the delete's name, path, and domain
+ * scope match the original — so this must stay the mirror of
+ * setSessionCookie: same name, `Path=/`, and host-only (no `domain`).
+ */
+export function deleteSessionCookie(headers: Headers): void {
+  deleteCookie(headers, SESSION_COOKIE_NAME, { path: "/" });
 }
