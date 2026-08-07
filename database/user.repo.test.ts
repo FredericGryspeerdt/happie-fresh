@@ -50,3 +50,33 @@ Deno.test({
     assertEquals((await MemberRepo.getAll("hh-legacy")).length, 1);
   },
 });
+
+Deno.test({
+  name: "ensureMember — concurrent calls converge on a single member",
+  sanitizeResources: false,
+  async fn() {
+    const kv = await getKv();
+    const legacy: UserInterface = {
+      id: "legacy-race",
+      username: "casey",
+      passwordHash: "x",
+      householdId: "hh-race",
+    };
+    await kv.atomic()
+      .set(["users", legacy.id], legacy)
+      .set(["users_by_username", legacy.username], legacy)
+      .commit();
+
+    // Both calls start from the same stale record, so they interleave at
+    // each await and one loses the atomic check — the loser deletes its
+    // member and adopts the winner's.
+    const [a, b] = await Promise.all([
+      UserRepo.ensureMember(legacy),
+      UserRepo.ensureMember(legacy),
+    ]);
+
+    assertEquals(typeof a.memberId, "string");
+    assertEquals(a.memberId, b.memberId);
+    assertEquals((await MemberRepo.getAll("hh-race")).length, 1);
+  },
+});
