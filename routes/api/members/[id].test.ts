@@ -163,3 +163,61 @@ Deno.test({
     assertEquals(res.status, 409);
   },
 });
+
+const delWithCookie = (cookieMemberId: string) =>
+  new Request("http://x/api/members/x", {
+    method: "DELETE",
+    headers: { Cookie: `actingMemberId=${cookieMemberId}` },
+  });
+
+Deno.test({
+  name: "PATCH — a manager edits another member's name and color",
+  sanitizeResources: false,
+  async fn() {
+    await clearMembers();
+    const mgr = await seed("Alex", true);
+    const kid = await seed("Bo", false);
+    const res = await handler.PATCH(
+      ctx(patch({ name: "Bobby", color: "coral" }), kid.id, {
+        householdId: "h1",
+        actingMember: mgr,
+      }),
+    );
+    assertEquals(res.status, 200);
+    const updated = await res.json();
+    assertEquals(updated.name, "Bobby");
+    assertEquals(updated.color, "coral");
+  },
+});
+
+Deno.test({
+  name:
+    "DELETE — clears the acting cookie only when it claimed the removed member",
+  sanitizeResources: false,
+  async fn() {
+    await clearMembers();
+    const mgr = await seed("Alex", true);
+    const kid = await seed("Bo", false);
+    const cleared = await handler.DELETE(
+      ctx(delWithCookie(kid.id), kid.id, {
+        householdId: "h1",
+        actingMember: mgr,
+      }),
+    );
+    assertEquals(cleared.status, 204);
+    assertEquals(
+      cleared.headers.get("set-cookie")?.includes("actingMemberId="),
+      true,
+    );
+
+    const other = await seed("Pip", false);
+    const untouched = await handler.DELETE(
+      ctx(delWithCookie(mgr.id), other.id, {
+        householdId: "h1",
+        actingMember: mgr,
+      }),
+    );
+    assertEquals(untouched.status, 204);
+    assertEquals(untouched.headers.get("set-cookie"), null);
+  },
+});
