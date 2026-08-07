@@ -47,6 +47,32 @@ Deno.test({
 });
 
 Deno.test({
+  name:
+    "middleware — renewal capped by absoluteExpiresAt reaches the browser as a shorter Max-Age",
+  sanitizeResources: false,
+  async fn() {
+    const session = await SessionRepo.create("user-1");
+    // Near end of life: cap 10d away, sliding expiry down to 5d — touch()
+    // should renew to the cap (~10d), not the full 30d idle window.
+    const kv = await getKv();
+    const capped = {
+      ...session,
+      expiresAt: new Date(Date.now() + 5 * DAY_MS),
+      absoluteExpiresAt: new Date(Date.now() + 10 * DAY_MS),
+    };
+    await kv.set(["sessions", session.id], capped);
+
+    const response = await handler(fakeCtx(pageRequest(session.id)));
+
+    assertEquals(response.status, 200);
+    const cookie = response.headers.get("set-cookie")!;
+    const maxAge = Number(cookie.match(/Max-Age=(\d+)/i)![1]);
+    assertEquals(maxAge > 9 * 24 * 60 * 60, true);
+    assertEquals(maxAge <= 10 * 24 * 60 * 60, true);
+  },
+});
+
+Deno.test({
   name: "middleware — no Set-Cookie when renewal is throttled",
   sanitizeResources: false,
   async fn() {

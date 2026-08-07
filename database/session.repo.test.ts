@@ -116,6 +116,30 @@ Deno.test({
 });
 
 Deno.test({
+  name:
+    "touch — does not resurrect a session deleted concurrently (logout race)",
+  sanitizeResources: false,
+  async fn() {
+    await clearSessions();
+    const session = await SessionRepo.create("user-1");
+    // Simulate a session last renewed 2 days ago: expiry sits at now + 28d,
+    // so the throttle pre-check passes and touch() proceeds to renew.
+    const aged = { ...session, expiresAt: new Date(Date.now() + 28 * DAY_MS) };
+    await putSession(aged);
+
+    // Simulate a concurrent /logout deleting the session before the
+    // renewal's compare-and-set lands.
+    await SessionRepo.delete(session.id);
+
+    const renewed = await SessionRepo.touch(aged);
+
+    assertEquals(renewed, null);
+    const persisted = await SessionRepo.findById(session.id);
+    assertEquals(persisted, null);
+  },
+});
+
+Deno.test({
   name: "touch — never renews legacy sessions without absoluteExpiresAt",
   sanitizeResources: false,
   async fn() {

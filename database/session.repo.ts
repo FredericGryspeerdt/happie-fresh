@@ -30,7 +30,14 @@ export class SessionRepo {
    * Slide the session's expiry to now + 30d (capped at absoluteExpiresAt).
    * Returns the renewed session, or null when nothing was written: the
    * expiry would move by less than a day (throttle — at most one write per
-   * session per day), or the session predates sliding expiry.
+   * session per day), the session predates sliding expiry, or the session
+   * was deleted (e.g. logout) concurrently with this call.
+   *
+   * The cheap pre-check below runs against the caller's (possibly
+   * slightly-stale) `session` snapshot to keep the ~99% throttled path free
+   * of any KV round-trip. Only when it says "renew" do we re-read from KV
+   * and commit via a compare-and-set, so a session deleted between the
+   * pre-check and the write can never be resurrected.
    */
   static async touch(
     session: SessionInterface,
@@ -45,15 +52,30 @@ export class SessionRepo {
     const gained = newExpiry - new Date(session.expiresAt).getTime();
     if (gained <= RENEWAL_THRESHOLD_MS) return null;
 
-    const renewed: SessionInterface = {
-      ...session,
-      expiresAt: new Date(newExpiry),
-    };
     const kv = await getKv();
-    await kv.set(["sessions", session.id], renewed, {
-      expireIn: newExpiry - now,
-    });
-    return renewed;
+    const key = ["sessions", session.id];
+    const entry = await kv.get<SessionInterface>(key);
+    if (!entry.value || !entry.value.absoluteExpiresAt) return null;
+
+    const freshNow = Date.now();
+    const freshNewExpiry = Math.min(
+      freshNow + SESSION_IDLE_TTL_MS,
+      new Date(entry.value.absoluteExpiresAt).getTime(),
+    );
+    const freshGained = freshNewExpiry -
+      new Date(entry.value.expiresAt).getTime();
+    if (freshGained <= RENEWAL_THRESHOLD_MS) return null;
+
+    const renewed: SessionInterface = {
+      ...entry.value,
+      expiresAt: new Date(freshNewExpiry),
+    };
+    const res = await kv.atomic()
+      .check({ key, versionstamp: entry.versionstamp })
+      .set(key, renewed, { expireIn: freshNewExpiry - freshNow })
+      .commit();
+
+    return res.ok ? renewed : null;
   }
 
   static async findById(id: string): Promise<SessionInterface | null> {
