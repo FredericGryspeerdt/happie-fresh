@@ -1,7 +1,10 @@
 import { page } from "fresh";
-import { setCookie } from "$std/http/cookie.ts";
-import { SessionRepo, UserRepo } from "@/database/index.ts";
-import { define, verifyPassword } from "@/utils/index.ts";
+import {
+  SESSION_IDLE_TTL_MS,
+  SessionRepo,
+  UserRepo,
+} from "@/database/index.ts";
+import { define, setSessionCookie, verifyPassword } from "@/utils/index.ts";
 
 interface Data {
   error?: string;
@@ -35,19 +38,7 @@ export const handler = define.handlers<Data>({
     const session = await SessionRepo.create(user.id);
 
     const headers = new Headers();
-    setCookie(headers, {
-      name: "sessionId",
-      value: session.id,
-      maxAge: 60 * 60 * 24, // 24 hours
-      sameSite: "Lax",
-      // No `domain`: a host-only cookie is scoped to whatever host served it,
-      // which is what we want. Pinning it to `ctx.url.hostname` broke on-device
-      // testing — behind the Fresh Vite plugin the inner request URL is always
-      // localhost, so a phone hitting the LAN address got `Domain=localhost`
-      // and the browser silently rejected the cookie (endless login loop).
-      path: "/",
-      secure: true,
-    });
+    setSessionCookie(headers, session.id, SESSION_IDLE_TTL_MS / 1000);
 
     headers.set("location", "/shopping");
     return new Response(null, {
