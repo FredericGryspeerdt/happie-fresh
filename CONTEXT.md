@@ -14,10 +14,10 @@ Happie. Every piece of data in the app belongs to exactly one household.
 _Avoid_: family, account, group, tenant
 
 **Member**: A person in the household. Members exist so the household knows
-*who* — who added something, who something is assigned to. A member is a
-person, not a login: signing in and being someone are different things, and
-most members (children) never sign in at all. Every member belongs to exactly
-one household. _Avoid_: profile, user, account
+_who_ — who added something, who something is assigned to. A member is a person,
+not a login: signing in and being someone are different things, and most members
+(children) never sign in at all. Every member belongs to exactly one household.
+_Avoid_: profile, user, account
 
 **Manager**: A member the household trusts with the sharp knives: managing
 members (adding, editing, removing, promoting) and destroying household data
