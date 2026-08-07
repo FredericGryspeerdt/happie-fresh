@@ -11,6 +11,7 @@
     "db:migrate": "deno run --env-file --unstable-kv -A scripts/migrate.ts",
     "db:view": "deno run --env-file --unstable-kv -A scripts/db-viewer.ts",
     "db:login": "deno run --env-file --unstable-kv -A scripts/provision-login.ts",
+    "db:dedupe-menu-tags": "deno run --env-file --unstable-kv -A scripts/dedupe-dish-tag-groups.ts",
     "update": "deno run -A -r jsr:@fresh/update ."
   },
   "lint": {

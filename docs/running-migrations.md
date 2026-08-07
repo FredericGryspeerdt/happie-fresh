@@ -70,6 +70,24 @@ Locally `getKv()` honors `KV_PATH`; the `https://` value connects to the remote
 production KV. A successful run logs `Migration complete … Catalogue: scoped to
 household …`; a re-run logs `no global entries to scope (skipped)`.
 
+## Cleanup: duplicated dish tag groups
+
+In production the catalogue migration was raced by lazy per-household seeding
+(`DishTagGroupRepo.ensureDefaults`): a `/menu` visit before the migration
+seeded fresh default tag groups, and the migration then moved the old global
+groups under the same household — duplicating "Type", "Meal" and "Side type".
+
+`scripts/dedupe-dish-tag-groups.ts` (`deno task db:dedupe-menu-tags`) merges
+them: per household, same-label groups collapse into the copy dishes reference
+most, dishes pointing at a dropped value are rewritten to the keeper's
+same-label value, and custom values are preserved. **Dry run by default** —
+pass `--apply` to commit. Idempotent.
+
+Against production, use the **Dedupe production menu tag groups** workflow
+(`.github/workflows/dedupe-prod-menu-tags.yml`): run it once as a dry run,
+check the printed plan, then re-run with "apply" checked and `DEDUPE` typed in
+the confirm field.
+
 ## Local development
 
 Against the local file KV, `deno task db:migrate` reads `.env`. For a fresh dev
