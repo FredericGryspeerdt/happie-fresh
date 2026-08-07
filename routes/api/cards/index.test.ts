@@ -40,7 +40,7 @@ const KID: MemberInterface = {
   isManager: false,
 };
 
-const AUTH: State = { userId: "u1", householdId: "h1" };
+const AUTH: State = { userId: "u1", householdId: "h1", actingMember: MANAGER };
 const AUTH_MANAGER: State = {
   userId: "u1",
   householdId: "h1",
@@ -86,7 +86,7 @@ Deno.test({
     const created = await createRes.json();
     assertEquals(created.label, "Delhaize");
     assertEquals(created.householdId, "h1");
-    assertEquals(created.createdBy, "u1");
+    assertEquals(created.createdBy, "m-mgr");
 
     const listRes = await handler.GET(
       ctx(new Request("http://x/api/cards"), AUTH),
@@ -94,6 +94,23 @@ Deno.test({
     assertEquals(listRes.status, 200);
     const list = await listRes.json();
     assertEquals(list.map((c: { label: string }) => c.label), ["Delhaize"]);
+  },
+});
+
+Deno.test({
+  name: "POST — stamps createdBy with the acting member",
+  sanitizeResources: false,
+  async fn() {
+    await clearCards();
+    const res = await handler.POST(
+      ctx(post(validCard), {
+        userId: "u1",
+        householdId: "h-attr",
+        actingMember: { ...MANAGER, householdId: "h-attr" },
+      }),
+    );
+    assertEquals(res.status, 201);
+    assertEquals((await res.json()).createdBy, "m-mgr");
   },
 });
 
@@ -120,7 +137,11 @@ Deno.test({
   async fn() {
     await clearCards();
     await handler.POST(
-      ctx(post(validCard), { userId: "u2", householdId: "h2" }),
+      ctx(post(validCard), {
+        userId: "u2",
+        householdId: "h2",
+        actingMember: MANAGER,
+      }),
     );
     const listRes = await handler.GET(
       ctx(new Request("http://x/api/cards"), AUTH),
@@ -304,7 +325,11 @@ Deno.test({
     );
     // A card owned by another household must be invisible to this one.
     const theirs = await (await handler.POST(
-      ctx(post(validCard), { userId: "u2", householdId: "h2" }),
+      ctx(post(validCard), {
+        userId: "u2",
+        householdId: "h2",
+        actingMember: MANAGER,
+      }),
     )).json();
     assertEquals(
       (await handler.PATCH(

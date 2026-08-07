@@ -2,12 +2,14 @@ import { assertEquals } from "jsr:@std/assert@^1.0.19";
 import { type Context } from "fresh";
 import { handler } from "@/routes/api/todos/index.ts";
 import { getKv } from "@/database/db.ts";
+import type { MemberInterface } from "@/models/index.ts";
 
 Deno.env.set("KV_PATH", ":memory:");
 
 interface State {
   userId?: string;
   householdId?: string;
+  actingMember?: MemberInterface;
 }
 
 function ctx(req: Request, state: State = {}): Context<State> {
@@ -21,7 +23,16 @@ async function clearTodos() {
   }
 }
 
-const AUTH: State = { userId: "u1", householdId: "h1" };
+const MANAGER: MemberInterface = {
+  id: "m-mgr",
+  householdId: "h1",
+  name: "Alex",
+  color: "sky",
+  emoji: "⭐",
+  isManager: true,
+};
+
+const AUTH: State = { userId: "u1", householdId: "h1", actingMember: MANAGER };
 
 const post = (body: unknown) =>
   new Request("http://x/api/todos", {
@@ -42,7 +53,7 @@ Deno.test({
     const created = await createRes.json();
     assertEquals(created.title, "Take out the bins");
     assertEquals(created.householdId, "h1");
-    assertEquals(created.createdBy, "u1");
+    assertEquals(created.createdBy, "m-mgr");
     assertEquals(created.completedAt, null);
 
     const listRes = await handler.GET(
@@ -116,7 +127,11 @@ Deno.test({
   async fn() {
     await clearTodos();
     await handler.POST(
-      ctx(post({ title: "Theirs" }), { userId: "u2", householdId: "h2" }),
+      ctx(post({ title: "Theirs" }), {
+        userId: "u2",
+        householdId: "h2",
+        actingMember: MANAGER,
+      }),
     );
     const list = await (await handler.GET(
       ctx(new Request("http://x/api/todos"), AUTH),
@@ -174,5 +189,22 @@ Deno.test({
         .status,
       400,
     );
+  },
+});
+
+Deno.test({
+  name: "POST — stamps createdBy with the acting member",
+  sanitizeResources: false,
+  async fn() {
+    await clearTodos();
+    const res = await handler.POST(
+      ctx(post({ title: "Book the venue" }), {
+        userId: "u1",
+        householdId: "h-attr",
+        actingMember: { ...MANAGER, householdId: "h-attr" },
+      }),
+    );
+    assertEquals(res.status, 201);
+    assertEquals((await res.json()).createdBy, "m-mgr");
   },
 });

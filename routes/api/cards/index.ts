@@ -26,8 +26,8 @@ export const handler = define.handlers({
   },
 
   async POST(ctx) {
-    const { userId, householdId } = ctx.state;
-    if (!userId || !householdId) {
+    const { householdId, actingMember } = ctx.state;
+    if (!householdId || !actingMember) {
       return new Response("Unauthorized", { status: 401 });
     }
     const body = await ctx.req.json();
@@ -49,7 +49,7 @@ export const handler = define.handlers({
       value,
       format,
       color,
-      createdBy: userId,
+      createdBy: actingMember.id,
       createdAt: new Date().toISOString(),
     });
     return json(card, 201);
