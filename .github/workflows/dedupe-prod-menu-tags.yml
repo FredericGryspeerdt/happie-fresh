@@ -1,0 +1,65 @@
+name: Dedupe production menu tag groups
+
+# One-off / on-demand cleanup (see scripts/dedupe-dish-tag-groups.ts): merge
+# the duplicated dish tag groups ("Type", "Meal", "Side type") left behind when
+# lazy per-household seeding raced the issue-#42 catalogue migration.
+#
+# Dry run by default — it prints the merge plan and mutates nothing. Re-run
+# with "apply" checked (and DEDUPE typed in the confirm field) to commit.
+# Idempotent: once merged, re-runs find nothing to do.
+#
+# Uses the same production credentials as migrate-prod-kv.yml:
+#   vars.DENO_KV_DATABASE_ID / secrets.DENO_KV_ACCESS_TOKEN (Production
+#   environment).
+
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: "Apply the merge (unchecked = dry run, prints the plan only)"
+        required: false
+        default: false
+        type: boolean
+      confirm:
+        description: "Type DEDUPE to confirm when applying (ignored for dry runs)"
+        required: false
+        type: string
+
+# Never let two runs (or a run and the migration) touch the same KV at once.
+concurrency:
+  group: migrate-prod-kv
+  cancel-in-progress: false
+
+jobs:
+  dedupe:
+    name: Dedupe production menu tag groups
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Require explicit confirmation when applying
+        if: ${{ inputs.apply && inputs.confirm != 'DEDUPE' }}
+        run: |
+          echo "::error::Confirmation failed — re-run with DEDUPE typed in the confirm field."
+          exit 1
+
+      - name: Clone repository
+        uses: actions/checkout@v4
+
+      - name: Install Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Install dependencies
+        run: deno install
+
+      - name: Run dedupe against production KV
+        env:
+          # Locally (isDeploy=false) getKv() honors KV_PATH; an https:// value
+          # connects to the remote production KV via KV Connect.
+          KV_PATH: "https://api.deno.com/v2/databases/${{ vars.DENO_KV_DATABASE_ID }}/connect"
+          DENO_KV_ACCESS_TOKEN: ${{ secrets.DENO_KV_ACCESS_TOKEN }}
+        run: |
+          deno run --unstable-kv -A scripts/dedupe-dish-tag-groups.ts \
+            ${{ inputs.apply && '--apply' || '' }}
