@@ -69,7 +69,14 @@ Deno.test("TodoBacklog — create sheet's title input does not rely on the bare 
 });
 
 Deno.test("TodoBacklog — renders a section header per populated group", () => {
-  const soon = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+  // A moment guaranteed to still be today whatever the wall clock: an hour
+  // from now, clamped just before midnight (after 23:00 the naive +1h
+  // crossed into tomorrow and emptied the "Today" group nightly).
+  const endOfToday = new Date();
+  endOfToday.setHours(23, 59, 59, 999);
+  const soon = new Date(
+    Math.min(Date.now() + 60 * 60 * 1000, endOfToday.getTime()),
+  ).toISOString();
   const past = new Date(Date.now() - 60 * 60 * 1000).toISOString();
   const html = render(h(TodoBacklog, {
     initialTodos: [
