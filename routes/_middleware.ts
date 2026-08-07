@@ -2,7 +2,11 @@ import { Context } from "fresh";
 import { getCookies } from "$std/http/cookie.ts";
 import { SessionRepo } from "@/database/session.repo.ts";
 import { UserRepo } from "@/database/user.repo.ts";
-import { setSessionCookie } from "@/utils/index.ts";
+import {
+  deleteSessionCookie,
+  SESSION_COOKIE_NAME,
+  setSessionCookie,
+} from "@/utils/index.ts";
 
 interface State {
   userId?: string;
@@ -29,7 +33,7 @@ export async function handler(
 
   // 2. Session Check
   const cookies = getCookies(req.headers);
-  const sessionId = cookies.sessionId;
+  const sessionId = cookies[SESSION_COOKIE_NAME];
 
   if (sessionId) {
     const session = await SessionRepo.findById(sessionId);
@@ -64,6 +68,12 @@ export async function handler(
 
   // Redirect to login for page requests
   const headers = new Headers();
+  if (sessionId) {
+    // The cookie pointed at a dead session (expired, or dropped by e.g. a
+    // reseed). Clear it, or it causes a KV miss on every request for up to
+    // the cookie's 30-day lifetime.
+    deleteSessionCookie(headers);
+  }
   headers.set("location", "/login");
   return new Response(null, {
     status: 303,
