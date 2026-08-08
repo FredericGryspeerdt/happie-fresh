@@ -7,14 +7,17 @@ export const handler = define.handlers({
   async GET(ctx) {
     const householdId = ctx.state.householdId;
     const cards = householdId ? await LoyaltyCardRepo.getAll(householdId) : [];
-    return page({ cards });
+    return page({
+      cards,
+      canDelete: ctx.state.actingMember?.isManager === true,
+    });
   },
 });
 
 export default define.page<typeof handler>(function CardsPage({ data }) {
   return (
     <main class="max-w-md mx-auto">
-      <LoyaltyWallet initialCards={data.cards} />
+      <LoyaltyWallet initialCards={data.cards} canDelete={data.canDelete} />
     </main>
   );
 });

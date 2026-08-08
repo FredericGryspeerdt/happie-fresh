@@ -1,4 +1,8 @@
-import { assertFalse, assertStringIncludes } from "jsr:@std/assert@^1.0.19";
+import {
+  assertEquals,
+  assertFalse,
+  assertStringIncludes,
+} from "jsr:@std/assert@^1.0.19";
 import { render } from "npm:preact-render-to-string@^6.6.3";
 import { h } from "preact";
 import TodoBacklog from "./TodoBacklog.tsx";
@@ -19,6 +23,7 @@ function todo(over: Partial<TodoInterface>): TodoInterface {
 
 Deno.test("TodoBacklog — renders open and done to-dos, and the FAB", () => {
   const html = render(h(TodoBacklog, {
+    canDelete: true,
     initialTodos: [
       todo({ id: "t1", title: "Take out the bins" }),
       todo({ id: "t2", title: "Call the dentist", notes: "09 123 45 67" }),
@@ -39,7 +44,10 @@ Deno.test("TodoBacklog — renders open and done to-dos, and the FAB", () => {
 });
 
 Deno.test("TodoBacklog — empty state when the household has no to-dos", () => {
-  const html = render(h(TodoBacklog, { initialTodos: [] }));
+  const html = render(h(TodoBacklog, {
+    canDelete: true,
+    initialTodos: [],
+  }));
 
   assertStringIncludes(html, "Nothing to do");
   assertStringIncludes(html, "New to-do"); // FAB is still offered
@@ -47,6 +55,7 @@ Deno.test("TodoBacklog — empty state when the household has no to-dos", () => 
 
 Deno.test("TodoBacklog — no Done heading when nothing is done yet", () => {
   const html = render(h(TodoBacklog, {
+    canDelete: true,
     initialTodos: [todo({ id: "t1", title: "Take out the bins" })],
   }));
 
@@ -57,7 +66,10 @@ Deno.test("TodoBacklog — no Done heading when nothing is done yet", () => {
 });
 
 Deno.test("TodoBacklog — create sheet's title input does not rely on the bare autofocus attribute", () => {
-  const html = render(h(TodoBacklog, { initialTodos: [] }));
+  const html = render(h(TodoBacklog, {
+    canDelete: true,
+    initialTodos: [],
+  }));
 
   // `autofocus` is only honoured by browsers during initial document parse;
   // it's inert for the create sheet's title input, which mounts dynamically
@@ -79,6 +91,7 @@ Deno.test("TodoBacklog — renders a section header per populated group", () => 
   ).toISOString();
   const past = new Date(Date.now() - 60 * 60 * 1000).toISOString();
   const html = render(h(TodoBacklog, {
+    canDelete: true,
     initialTodos: [
       todo({ id: "t1", title: "Overdue one", dueAt: past }),
       todo({ id: "t2", title: "Due later today", dueAt: soon }),
@@ -95,6 +108,7 @@ Deno.test("TodoBacklog — renders a section header per populated group", () => 
 
 Deno.test("TodoBacklog — omits headers for empty groups", () => {
   const html = render(h(TodoBacklog, {
+    canDelete: true,
     initialTodos: [todo({ id: "t1", title: "Undated one", dueAt: null })],
   }));
 
@@ -105,6 +119,7 @@ Deno.test("TodoBacklog — omits headers for empty groups", () => {
 
 Deno.test("TodoBacklog — an undated to-do offers the add-due affordance", () => {
   const html = render(h(TodoBacklog, {
+    canDelete: true,
     initialTodos: [todo({ id: "t1", dueAt: null })],
   }));
 
@@ -115,6 +130,7 @@ Deno.test("TodoBacklog — Done hides to-dos completed more than 7 days ago", ()
   const recent = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString();
   const old = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
   const html = render(h(TodoBacklog, {
+    canDelete: true,
     initialTodos: [
       todo({ id: "t1", title: "Done recently", completedAt: recent }),
       todo({ id: "t2", title: "Done ages ago", completedAt: old }),
@@ -129,6 +145,7 @@ Deno.test("TodoBacklog — Done hides to-dos completed more than 7 days ago", ()
 Deno.test("TodoBacklog — no Show earlier button when nothing is outside the window", () => {
   const recent = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString();
   const html = render(h(TodoBacklog, {
+    canDelete: true,
     initialTodos: [
       todo({ id: "t1", title: "Done recently", completedAt: recent }),
     ],
@@ -141,6 +158,7 @@ Deno.test("TodoBacklog — no Show earlier button when nothing is outside the wi
 Deno.test("TodoBacklog — Done section (and its reveal) still renders when every done to-do is outside the window, with no open to-dos", () => {
   const old = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
   const html = render(h(TodoBacklog, {
+    canDelete: true,
     initialTodos: [
       todo({ id: "t1", title: "Done ages ago", completedAt: old }),
     ],
@@ -155,6 +173,7 @@ Deno.test("TodoBacklog — Done section (and its reveal) still renders when ever
 Deno.test("TodoBacklog — Done section (and its reveal) still renders when every done to-do is outside the window, alongside an open to-do", () => {
   const old = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
   const html = render(h(TodoBacklog, {
+    canDelete: true,
     initialTodos: [
       todo({ id: "t1", title: "Take out the bins" }),
       todo({ id: "t2", title: "Done ages ago", completedAt: old }),
@@ -168,6 +187,7 @@ Deno.test("TodoBacklog — Done section (and its reveal) still renders when ever
 
 Deno.test("TodoBacklog — offers the reminder nudge when a to-do has a due date", () => {
   const html = render(h(TodoBacklog, {
+    canDelete: true,
     initialTodos: [
       todo({ id: "t1", dueAt: new Date(Date.now() + 86400000).toISOString() }),
     ],
@@ -178,8 +198,27 @@ Deno.test("TodoBacklog — offers the reminder nudge when a to-do has a due date
 
 Deno.test("TodoBacklog — no nudge when nothing has a due date", () => {
   const html = render(h(TodoBacklog, {
+    canDelete: true,
     initialTodos: [todo({ id: "t1", dueAt: null })],
   }));
 
   assertFalse(html.includes("Get reminded when a to-do is due"));
+});
+
+Deno.test("TodoBacklog — canDelete: false never contributes a Delete button", () => {
+  // The editor sheet's own Delete trigger (gated on `canDelete`, see
+  // TodoBacklog.tsx) only mounts once a to-do is being edited, which never
+  // happens in a cold SSR render (editingId starts null) — so this can't
+  // observe it flipping from present to absent directly. What it does lock
+  // in: the only ">Delete<" button in the output is the confirm sheet's own
+  // (always-present-but-unreachable) action button, never a second one from
+  // the editor trigger, regardless of `canDelete`.
+  const html = render(h(TodoBacklog, {
+    canDelete: false,
+    initialTodos: [todo({ id: "t1", title: "Take out the bins" })],
+  }));
+
+  assertStringIncludes(html, "Take out the bins");
+  const deleteButtonCount = (html.match(/>Delete</g) ?? []).length;
+  assertEquals(deleteButtonCount, 1); // confirm sheet's button only
 });

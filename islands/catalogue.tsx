@@ -27,10 +27,11 @@ const fieldClass =
 interface CatalogueProps {
   initialItems: ItemInterface[];
   initialCategories: CategoryInterface[];
+  canDelete: boolean;
 }
 
 export default function Catalogue(
-  { initialItems, initialCategories }: CatalogueProps,
+  { initialItems, initialCategories, canDelete }: CatalogueProps,
 ) {
   // useMemo with [] ensures useCatalogue is called only once — its signals
   // are initialized from SSR props and must not be recreated on re-render.
@@ -317,6 +318,7 @@ export default function Catalogue(
         itemCount={menuCat.value
           ? itemsForCategory(menuCat.value.id).length
           : 0}
+        canDelete={canDelete}
         onClose={() => (menuCat.value = null)}
         onRename={(label) => {
           if (menuCat.value) renameCategory(menuCat.value.id, label);
@@ -656,9 +658,10 @@ function CategoryPicker(
 
 /* ── Rename / delete a category ── */
 function CategoryMenuSheet(
-  { category, itemCount, onClose, onRename, onDelete }: {
+  { category, itemCount, canDelete, onClose, onRename, onDelete }: {
     category: CategoryInterface | null;
     itemCount: number;
+    canDelete: boolean;
     onClose: () => void;
     onRename: (label: string) => void;
     onDelete: () => void;
@@ -691,13 +694,15 @@ function CategoryMenuSheet(
             </Button>
           </div>
         </div>
-        <Button variant="error" icon="trash" onClick={onDelete}>
-          Delete category{itemCount > 0
-            ? ` · ${itemCount} item${
-              itemCount === 1 ? "" : "s"
-            } become uncategorized`
-            : ""}
-        </Button>
+        {canDelete && (
+          <Button variant="error" icon="trash" onClick={onDelete}>
+            Delete category{itemCount > 0
+              ? ` · ${itemCount} item${
+                itemCount === 1 ? "" : "s"
+              } become uncategorized`
+              : ""}
+          </Button>
+        )}
       </div>
     </Sheet>
   );

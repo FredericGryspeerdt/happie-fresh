@@ -16,9 +16,10 @@ import { usePushNotifications } from "@/islands/shell/usePushNotifications.ts";
 
 interface Props {
   initialTodos: TodoInterface[];
+  canDelete: boolean;
 }
 
-export default function TodoBacklog({ initialTodos }: Props) {
+export default function TodoBacklog({ initialTodos, canDelete }: Props) {
   // useMemo([]) so the hook's signals are created once from SSR props.
   const {
     openTodos,
@@ -513,17 +514,19 @@ export default function TodoBacklog({ initialTodos }: Props) {
                 class="w-full md-body-large text-on-surface bg-surface-chigh border-0 rounded-[var(--md-shape-lg)] py-3 px-4 outline-none"
               />
               <Button variant="filled" full onClick={closeEditor}>Done</Button>
-              <Button
-                variant="error"
-                full
-                onClick={() => {
-                  const id = t.id;
-                  closeEditor();
-                  confirmingId.value = id;
-                }}
-              >
-                Delete
-              </Button>
+              {canDelete && (
+                <Button
+                  variant="error"
+                  full
+                  onClick={() => {
+                    const id = t.id;
+                    closeEditor();
+                    confirmingId.value = id;
+                  }}
+                >
+                  Delete
+                </Button>
+              )}
             </div>
           );
         })()}
