@@ -24,11 +24,15 @@ Deno.test("app head — no PWABuilder update loader (its SW registration 404s)",
 
 Deno.test("app head — theme-color meta matches the manifest color", () => {
   const html = renderApp();
-  assertStringIncludes(html, 'name="theme-color"');
-  assertStringIncludes(html, "#fdfcf9");
+  assertStringIncludes(html, 'name="theme-color" content="#fdfcf9"');
 });
 
-Deno.test("app head — apple-touch-icon linked explicitly", () => {
+Deno.test("app head — apple-touch-icon linked explicitly and file exists", async () => {
   const html = renderApp();
-  assertStringIncludes(html, 'rel="apple-touch-icon"');
+  assertStringIncludes(
+    html,
+    'rel="apple-touch-icon" href="/apple-touch-icon.png"',
+  );
+  const stat = await Deno.stat("static/apple-touch-icon.png");
+  assert(stat.isFile, "apple-touch-icon.png missing from static/");
 });
