@@ -338,6 +338,11 @@ like the same product.
 - **`FullScreenDialog`** is for multi-field create/edit flows on mobile; on
   larger screens it renders as a centered dialog.
 
+Both dialogs share `useModal` (`components/md3/useModal.ts`): while open they
+lock background scrolling, trap `Tab` focus inside the surface, focus the first
+control on open, and restore focus to the trigger on close. `Sheet` does not
+yet do this — treat that as a known gap, not a pattern to copy.
+
 **See:** `components/md3/` (component set), `components/md3/tokens.ts` (tokens +
 `cn` helper), `/design` (dev-only showcase of every component and state — 404s
 in production; use it to verify component changes live).

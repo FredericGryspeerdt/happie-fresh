@@ -17,6 +17,8 @@ Deno.test("Dialog — open: modal dialog with headline on surface-chigh", () => 
   assertStringIncludes(html, "bg-surface-chigh");
   assertStringIncludes(html, "md-elevation-3");
   assertStringIncludes(html, "pointer-events:auto");
+  // Focus-trap target: the surface itself must be focusable as a fallback.
+  assertStringIncludes(html, 'tabindex="-1"');
 });
 
 Deno.test("Dialog — closed: inert and invisible", () => {

@@ -17,6 +17,8 @@ Deno.test("FullScreenDialog — open: header with close, title, action", () => {
   assertStringIncludes(html, 'aria-label="Close"');
   assertStringIncludes(html, "SAVE_ACTION_SLOT");
   assertStringIncludes(html, "form goes here");
+  // Focus-trap target: the surface itself must be focusable as a fallback.
+  assertStringIncludes(html, 'tabindex="-1"');
 });
 
 Deno.test("FullScreenDialog — closed: inert, slid a full viewport down", () => {

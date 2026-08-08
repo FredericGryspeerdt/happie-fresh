@@ -1,9 +1,10 @@
 // components/md3/Dialog.tsx
 import type { ComponentChildren } from "preact";
-import { useEffect } from "preact/hooks";
+import { useRef } from "preact/hooks";
 import { Icon, type IconName } from "./Icon.tsx";
 import { Scrim } from "./Scrim.tsx";
 import { cn } from "./tokens.ts";
+import { useModal } from "./useModal.ts";
 
 interface DialogProps {
   open: boolean;
@@ -21,14 +22,8 @@ interface DialogProps {
 export function Dialog(
   { open, onClose, headline, icon, actions, children, class: cls }: DialogProps,
 ) {
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
+  const surface = useRef<HTMLDivElement>(null);
+  useModal(open, onClose, surface);
   return (
     <div
       class="fixed inset-0 z-[200] grid place-items-center p-6"
@@ -36,9 +31,11 @@ export function Dialog(
     >
       <Scrim open={open} onClick={onClose} />
       <div
+        ref={surface}
         role="dialog"
         aria-modal="true"
         aria-label={headline}
+        tabindex={-1}
         class={cn(
           "relative bg-surface-chigh rounded-[var(--md-shape-xl)] md-elevation-3 p-6 w-full min-w-[280px] max-w-[560px] sm:w-auto sm:min-w-[320px] max-h-full overflow-y-auto flex flex-col gap-4",
           cls,

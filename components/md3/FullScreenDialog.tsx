@@ -1,9 +1,10 @@
 // components/md3/FullScreenDialog.tsx
 import type { ComponentChildren } from "preact";
-import { useEffect } from "preact/hooks";
+import { useRef } from "preact/hooks";
 import { IconButton } from "./IconButton.tsx";
 import { Scrim } from "./Scrim.tsx";
 import { cn } from "./tokens.ts";
+import { useModal } from "./useModal.ts";
 
 interface FullScreenDialogProps {
   open: boolean;
@@ -20,14 +21,8 @@ interface FullScreenDialogProps {
 export function FullScreenDialog(
   { open, onClose, title, action, children, class: cls }: FullScreenDialogProps,
 ) {
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
+  const surface = useRef<HTMLDivElement>(null);
+  useModal(open, onClose, surface);
   return (
     <div
       class="fixed inset-0 z-[200] grid sm:place-items-center"
@@ -35,9 +30,11 @@ export function FullScreenDialog(
     >
       <Scrim open={open} onClick={onClose} />
       <div
+        ref={surface}
         role="dialog"
         aria-modal="true"
         aria-label={title}
+        tabindex={-1}
         class={cn(
           "relative bg-surface md-elevation-3 flex flex-col w-full h-full sm:h-auto sm:max-h-[85dvh] sm:max-w-[560px] sm:rounded-[var(--md-shape-xl)]",
           cls,
