@@ -1,6 +1,7 @@
 // components/md3/Sheet.tsx
 import { useEffect, useRef } from "preact/hooks";
 import type { ComponentChildren } from "preact";
+import { Scrim } from "./Scrim.tsx";
 interface SheetProps {
   open: boolean;
   onClose: () => void;
@@ -66,16 +67,7 @@ export function Sheet(
       class="fixed inset-0 z-[200] flex flex-col justify-end"
       style={{ pointerEvents: open ? "auto" : "none" }}
     >
-      <div
-        onClick={onClose}
-        aria-hidden="true"
-        class="absolute inset-0"
-        style={{
-          background: "rgba(0,0,0,.32)",
-          opacity: open ? 1 : 0,
-          transition: "opacity .3s var(--md-emphasized)",
-        }}
-      />
+      <Scrim open={open} onClick={onClose} />
       <div
         ref={sheetRef}
         role="dialog"
