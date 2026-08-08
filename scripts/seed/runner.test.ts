@@ -23,6 +23,7 @@ import { ItemRepo } from "@/database/item.repo.ts";
 import { UserRepo } from "@/database/user.repo.ts";
 import { ShoppingListRepo } from "@/database/shopping-list.repo.ts";
 import { ShoppingListItemRepo } from "@/database/shopping-list-item.repo.ts";
+import { MemberRepo } from "@/database/member.repo.ts";
 
 Deno.test("isProductionEnv — true only when a deployment id is present", () => {
   assertEquals(isProductionEnv("some-deploy-id"), true);
@@ -217,5 +218,21 @@ Deno.test({
       Error,
       "collides",
     );
+  },
+});
+
+Deno.test({
+  name: "runSeed — creates members per household and links the user",
+  sanitizeResources: false,
+  async fn() {
+    await runSeed();
+    const demo = await UserRepo.findByUsername("demo");
+    assertExists(demo);
+    assertEquals(typeof demo.memberId, "string");
+    const members = await MemberRepo.getAll(demo.householdId);
+    assertEquals(members.length, 4);
+    const linked = members.find((m) => m.id === demo.memberId);
+    assertEquals(linked?.isManager, true);
+    assertEquals(members.some((m) => !m.isManager), true); // the kids exist
   },
 });
