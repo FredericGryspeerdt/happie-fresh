@@ -151,5 +151,8 @@ evolved (declarative web push in 18.4) — re-verify per ground rule 3.
 
 ## GitHub mapping
 
-Milestone **PWA features**, one issue per iteration numbered as above. Each
-issue links back to this doc and is closed by its iteration's PR(s).
+Milestone [**PWA features**](https://github.com/FredericGryspeerdt/happie-fresh/milestone/6),
+one issue per iteration: #71 foundation, #72 install guidance, #73 wake lock,
+#74 offline reads, #75 offline mutations, #76 badging, #77 sharing, #78
+notification actions. Each issue links back to this doc and is closed by its
+iteration's PR(s).
