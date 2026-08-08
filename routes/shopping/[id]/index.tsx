@@ -26,7 +26,13 @@ export const handler = define.handlers({
       ShoppingListItemRepo.getAll(listId),
       CategoryRepo.getAll(householdId),
     ]);
-    return page({ list, items, shoppingList, categories });
+    return page({
+      list,
+      items,
+      shoppingList,
+      categories,
+      canDelete: ctx.state.actingMember?.isManager === true,
+    });
   },
 });
 
@@ -39,6 +45,7 @@ export default define.page<typeof handler>(function ListDetail({ data }) {
         items={data.items}
         shoppingList={data.shoppingList}
         categories={data.categories}
+        canDelete={data.canDelete}
       />
     </main>
   );

@@ -264,6 +264,7 @@ export default function Catalogue(
         item={editing.value}
         cats={cats}
         names={names}
+        canDelete={canDelete}
         onClose={() => (editing.value = null)}
         onRename={(name) => {
           if (editing.value) renameItem(editing.value.id, name);
@@ -363,10 +364,11 @@ export default function Catalogue(
 
 /* ── Edit one catalogue item ── */
 function EditItemSheet(
-  { item, cats, names, onClose, onRename, onMove, onRemove }: {
+  { item, cats, names, canDelete, onClose, onRename, onMove, onRemove }: {
     item: ItemInterface | null;
     cats: CategoryInterface[];
     names: Set<string>;
+    canDelete: boolean;
     onClose: () => void;
     onRename: (name: string) => void;
     onMove: (categoryId: string) => void;
@@ -424,9 +426,11 @@ function EditItemSheet(
             ))}
           </div>
         </div>
-        <Button variant="error" icon="trash" onClick={onRemove}>
-          Remove from catalogue
-        </Button>
+        {canDelete && (
+          <Button variant="error" icon="trash" onClick={onRemove}>
+            Remove from catalogue
+          </Button>
+        )}
       </div>
     </Sheet>
   );

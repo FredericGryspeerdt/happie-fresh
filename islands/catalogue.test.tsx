@@ -49,3 +49,20 @@ Deno.test("Catalogue — canDelete: false hides the category delete affordance",
   }));
   assertFalse(html.includes("Delete category"));
 });
+
+Deno.test("Catalogue — canDelete: false hides Remove from catalogue in the edit-item sheet", () => {
+  // EditItemSheet's body, like CategoryMenuSheet's, isn't gated on the sheet
+  // being open (Sheet always renders its children) or on `item` being
+  // non-null, so "Remove from catalogue" is present in a cold SSR render
+  // whenever canDelete is true — the false case is directly observable here too.
+  const html = render(h(Catalogue, {
+    canDelete: false,
+    initialItems: [
+      { id: "i1", name: "Butter", categoryId: "d" },
+    ],
+    initialCategories: [
+      { id: "d", label: "Dairy", order: 0 },
+    ],
+  }));
+  assertFalse(html.includes("Remove from catalogue"));
+});
