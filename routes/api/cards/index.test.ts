@@ -2,12 +2,14 @@ import { assertEquals } from "jsr:@std/assert@^1.0.19";
 import { type Context } from "fresh";
 import { handler } from "@/routes/api/cards/index.ts";
 import { getKv } from "@/database/db.ts";
+import type { MemberInterface } from "@/models/index.ts";
 
 Deno.env.set("KV_PATH", ":memory:");
 
 interface State {
   userId?: string;
   householdId?: string;
+  actingMember?: MemberInterface;
 }
 
 function ctx(req: Request, state: State = {}): Context<State> {
@@ -21,7 +23,30 @@ async function clearCards() {
   }
 }
 
-const AUTH: State = { userId: "u1", householdId: "h1" };
+const MANAGER: MemberInterface = {
+  id: "m-mgr",
+  householdId: "h1",
+  name: "Alex",
+  color: "sky",
+  emoji: "⭐",
+  isManager: true,
+};
+const KID: MemberInterface = {
+  id: "m-kid",
+  householdId: "h1",
+  name: "Bo",
+  color: "meadow",
+  emoji: "🐸",
+  isManager: false,
+};
+
+const AUTH: State = { userId: "u1", householdId: "h1", actingMember: MANAGER };
+const AUTH_MANAGER: State = {
+  userId: "u1",
+  householdId: "h1",
+  actingMember: MANAGER,
+};
+const AUTH_KID: State = { userId: "u1", householdId: "h1", actingMember: KID };
 
 const post = (body: unknown) =>
   new Request("http://x/api/cards", {
@@ -61,7 +86,7 @@ Deno.test({
     const created = await createRes.json();
     assertEquals(created.label, "Delhaize");
     assertEquals(created.householdId, "h1");
-    assertEquals(created.createdBy, "u1");
+    assertEquals(created.createdBy, "m-mgr");
 
     const listRes = await handler.GET(
       ctx(new Request("http://x/api/cards"), AUTH),
@@ -69,6 +94,23 @@ Deno.test({
     assertEquals(listRes.status, 200);
     const list = await listRes.json();
     assertEquals(list.map((c: { label: string }) => c.label), ["Delhaize"]);
+  },
+});
+
+Deno.test({
+  name: "POST — stamps createdBy with the acting member",
+  sanitizeResources: false,
+  async fn() {
+    await clearCards();
+    const res = await handler.POST(
+      ctx(post(validCard), {
+        userId: "u1",
+        householdId: "h-attr",
+        actingMember: { ...MANAGER, householdId: "h-attr" },
+      }),
+    );
+    assertEquals(res.status, 201);
+    assertEquals((await res.json()).createdBy, "m-mgr");
   },
 });
 
@@ -95,7 +137,11 @@ Deno.test({
   async fn() {
     await clearCards();
     await handler.POST(
-      ctx(post(validCard), { userId: "u2", householdId: "h2" }),
+      ctx(post(validCard), {
+        userId: "u2",
+        householdId: "h2",
+        actingMember: MANAGER,
+      }),
     );
     const listRes = await handler.GET(
       ctx(new Request("http://x/api/cards"), AUTH),
@@ -149,17 +195,51 @@ Deno.test({
     const created = await (await handler.POST(ctx(post(validCard), AUTH)))
       .json();
     assertEquals(
-      (await handler.DELETE(ctx(del({ id: created.id }), AUTH))).status,
+      (await handler.DELETE(ctx(del({ id: created.id }), AUTH_MANAGER)))
+        .status,
       204,
     );
     assertEquals(
-      (await handler.DELETE(ctx(del({}), AUTH))).status,
+      (await handler.DELETE(ctx(del({}), AUTH_MANAGER))).status,
       400,
     );
     const list = await (await handler.GET(
       ctx(new Request("http://x/api/cards"), AUTH),
     )).json();
     assertEquals(list, []);
+  },
+});
+
+Deno.test({
+  name: "DELETE — a non-manager acting member gets 403",
+  sanitizeResources: false,
+  async fn() {
+    await clearCards();
+    const created = await (await handler.POST(ctx(post(validCard), AUTH)))
+      .json();
+    const res = await handler.DELETE(
+      ctx(del({ id: created.id }), AUTH_KID),
+    );
+    assertEquals(res.status, 403);
+    // Still there — nothing was deleted.
+    const list = await (await handler.GET(
+      ctx(new Request("http://x/api/cards"), AUTH),
+    )).json();
+    assertEquals(list.map((c: { id: string }) => c.id), [created.id]);
+  },
+});
+
+Deno.test({
+  name: "DELETE — a manager acting member deletes",
+  sanitizeResources: false,
+  async fn() {
+    await clearCards();
+    const created = await (await handler.POST(ctx(post(validCard), AUTH)))
+      .json();
+    const res = await handler.DELETE(
+      ctx(del({ id: created.id }), AUTH_MANAGER),
+    );
+    assertEquals(res.status, 204);
   },
 });
 
@@ -245,7 +325,11 @@ Deno.test({
     );
     // A card owned by another household must be invisible to this one.
     const theirs = await (await handler.POST(
-      ctx(post(validCard), { userId: "u2", householdId: "h2" }),
+      ctx(post(validCard), {
+        userId: "u2",
+        householdId: "h2",
+        actingMember: MANAGER,
+      }),
     )).json();
     assertEquals(
       (await handler.PATCH(

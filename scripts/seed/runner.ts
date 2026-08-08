@@ -4,6 +4,7 @@ import { CategoryRepo } from "@/database/category.repo.ts";
 import { ItemRepo } from "@/database/item.repo.ts";
 import { ShoppingListRepo } from "@/database/shopping-list.repo.ts";
 import { ShoppingListItemRepo } from "@/database/shopping-list-item.repo.ts";
+import { MemberRepo } from "@/database/member.repo.ts";
 import { hashPassword } from "@/utils/index.ts";
 import { UserInterface } from "@/models/index.ts";
 import { catalogue, categories, users } from "./fixtures.ts";
@@ -20,6 +21,7 @@ const SEED_PREFIXES: Deno.KvKey[] = [
   ["shopping_lists"],
   ["shopping_list_items"],
   ["sessions"],
+  ["members"],
 ];
 
 /** True on Deno Deploy (production), where seeding must never run. */
@@ -80,6 +82,21 @@ export async function runSeed(opts: SeedOptions = {}): Promise<void> {
       : fixtureUser.password;
 
     const household = await HouseholdRepo.create(`${username}'s household`);
+
+    // Members: the people of this household. The first fixture member is the
+    // login's linked member (and must be a manager per the fixture data).
+    const memberIds: string[] = [];
+    for (const fixtureMember of fixtureUser.members) {
+      const member = await MemberRepo.create({
+        householdId: household.id,
+        name: fixtureMember.name,
+        color: fixtureMember.color,
+        emoji: fixtureMember.emoji,
+        isManager: fixtureMember.isManager,
+      });
+      memberIds.push(member.id);
+    }
+
     const id = crypto.randomUUID();
     const passwordHash = await hashPassword(password);
     const record: UserInterface = {
@@ -87,6 +104,7 @@ export async function runSeed(opts: SeedOptions = {}): Promise<void> {
       username,
       passwordHash,
       householdId: household.id,
+      memberId: memberIds[0],
     };
     await kv
       .atomic()

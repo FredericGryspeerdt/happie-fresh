@@ -5,7 +5,8 @@ export interface TodoInterface {
   title: string;
   /** Optional detail — a phone number, a deadline someone mentioned. */
   notes?: string;
-  /** userId of whoever added it. Creating requires a login, so this is a user. */
+  /** memberId of the acting member who added it (see docs/adr/0006). Rows
+   *  written before members existed were rewritten by the migration. */
   createdBy: string;
   createdAt: string;
   /**

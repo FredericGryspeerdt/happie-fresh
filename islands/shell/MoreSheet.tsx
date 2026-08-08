@@ -78,7 +78,10 @@ export default function MoreSheet({ open, onClose }: MoreSheetProps) {
           leading={badge("people")}
           headline="Members"
           trailing={chevron()}
-          onClick={() => soon("Members")}
+          onClick={() => {
+            onClose();
+            navigateTo("/members");
+          }}
         />
         <ListItem
           leading={badge("cog")}

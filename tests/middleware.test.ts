@@ -1,6 +1,7 @@
 import { assertEquals, assertMatch } from "jsr:@std/assert@^1.0.19";
 import { handler } from "@/routes/_middleware.ts";
 import { SessionRepo } from "@/database/session.repo.ts";
+import { UserRepo } from "@/database/user.repo.ts";
 import { getKv } from "@/database/db.ts";
 
 // Isolated in-memory KV for this test process (see shopping-list-item.repo.test.ts).
@@ -123,6 +124,26 @@ Deno.test({
 
     assertEquals(response.status, 303);
     assertEquals(response.headers.get("set-cookie"), null);
+  },
+});
+
+Deno.test({
+  name:
+    "middleware — resolves actingMember to the login's own member when unclaimed",
+  sanitizeResources: false,
+  async fn() {
+    const user = await UserRepo.create({
+      username: "morgan",
+      passwordHash: "x",
+    });
+    const session = await SessionRepo.create(user.id);
+    const ctx = fakeCtx(pageRequest(session.id));
+
+    const response = await handler(ctx);
+
+    assertEquals(response.status, 200);
+    assertEquals(ctx.state.actingClaimed, false);
+    assertEquals(ctx.state.actingMember?.id, user.memberId);
   },
 });
 

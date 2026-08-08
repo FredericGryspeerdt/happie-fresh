@@ -7,9 +7,13 @@ import { getKv } from "@/database/db.ts";
 import {
   assertPrimaryHouseholdResolvable,
   migrateCatalogue,
+  migrateMembers,
   resolvePrimaryHouseholdId,
   scopeGlobalCatalogue,
 } from "./migrate.ts";
+import { MemberRepo } from "@/database/member.repo.ts";
+import { TodoRepo } from "@/database/todo.repo.ts";
+import type { UserInterface } from "@/models/index.ts";
 
 async function clearCatalogue() {
   const kv = await getKv();
@@ -285,5 +289,50 @@ Deno.test({
     } finally {
       Deno.env.delete("PRIMARY_USERNAME");
     }
+  },
+});
+
+Deno.test({
+  name: "migrateMembers — backfills manager members and rewrites createdBy",
+  sanitizeResources: false,
+  async fn() {
+    const kv = await getKv();
+    // A legacy user without memberId, plus a to-do attributed to the userId.
+    const legacy: UserInterface = {
+      id: "mig-u1",
+      username: "casey",
+      passwordHash: "x",
+      householdId: "hh-mig",
+    };
+    await kv.atomic()
+      .set(["users", legacy.id], legacy)
+      .set(["users_by_username", legacy.username], legacy)
+      .commit();
+    const todo = await TodoRepo.create({
+      householdId: "hh-mig",
+      title: "Renew the passport",
+      createdBy: "mig-u1", // pre-member attribution: a userId
+      createdAt: new Date().toISOString(),
+      completedAt: null,
+      dueAt: null,
+    });
+
+    const first = await migrateMembers(kv);
+    assertEquals(first.membersCreated >= 1, true);
+    assertEquals(first.createdByRewritten >= 1, true);
+
+    const migratedUser = (await kv.get<UserInterface>(["users", "mig-u1"]))
+      .value!;
+    const member = await MemberRepo.getById("hh-mig", migratedUser.memberId!);
+    assertEquals(member?.name, "Casey");
+    assertEquals(member?.isManager, true);
+
+    const rewritten = await TodoRepo.getById("hh-mig", todo.id);
+    assertEquals(rewritten?.createdBy, migratedUser.memberId);
+
+    // Idempotent: the second run touches nothing.
+    const second = await migrateMembers(kv);
+    assertEquals(second.membersCreated, 0);
+    assertEquals(second.createdByRewritten, 0);
   },
 });

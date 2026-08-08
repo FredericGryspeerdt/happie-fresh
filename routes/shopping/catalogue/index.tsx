@@ -10,7 +10,11 @@ export const handler = define.handlers({
       ItemRepo.readAll(householdId),
       CategoryRepo.getAll(householdId),
     ]);
-    return page({ items, categories });
+    return page({
+      items,
+      categories,
+      canDelete: ctx.state.actingMember?.isManager === true,
+    });
   },
 });
 
@@ -20,6 +24,7 @@ export default define.page<typeof handler>(function CataloguePage({ data }) {
       <Catalogue
         initialItems={data.items}
         initialCategories={data.categories}
+        canDelete={data.canDelete}
       />
     </main>
   );

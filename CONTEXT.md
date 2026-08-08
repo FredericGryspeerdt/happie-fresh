@@ -13,6 +13,18 @@ knowledge workers.
 Happie. Every piece of data in the app belongs to exactly one household.
 _Avoid_: family, account, group, tenant
 
+**Member**: A person in the household. Members exist so the household knows
+_who_ — who added something, who something is assigned to. A member is a person,
+not a login: signing in and being someone are different things, and most members
+(children) never sign in at all. Every member belongs to exactly one household.
+_Avoid_: profile, user, account
+
+**Manager**: A member the household trusts with the sharp knives: managing
+members (adding, editing, removing, promoting) and destroying household data
+(deleting, clearing). Typically the parents. There is no third tier — a member
+either manages the household or doesn't — and a household always has at least
+one manager. _Avoid_: admin, owner, parent, primary user
+
 ### To-dos
 
 **To-do**: Something the household needs to get done **once** — "book the

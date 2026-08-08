@@ -3,12 +3,14 @@ import { type Context } from "fresh";
 import { handler } from "@/routes/api/todos/[id].ts";
 import { TodoRepo } from "@/database/todo.repo.ts";
 import { getKv } from "@/database/db.ts";
+import type { MemberInterface } from "@/models/index.ts";
 
 Deno.env.set("KV_PATH", ":memory:");
 
 interface State {
   userId?: string;
   householdId?: string;
+  actingMember?: MemberInterface;
 }
 
 function ctx(req: Request, id: string, state: State = {}): Context<State> {
@@ -22,7 +24,30 @@ async function clearTodos() {
   }
 }
 
+const MANAGER: MemberInterface = {
+  id: "m-mgr",
+  householdId: "h1",
+  name: "Alex",
+  color: "sky",
+  emoji: "⭐",
+  isManager: true,
+};
+const KID: MemberInterface = {
+  id: "m-kid",
+  householdId: "h1",
+  name: "Bo",
+  color: "meadow",
+  emoji: "🐸",
+  isManager: false,
+};
+
 const AUTH: State = { userId: "u1", householdId: "h1" };
+const AUTH_MANAGER: State = {
+  userId: "u1",
+  householdId: "h1",
+  actingMember: MANAGER,
+};
+const AUTH_KID: State = { userId: "u1", householdId: "h1", actingMember: KID };
 
 const patch = (body: unknown) =>
   new Request("http://x/api/todos/x", {
@@ -182,8 +207,14 @@ Deno.test({
   async fn() {
     await clearTodos();
     const todo = await seed();
-    assertEquals((await handler.DELETE(ctx(del(), todo.id, AUTH))).status, 204);
-    assertEquals((await handler.DELETE(ctx(del(), todo.id, AUTH))).status, 404);
+    assertEquals(
+      (await handler.DELETE(ctx(del(), todo.id, AUTH_MANAGER))).status,
+      204,
+    );
+    assertEquals(
+      (await handler.DELETE(ctx(del(), todo.id, AUTH_MANAGER))).status,
+      404,
+    );
     assertEquals(await TodoRepo.getById("h1", todo.id), null);
   },
 });
@@ -194,7 +225,13 @@ Deno.test({
   async fn() {
     await clearTodos();
     const todo = await seed();
-    const theirs: State = { userId: "u2", householdId: "h2" };
+    // A manager acting member — otherwise the DELETE would 403 before the
+    // household check ever ran, which isn't what this test is about.
+    const theirs: State = {
+      userId: "u2",
+      householdId: "h2",
+      actingMember: MANAGER,
+    };
 
     assertEquals(
       (await handler.PATCH(ctx(patch({ title: "x" }), todo.id, theirs))).status,
@@ -208,6 +245,30 @@ Deno.test({
       (await TodoRepo.getById("h1", todo.id))?.title,
       "Take out the bins",
     );
+  },
+});
+
+Deno.test({
+  name: "DELETE — a non-manager acting member gets 403",
+  sanitizeResources: false,
+  async fn() {
+    await clearTodos();
+    const todo = await seed();
+    const res = await handler.DELETE(ctx(del(), todo.id, AUTH_KID));
+    assertEquals(res.status, 403);
+    // Still there — nothing was deleted.
+    assertEquals((await TodoRepo.getById("h1", todo.id))?.id, todo.id);
+  },
+});
+
+Deno.test({
+  name: "DELETE — a manager acting member deletes",
+  sanitizeResources: false,
+  async fn() {
+    await clearTodos();
+    const todo = await seed();
+    const res = await handler.DELETE(ctx(del(), todo.id, AUTH_MANAGER));
+    assertEquals(res.status, 204);
   },
 });
 

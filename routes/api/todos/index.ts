@@ -10,8 +10,8 @@ export const handler = define.handlers({
   },
 
   async POST(ctx) {
-    const { userId, householdId } = ctx.state;
-    if (!userId || !householdId) {
+    const { householdId, actingMember } = ctx.state;
+    if (!householdId || !actingMember) {
       return new Response("Unauthorized", { status: 401 });
     }
 
@@ -33,7 +33,7 @@ export const handler = define.handlers({
       householdId,
       title,
       notes: rawNotes || undefined,
-      createdBy: userId,
+      createdBy: actingMember.id,
       createdAt: new Date().toISOString(),
       completedAt: null,
       dueAt,

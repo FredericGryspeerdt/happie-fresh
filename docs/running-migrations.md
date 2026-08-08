@@ -4,12 +4,26 @@
 migration. It currently:
 
 1. rehashes legacy SHA-256 passwords to PBKDF2,
-2. back-fills a household per user and moves legacy shopping-list items, and
+2. back-fills a household per user and moves legacy shopping-list items,
 3. scopes the previously-global catalogue (`items`, `categories`, `dishes`,
-   `dish_tag_groups`) under a single **primary household** (issue #42).
+   `dish_tag_groups`) under a single **primary household** (issue #42), and
+4. back-fills a linked manager member per user (`UserRepo.ensureMember`) and
+   rewrites `createdBy` from userId to memberId across `todos`,
+   `loyalty_cards`, and `shopping_lists` (issue #17 / members).
 
 It is safe to re-run: already-migrated data is skipped, and it is a **no-op when
 there is nothing to migrate** (an empty or already-scoped KV).
+
+Two notes on phase 4:
+
+- A `createdBy` rewritten to a member id that is later deleted stays dangling
+  by design — this is the same graceful-dangle contract as any other
+  attribution id (see [ADR 0006](adr/0006-members-are-people-users-are-credentials.md)):
+  renderers fall back to "someone" rather than assume the id still resolves.
+- As with phase 3's catalogue move, the rewrite loop writes with plain
+  `kv.set`/`kv.atomic()` and no versionstamp checks — run it right after
+  deploy, not while a household is actively editing todos, loyalty cards, or
+  shopping lists, so a rewrite can't race and clobber a concurrent edit.
 
 ## ⚠️ Never run it from the Deno Deploy build / pre-deploy command
 
