@@ -3,19 +3,24 @@ import TopAppBar from "./TopAppBar.tsx";
 import NavigationBar from "./NavigationBar.tsx";
 import MoreSheet from "./MoreSheet.tsx";
 import GlobalLoadingBar from "./GlobalLoadingBar.tsx";
+import ActingMemberChip from "./ActingMemberChip.tsx";
 import { NAV_CONFIG } from "@/config/navigation.ts";
 import { appBarAction } from "@/utils/app-bar.ts";
 import { IconButton } from "@/components/md3/IconButton.tsx";
 import type { AppBar } from "@/utils/define.ts";
+import type { MemberInterface } from "@/models/index.ts";
 
 interface AppChromeProps {
   activeId?: string;
   appBar?: AppBar;
   sectionTitle: string;
+  actingMember: MemberInterface | null;
+  actingClaimed: boolean;
 }
 
 export default function AppChrome(
-  { activeId, appBar, sectionTitle }: AppChromeProps,
+  { activeId, appBar, sectionTitle, actingMember, actingClaimed }:
+    AppChromeProps,
 ) {
   const moreOpen = useSignal(false);
 
@@ -25,6 +30,10 @@ export default function AppChrome(
 
   const detail = appBar?.mode === "detail" ? appBar : null;
 
+  const chip = (
+    <ActingMemberChip actingMember={actingMember} claimed={actingClaimed} />
+  );
+
   return (
     <>
       <GlobalLoadingBar />
@@ -33,18 +42,21 @@ export default function AppChrome(
           <TopAppBar
             title={detail.title}
             backUrl={detail.backUrl}
-            trailing={appBarAction.value
-              ? (
-                <IconButton
-                  name={appBarAction.value.icon}
-                  aria-label={appBarAction.value.label}
-                  onClick={appBarAction.value.onClick}
-                />
-              )
-              : undefined}
+            trailing={
+              <>
+                {appBarAction.value && (
+                  <IconButton
+                    name={appBarAction.value.icon}
+                    aria-label={appBarAction.value.label}
+                    onClick={appBarAction.value.onClick}
+                  />
+                )}
+                {chip}
+              </>
+            }
           />
         )
-        : <TopAppBar title={sectionTitle} />}
+        : <TopAppBar title={sectionTitle} trailing={chip} />}
       <NavigationBar
         items={NAV_CONFIG}
         activeId={activeId}
