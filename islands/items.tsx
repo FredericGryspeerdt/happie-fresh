@@ -33,6 +33,7 @@ interface ItemsProps {
   items: Required<ItemInterface>[];
   shoppingList: ShoppingListItemInterface[];
   categories: CategoryInterface[];
+  canDelete: boolean;
 }
 
 export default function Items(
@@ -42,6 +43,7 @@ export default function Items(
     items: catalog,
     shoppingList,
     categories: initialCategories,
+    canDelete,
   }: ItemsProps,
 ) {
   // useMemo with [] ensures useShoppingList is called only once.
@@ -527,22 +529,26 @@ export default function Items(
               }}
             />
 
-            <div class="h-px bg-surface-chigh mx-1 my-1" />
+            {canDelete && (
+              <>
+                <div class="h-px bg-surface-chigh mx-1 my-1" />
 
-            {/* Delete list */}
-            <ListItem
-              headline={<span class="text-error">Delete list</span>}
-              leading={
-                <span class="w-10 h-10 rounded-full bg-error-container text-error grid place-items-center">
-                  <Icon name="trash" size={20} />
-                </span>
-              }
-              onClick={async () => {
-                mgmtOpen.value = false;
-                await api.shoppingLists.delete(listId);
-                navigateTo("/shopping");
-              }}
-            />
+                {/* Delete list */}
+                <ListItem
+                  headline={<span class="text-error">Delete list</span>}
+                  leading={
+                    <span class="w-10 h-10 rounded-full bg-error-container text-error grid place-items-center">
+                      <Icon name="trash" size={20} />
+                    </span>
+                  }
+                  onClick={async () => {
+                    mgmtOpen.value = false;
+                    await api.shoppingLists.delete(listId);
+                    navigateTo("/shopping");
+                  }}
+                />
+              </>
+            )}
           </div>
         </Sheet>
       )}

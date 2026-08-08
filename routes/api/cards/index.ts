@@ -1,4 +1,4 @@
-import { define } from "@/utils/index.ts";
+import { define, requireManager } from "@/utils/index.ts";
 import { LoyaltyCardRepo } from "@/database/index.ts";
 import type { BarcodeFormat } from "@/models/index.ts";
 import { validateBarcode } from "@/utils/barcode.ts";
@@ -26,8 +26,8 @@ export const handler = define.handlers({
   },
 
   async POST(ctx) {
-    const { userId, householdId } = ctx.state;
-    if (!userId || !householdId) {
+    const { householdId, actingMember } = ctx.state;
+    if (!householdId || !actingMember) {
       return new Response("Unauthorized", { status: 401 });
     }
     const body = await ctx.req.json();
@@ -49,7 +49,7 @@ export const handler = define.handlers({
       value,
       format,
       color,
-      createdBy: userId,
+      createdBy: actingMember.id,
       createdAt: new Date().toISOString(),
     });
     return json(card, 201);
@@ -87,6 +87,9 @@ export const handler = define.handlers({
   async DELETE(ctx) {
     const householdId = ctx.state.householdId;
     if (!householdId) return new Response("Unauthorized", { status: 401 });
+    // Deleting a loyalty card is manager-only (ADR 0006).
+    const forbidden = requireManager(ctx);
+    if (forbidden) return forbidden;
     const { id } = await ctx.req.json();
     if (!id) return new Response("ID is required", { status: 400 });
     await LoyaltyCardRepo.delete(householdId, id);

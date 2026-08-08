@@ -21,9 +21,12 @@ interface Props {
   dish?: DishInterface;
   tagGroups: DishTagGroupInterface[];
   items: ItemInterface[];
+  canDelete: boolean;
 }
 
-export default function DishEditor({ dish, tagGroups, items }: Props) {
+export default function DishEditor(
+  { dish, tagGroups, items, canDelete }: Props,
+) {
   const name = useSignal(dish?.name ?? "");
   const ingredientIds = useSignal<string[]>(dish?.ingredientIds ?? []);
   const tagValueIds = useSignal<string[]>(dish?.tagValueIds ?? []);
@@ -220,7 +223,7 @@ export default function DishEditor({ dish, tagGroups, items }: Props) {
         >
           {dish ? "Save changes" : "Create dish"}
         </Button>
-        {dish && (
+        {dish && canDelete && (
           <Button variant="error" icon="trash" onClick={remove}>
             Delete dish
           </Button>

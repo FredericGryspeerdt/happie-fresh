@@ -45,6 +45,8 @@ export default function App(
             activeId={activeTab?.id}
             appBar={state.appBar}
             sectionTitle={activeTab?.label ?? "Happie"}
+            actingMember={state.actingMember ?? null}
+            actingClaimed={state.actingClaimed === true}
           />
         )}
         <Component />

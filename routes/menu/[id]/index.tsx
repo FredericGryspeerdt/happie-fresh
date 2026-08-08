@@ -14,7 +14,12 @@ export const handler = define.handlers({
       DishTagGroupRepo.getAll(householdId),
       ItemRepo.readAll(householdId),
     ]);
-    return page({ dish, tagGroups, items });
+    return page({
+      dish,
+      tagGroups,
+      items,
+      canDelete: ctx.state.actingMember?.isManager === true,
+    });
   },
 });
 
@@ -25,6 +30,7 @@ export default define.page<typeof handler>(function DishDetailPage({ data }) {
         dish={data.dish}
         tagGroups={data.tagGroups}
         items={data.items}
+        canDelete={data.canDelete}
       />
     </main>
   );

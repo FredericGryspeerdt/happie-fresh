@@ -25,6 +25,7 @@ import {
 
 interface Props {
   initialCards: LoyaltyCardInterface[];
+  canDelete: boolean;
 }
 
 /** `•••• 1234` for longer numbers; the raw value for short ones. */
@@ -34,7 +35,7 @@ function maskValue(value: string): string {
   return `•••• ${v.slice(-4)}`;
 }
 
-export default function LoyaltyWallet({ initialCards }: Props) {
+export default function LoyaltyWallet({ initialCards, canDelete }: Props) {
   // useMemo([]) so the hook's signals are created once from SSR props.
   const { sorted, cards, addCard, updateCard, removeCard, refresh } = useMemo(
     () => useLoyaltyCards(initialCards),
@@ -227,6 +228,7 @@ export default function LoyaltyWallet({ initialCards }: Props) {
       {present.value && (
         <CardPresent
           card={present.value}
+          canDelete={canDelete}
           onClose={() => (present.value = null)}
           onEdit={openEdit}
           onDelete={handleDelete}
