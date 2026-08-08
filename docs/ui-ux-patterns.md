@@ -541,6 +541,33 @@ iOS — not yet installed to the home screen, where the API exists but cannot wo
 
 ---
 
+## 15. Acting member: attribution, manager gating, and the chip
+
+**Rule:** Every request acts as a **member** (`ctx.state.actingMember`),
+resolved by the auth middleware from the device's `actingMemberId` cookie
+(falling back to the login's linked member). Stamp attribution
+(`createdBy`) with the acting member's id. Destructive endpoints call
+`requireManager(ctx)` and return its 403 when set; the UI additionally
+hides destructive affordances behind a `canDelete` prop derived from
+`ctx.state.actingMember?.isManager`. The avatar chip in the top app bar is
+always visible so a wrong identity is noticed and switched in one tap.
+
+**Why:** Members are people, users are credentials, and the claim is honor
+system — a guardrail against curious kids, not a security boundary (see
+docs/adr/0006). Hiding the buttons prevents the accidental case; the server
+403 backstops the rest. Never present a "kids can't X" rule as security.
+
+**How:** server: `requireManager` (utils/manager.ts) after the auth guard;
+routes pass `canDelete: ctx.state.actingMember?.isManager === true` into
+islands. Client: `api.members.claim(id)` sets the device cookie; a full
+`reloadPage()` after switching re-renders everything under the new member.
+
+**See:** `routes/_middleware.ts` (resolution), `utils/manager.ts`,
+`islands/shell/ActingMemberChip.tsx`, `routes/api/members/`,
+`docs/adr/0006-members-are-people-users-are-credentials.md`.
+
+---
+
 ## Review checklist for user-facing changes
 
 Before merging anything the user sees, tick these (section refs in parens):
