@@ -16,12 +16,15 @@ export default function App(
           name="viewport"
           content="width=device-width, initial-scale=1.0, viewport-fit=cover"
         />
+        {/* Kept in sync with manifest theme_color and --md-surface (assets/styles.css) */}
+        <meta name="theme-color" content="#fdfcf9" />
         <title>Happie</title>
         <link
           crossorigin="use-credentials"
           rel="manifest"
           href="/manifest.webmanifest"
         />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         {/* Google Fonts link from Task 0.3 stays here */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
@@ -33,9 +36,6 @@ export default function App(
           href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Roboto+Flex:opsz,wght@8..144,400;8..144,500;8..144,600;8..144,700&family=Roboto:wght@400;500;700&display=swap"
           rel="stylesheet"
         />
-        <script type="module">
-          {`import "https://cdn.jsdelivr.net/npm/@pwabuilder/pwaupdate/dist/pwa-update.js"; const el = document.createElement("pwa-update"); document.body.appendChild(el);`}
-        </script>
       </Head>
       <body
         style={{ paddingBottom: "calc(80px + env(safe-area-inset-bottom))" }}
