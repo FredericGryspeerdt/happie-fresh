@@ -8,8 +8,10 @@ import { FullScreenDialog } from "@/components/md3/FullScreenDialog.tsx";
 import { Button } from "@/components/md3/Button.tsx";
 import { RoundCheck } from "@/components/md3/RoundCheck.tsx";
 import { Icon } from "@/components/md3/Icon.tsx";
+import { Segmented } from "@/components/md3/Segmented.tsx";
 import { Snackbar } from "@/components/md3/Snackbar.tsx";
 import { Pressable } from "@/components/md3/Pressable.tsx";
+import { MemberAvatar } from "@/components/members/MemberAvatar.tsx";
 import Fab from "@/islands/shell/Fab.tsx";
 import DueChip from "@/islands/todos/DueChip.tsx";
 import AssigneePicker from "@/islands/todos/AssigneePicker.tsx";
@@ -27,7 +29,7 @@ export default function TodoBacklog(
   {
     initialTodos,
     members,
-    actingMemberId: _actingMemberId,
+    actingMemberId,
     canDelete,
   }: Props,
 ) {
@@ -68,6 +70,9 @@ export default function TodoBacklog(
   const showEarlierDone = useSignal(false);
   const snack = useSignal<{ msg: string } | null>(null);
   const snackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const filter = useSignal<"all" | "mine">("all");
+  const memberById = new Map(members.map((m) => [m.id, m]));
 
   // ── create-sheet focus handoff ───────────────────────────────────────────
   // `autofocus` doesn't work on the title input below because it's dynamically
@@ -122,7 +127,16 @@ export default function TodoBacklog(
   // disagree because the render straddled a second.
   const now = new Date();
 
-  const groups = groupOpenTodos(open, now);
+  // Mine means intent (assignedTo), never completedBy — across open AND done
+  // (docs/adr/0007). A to-do someone else finished but you were assigned
+  // still counts as yours; one you finished but weren't assigned does not.
+  const mineOnly = filter.value === "mine";
+  const mine = (t: TodoInterface) =>
+    t.assignedTo !== null && t.assignedTo === actingMemberId;
+  const visibleOpen = mineOnly ? open.filter(mine) : open;
+  const filteredDone = mineOnly ? done.filter(mine) : done;
+
+  const groups = groupOpenTodos(visibleOpen, now);
 
   // Done is windowed to a rolling 7 days (spec + ADR 0002): a done one-off is
   // finished forever, so the long tail has almost no value — but this is a
@@ -130,11 +144,11 @@ export default function TodoBacklog(
   // backlog, because keys are ["todos", householdId, id] and filtering by
   // completion date would scan everything anyway.
   const doneCutoff = now.getTime() - 7 * 24 * 60 * 60 * 1000;
-  const recentDone = done.filter((t) =>
+  const recentDone = filteredDone.filter((t) =>
     new Date(t.completedAt!).getTime() >= doneCutoff
   );
-  const earlierDoneCount = done.length - recentDone.length;
-  const visibleDone = showEarlierDone.value ? done : recentDone;
+  const earlierDoneCount = filteredDone.length - recentDone.length;
+  const visibleDone = showEarlierDone.value ? filteredDone : recentDone;
 
   const editing = () =>
     open.find((t) => t.id === editingId.value) ??
@@ -291,11 +305,21 @@ export default function TodoBacklog(
             </div>
           )}
         </Pressable>
-        <DueChip
-          dueAt={t.dueAt}
-          now={now}
-          onClick={() => openDuePicker(t.id, t.dueAt)}
-        />
+        <div class="flex items-center gap-2">
+          <DueChip
+            dueAt={t.dueAt}
+            now={now}
+            onClick={() => openDuePicker(t.id, t.dueAt)}
+          />
+          {(() => {
+            const who = memberById.get(
+              (isDone ? t.completedBy : t.assignedTo) ?? "",
+            );
+            return who
+              ? <MemberAvatar color={who.color} emoji={who.emoji} size={20} />
+              : null;
+          })()}
+        </div>
       </div>
     </div>
   );
@@ -332,6 +356,17 @@ export default function TodoBacklog(
           )
           : (
             <>
+              <Segmented
+                options={[["all", "people", "All"], ["mine", "user", "Mine"]]}
+                value={filter.value}
+                onChange={(k) => (filter.value = k as "all" | "mine")}
+              />
+              {mineOnly && visibleOpen.length === 0 &&
+                filteredDone.length === 0 && (
+                <div class="md-body-medium text-on-surface-variant text-center pt-8">
+                  Nothing on your plate.
+                </div>
+              )}
               {!nudgeDismissed.value && pushState.value === "default" &&
                 open.some((t) => t.dueAt !== null) && (
                 <div class="flex flex-col gap-2 bg-secondary-container text-on-secondary-container rounded-[var(--md-shape-lg)] px-4 py-3">
@@ -368,7 +403,7 @@ export default function TodoBacklog(
                 </div>
               ))}
 
-              {done.length > 0 && (
+              {filteredDone.length > 0 && (
                 <div class="flex flex-col gap-1">
                   <div class="md-label-medium uppercase text-on-surface-variant px-1 pt-2">
                     Done

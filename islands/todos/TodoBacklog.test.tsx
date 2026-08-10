@@ -6,7 +6,7 @@ import {
 import { render } from "npm:preact-render-to-string@^6.6.3";
 import { h } from "preact";
 import TodoBacklog from "./TodoBacklog.tsx";
-import type { TodoInterface } from "@/models/index.ts";
+import type { MemberInterface, TodoInterface } from "@/models/index.ts";
 
 function todo(over: Partial<TodoInterface>): TodoInterface {
   return {
@@ -20,6 +20,21 @@ function todo(over: Partial<TodoInterface>): TodoInterface {
     assignedTo: null,
     completedBy: null,
     ...over,
+  };
+}
+
+function member(
+  id: string,
+  name: string,
+  emoji = "🐸",
+): MemberInterface {
+  return {
+    id,
+    householdId: "h1",
+    name,
+    color: "meadow",
+    emoji,
+    isManager: false,
   };
 }
 
@@ -272,4 +287,40 @@ Deno.test("TodoBacklog — create and edit surfaces are dialogs, not sheets", ()
   assertStringIncludes(html, 'aria-label="Edit to-do"');
   // Rapid capture is retired: no body-level Close button in the create flow.
   assertFalse(html.includes(">Close<"));
+});
+
+Deno.test("TodoBacklog — open rows show the assignee's avatar, done rows the completer's", () => {
+  const html = render(h(TodoBacklog, {
+    initialTodos: [
+      todo({ id: "t1", title: "Bins", assignedTo: "m-bo" }),
+      todo({
+        id: "t2",
+        title: "Dishes",
+        completedAt: "2026-08-10T10:00:00.000Z",
+        completedBy: "m-pip",
+      }),
+    ],
+    members: [member("m-bo", "Bo", "🐸"), member("m-pip", "Pip", "🦄")],
+    actingMemberId: "m-bo",
+    canDelete: true,
+  }));
+  assertStringIncludes(html, "🐸");
+  assertStringIncludes(html, "🦄");
+});
+
+Deno.test("TodoBacklog — renders the All/Mine toggle when the backlog is non-empty", () => {
+  const html = render(h(TodoBacklog, {
+    initialTodos: [todo({ id: "t1", title: "Bins" })],
+    members: [member("m-bo", "Bo")],
+    actingMemberId: "m-bo",
+    canDelete: true,
+  }));
+  // Segmented renders `{icon} {label}` — icon and label are sibling JSX
+  // children, so a text-node space sits between the icon's closing tag and
+  // the label (see components/md3/Segmented.test.tsx, which asserts on the
+  // bare label for the same reason). Anchoring on `</button>` keeps this
+  // specific to the toggle's own option labels rather than any other "All"/
+  // "Mine" substring in the render.
+  assertStringIncludes(html, "All</button>");
+  assertStringIncludes(html, "Mine</button>");
 });
