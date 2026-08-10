@@ -9,6 +9,32 @@ export type PushState =
 
 const SW_PATH = "/push-sw.js";
 
+/** Per-tab marker so syncIfGranted re-registers once, not on every navigation. */
+const SYNCED_KEY = "happie:push-synced";
+
+// The marker is an optimisation and must never gate correctness: sessionStorage
+// throws outright in some privacy modes, and a device that fails to unsubscribe
+// because it could not write a cache key would be a much worse bug than
+// re-registering more often than necessary. Hence every access is swallowed,
+// and "unknown" always degrades to doing the work.
+function hasSyncMarker(): boolean {
+  try {
+    return sessionStorage.getItem(SYNCED_KEY) !== null;
+  } catch {
+    return false;
+  }
+}
+function setSyncMarker(): void {
+  try {
+    sessionStorage.setItem(SYNCED_KEY, "1");
+  } catch { /* storage unavailable — we simply re-register next time */ }
+}
+function clearSyncMarker(): void {
+  try {
+    sessionStorage.removeItem(SYNCED_KEY);
+  } catch { /* storage unavailable — nothing was cached anyway */ }
+}
+
 // Returns Uint8Array<ArrayBuffer> rather than a bare Uint8Array: since TS 5.7 the
 // type is generic over its buffer, and `applicationServerKey` only accepts a view
 // backed by a real ArrayBuffer — so the array is built over one explicitly.
@@ -18,6 +44,48 @@ function urlBase64ToUint8Array(base64: string): Uint8Array<ArrayBuffer> {
   const bytes = new Uint8Array(new ArrayBuffer(raw.length));
   for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
   return bytes;
+}
+
+/**
+ * Removes this device's subscription: server-side first, then locally.
+ *
+ * Module-level rather than part of the hook because logout needs it without the
+ * hook's signals, and **it must never throw** — a member who cannot reach the
+ * push service still has to be able to log out. Every failure path returns
+ * false instead.
+ *
+ * The DELETE is `keepalive` so that a caller which gives up waiting can navigate
+ * away while the request still completes; without it, logging out on a slow
+ * connection would leave the device subscribed.
+ *
+ * Returns true only if a subscription was actually removed.
+ */
+export async function unsubscribeThisDevice(): Promise<boolean> {
+  try {
+    // Cleared unconditionally and first: leaving it set would make
+    // syncIfGranted skip re-registering after a log out / log back in within
+    // the same tab, which is exactly the case this whole path exists for.
+    clearSyncMarker();
+
+    if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) {
+      return false;
+    }
+    const reg = await navigator.serviceWorker.getRegistration(SW_PATH);
+    const sub = await reg?.pushManager.getSubscription();
+    if (!sub) return false;
+
+    await fetch("/api/push/subscriptions", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ endpoint: sub.endpoint }),
+      keepalive: true,
+    });
+    await sub.unsubscribe();
+    return true;
+  } catch (err) {
+    console.error("[push] unsubscribe failed", err);
+    return false;
+  }
 }
 
 /** iOS only allows push in an installed PWA (16.4+). */
@@ -112,25 +180,35 @@ export function usePushNotifications() {
   const disable = async (): Promise<boolean> => {
     busy.value = true;
     try {
-      const reg = await navigator.serviceWorker.getRegistration(SW_PATH);
-      const sub = await reg?.pushManager.getSubscription();
-      if (!sub) return true;
-      await fetch("/api/push/subscriptions", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ endpoint: sub.endpoint }),
-      });
-      await sub.unsubscribe();
+      // Shares the logout path's implementation so there is one way to remove a
+      // device, not two that can drift apart. "Nothing to remove" is success
+      // here: the member asked for reminders off, and they are off.
+      await unsubscribeThisDevice();
       return true;
     } finally {
       busy.value = false;
     }
   };
 
-  /** Permission already granted but nothing stored — after clearing site data. */
+  /**
+   * Re-registers this device when permission is already granted but the server
+   * has no subscription for it — after site data was cleared, or after a logout
+   * removed it. Silent by design: permission is already granted, so nothing is
+   * prompted for and there is no second chance to spend.
+   *
+   * Runs at most once per tab (see SYNCED_KEY): the endpoint-hash upsert makes a
+   * repeat harmless, but re-POSTing on every navigation is pure waste.
+   */
   const syncIfGranted = async (): Promise<void> => {
     if (detect() !== "granted") return;
-    await subscribe();
+    if (hasSyncMarker()) return;
+    try {
+      await subscribe();
+      setSyncMarker();
+    } catch (err) {
+      // Never let re-registration break rendering the shell it runs from.
+      console.error("[push] sync failed", err);
+    }
   };
 
   const sendTest = async () => {
