@@ -322,13 +322,30 @@ safe areas) with far less bespoke CSS. New modules of the platform should feel
 like the same product.
 
 **How:** Reach for the existing pieces first: `Button`, `IconButton`,
-`Pressable`, `Card`, `Sheet` (bottom sheets), `Snackbar`, `Spinner`, `Progress`,
-`Chip`, `Segmented`, `ListItem`, `Icon`, `SearchBar`, `Stepper`, `RoundCheck`,
-`PullToRefresh`, `FabMenu`, `CategoryPickerList`. Confirmations use a bottom
-`Sheet`, not a browser `confirm()` or a center modal.
+`Pressable`, `Card`, `Sheet` (bottom sheets), `Dialog`, `FullScreenDialog`,
+`TextField`, `Switch`, `Snackbar`, `Spinner`, `Progress`, `Chip`, `Segmented`,
+`ListItem`, `ListSubheader`, `Divider`, `Icon`, `SearchBar`, `Stepper`,
+`RoundCheck`, `PullToRefresh`, `FabMenu`, `CategoryPickerList`.
+
+**Overlay boundary (Sheet vs Dialog):**
+
+- **`Sheet`** is the default for keyboard-less overlays: confirmations
+  (always), action lists, pickers, informational content. Never a browser
+  `confirm()`.
+- **`Dialog`** (basic, centered) is for short typed input — one or two
+  fields — or an urgent decision that needs typing. Centered keeps it clear of
+  the soft keyboard, which a bottom sheet fights.
+- **`FullScreenDialog`** is for multi-field create/edit flows on mobile; on
+  larger screens it renders as a centered dialog.
+
+Both dialogs share `useModal` (`components/md3/useModal.ts`): while open they
+lock background scrolling, trap `Tab` focus inside the surface, focus the first
+control on open, and restore focus to the trigger on close. `Sheet` does not
+yet do this — treat that as a known gap, not a pattern to copy.
 
 **See:** `components/md3/` (component set), `components/md3/tokens.ts` (tokens +
-`cn` helper).
+`cn` helper), `/design` (dev-only showcase of every component and state — 404s
+in production; use it to verify component changes live).
 
 ---
 
@@ -589,6 +606,9 @@ Before merging anything the user sees, tick these (section refs in parens):
       `useSignal` (never a bare `signal()` in a body)? (§8)
 - [ ] UI is composed from MD3 components + tokens, not hand-rolled or
       hardcoded colors/spacing? (§9)
+- [ ] Overlays respect the boundary: `Sheet` for keyboard-less content,
+      `Dialog` for short typed input, `FullScreenDialog` for multi-field
+      flows? (§9)
 - [ ] Works mobile-first: safe areas respected, primary actions reachable, touch
       targets generous, gestures supported? (§10)
 
