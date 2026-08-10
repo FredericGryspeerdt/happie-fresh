@@ -2,6 +2,7 @@ import { assertEquals } from "jsr:@std/assert@^1.0.19";
 import { type Context } from "fresh";
 import { handler } from "@/routes/api/todos/[id].ts";
 import { TodoRepo } from "@/database/todo.repo.ts";
+import { MemberRepo } from "@/database/member.repo.ts";
 import { getKv } from "@/database/db.ts";
 import type { MemberInterface } from "@/models/index.ts";
 
@@ -41,7 +42,13 @@ const KID: MemberInterface = {
   isManager: false,
 };
 
-const AUTH: State = { userId: "u1", householdId: "h1" };
+// PATCH now requires an acting member, so the general-purpose auth fixture
+// carries one — every existing PATCH test exercises that guard implicitly.
+const AUTH: State = {
+  userId: "u1",
+  householdId: "h1",
+  actingMember: MANAGER,
+};
 const AUTH_MANAGER: State = {
   userId: "u1",
   householdId: "h1",
@@ -342,5 +349,80 @@ Deno.test({
       400,
     );
     assertEquals((await TodoRepo.getById("h1", t.id))?.dueAt, null);
+  },
+});
+
+Deno.test({
+  name: "PATCH — assigns and unassigns a household member",
+  sanitizeResources: false,
+  async fn() {
+    await clearTodos();
+    const member = await MemberRepo.create({
+      householdId: "h1",
+      name: "Bo",
+      color: "meadow",
+      emoji: "🐸",
+      isManager: false,
+    });
+    const todo = await seed();
+    const res = await handler.PATCH(
+      ctx(patch({ assignedTo: member.id }), todo.id, AUTH_MANAGER),
+    );
+    assertEquals(res.status, 200);
+    assertEquals((await res.json()).assignedTo, member.id);
+
+    const cleared = await handler.PATCH(
+      ctx(patch({ assignedTo: null }), todo.id, AUTH_MANAGER),
+    );
+    assertEquals((await cleared.json()).assignedTo, null);
+  },
+});
+
+Deno.test({
+  name: "PATCH — rejects a non-member assignee with 400",
+  sanitizeResources: false,
+  async fn() {
+    await clearTodos();
+    const todo = await seed();
+    const res = await handler.PATCH(
+      ctx(patch({ assignedTo: "not-a-member" }), todo.id, AUTH_MANAGER),
+    );
+    assertEquals(res.status, 400);
+  },
+});
+
+Deno.test({
+  name:
+    "PATCH — ticking off stamps completedBy with the acting member; un-ticking clears it",
+  sanitizeResources: false,
+  async fn() {
+    await clearTodos();
+    const todo = await seed();
+    const ticked = await (await handler.PATCH(
+      ctx(
+        patch({ completedAt: "2026-08-10T12:00:00.000Z" }),
+        todo.id,
+        AUTH_MANAGER,
+      ),
+    )).json();
+    assertEquals(ticked.completedBy, MANAGER.id);
+
+    const reopened = await (await handler.PATCH(
+      ctx(patch({ completedAt: null }), todo.id, AUTH_MANAGER),
+    )).json();
+    assertEquals(reopened.completedBy, null);
+  },
+});
+
+Deno.test({
+  name: "PATCH — a client-sent completedBy is ignored",
+  sanitizeResources: false,
+  async fn() {
+    await clearTodos();
+    const todo = await seed();
+    const res = await (await handler.PATCH(
+      ctx(patch({ completedBy: "m-spoofed" }), todo.id, AUTH_MANAGER),
+    )).json();
+    assertEquals(res.completedBy, null);
   },
 });
