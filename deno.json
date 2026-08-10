@@ -19,9 +19,6 @@
       "tags": [
         "fresh",
         "recommended"
-      ],
-      "exclude": [
-        "react-no-danger"
       ]
     }
   },

@@ -1,3 +1,4 @@
+// deno-lint-ignore-file react-no-danger
 import { type PageProps } from "fresh";
 import { Head } from "fresh/runtime";
 import { resolveActiveTab } from "@/config/navigation.ts";
@@ -29,8 +30,8 @@ export default function App(
           /* Chromium fires beforeinstallprompt once, possibly before islands
             hydrate — stash it. Contract (property + event name) is pinned by
             islands/shell/useInstallPrompt.ts and tests/app-head.test.ts.
-            dangerouslySetInnerHTML because render-to-string HTML-escapes
-            script text children. */
+            dangerouslySetInnerHTML required: render-to-string HTML-escapes
+            script text children (file-level lint ignore above). */
         }
         <script
           dangerouslySetInnerHTML={{
