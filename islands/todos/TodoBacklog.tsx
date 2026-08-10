@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from "preact/hooks";
 import { useSignal } from "@preact/signals";
-import type { TodoInterface } from "@/models/index.ts";
+import type { MemberInterface, TodoInterface } from "@/models/index.ts";
 import { EXIT_MS, useTodos } from "@/hooks/useTodos.ts";
 import { PullToRefresh } from "@/components/md3/PullToRefresh.tsx";
 import { Sheet } from "@/components/md3/Sheet.tsx";
@@ -16,10 +16,19 @@ import { usePushNotifications } from "@/islands/shell/usePushNotifications.ts";
 
 interface Props {
   initialTodos: TodoInterface[];
+  members: MemberInterface[];
+  actingMemberId: string | null;
   canDelete: boolean;
 }
 
-export default function TodoBacklog({ initialTodos, canDelete }: Props) {
+export default function TodoBacklog(
+  {
+    initialTodos,
+    members: _members,
+    actingMemberId: _actingMemberId,
+    canDelete,
+  }: Props,
+) {
   // useMemo([]) so the hook's signals are created once from SSR props.
   const {
     openTodos,

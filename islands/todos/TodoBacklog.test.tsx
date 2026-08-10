@@ -25,6 +25,8 @@ function todo(over: Partial<TodoInterface>): TodoInterface {
 
 Deno.test("TodoBacklog — renders open and done to-dos, and the FAB", () => {
   const html = render(h(TodoBacklog, {
+    members: [],
+    actingMemberId: null,
     canDelete: true,
     initialTodos: [
       todo({ id: "t1", title: "Take out the bins" }),
@@ -50,6 +52,8 @@ Deno.test("TodoBacklog — renders open and done to-dos, and the FAB", () => {
 
 Deno.test("TodoBacklog — empty state when the household has no to-dos", () => {
   const html = render(h(TodoBacklog, {
+    members: [],
+    actingMemberId: null,
     canDelete: true,
     initialTodos: [],
   }));
@@ -60,6 +64,8 @@ Deno.test("TodoBacklog — empty state when the household has no to-dos", () => 
 
 Deno.test("TodoBacklog — no Done heading when nothing is done yet", () => {
   const html = render(h(TodoBacklog, {
+    members: [],
+    actingMemberId: null,
     canDelete: true,
     initialTodos: [todo({ id: "t1", title: "Take out the bins" })],
   }));
@@ -72,6 +78,8 @@ Deno.test("TodoBacklog — no Done heading when nothing is done yet", () => {
 
 Deno.test("TodoBacklog — create sheet's title input does not rely on the bare autofocus attribute", () => {
   const html = render(h(TodoBacklog, {
+    members: [],
+    actingMemberId: null,
     canDelete: true,
     initialTodos: [],
   }));
@@ -96,6 +104,8 @@ Deno.test("TodoBacklog — renders a section header per populated group", () => 
   ).toISOString();
   const past = new Date(Date.now() - 60 * 60 * 1000).toISOString();
   const html = render(h(TodoBacklog, {
+    members: [],
+    actingMemberId: null,
     canDelete: true,
     initialTodos: [
       todo({ id: "t1", title: "Overdue one", dueAt: past }),
@@ -113,6 +123,8 @@ Deno.test("TodoBacklog — renders a section header per populated group", () => 
 
 Deno.test("TodoBacklog — omits headers for empty groups", () => {
   const html = render(h(TodoBacklog, {
+    members: [],
+    actingMemberId: null,
     canDelete: true,
     initialTodos: [todo({ id: "t1", title: "Undated one", dueAt: null })],
   }));
@@ -124,6 +136,8 @@ Deno.test("TodoBacklog — omits headers for empty groups", () => {
 
 Deno.test("TodoBacklog — an undated to-do offers the add-due affordance", () => {
   const html = render(h(TodoBacklog, {
+    members: [],
+    actingMemberId: null,
     canDelete: true,
     initialTodos: [todo({ id: "t1", dueAt: null })],
   }));
@@ -135,6 +149,8 @@ Deno.test("TodoBacklog — Done hides to-dos completed more than 7 days ago", ()
   const recent = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString();
   const old = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
   const html = render(h(TodoBacklog, {
+    members: [],
+    actingMemberId: null,
     canDelete: true,
     initialTodos: [
       todo({ id: "t1", title: "Done recently", completedAt: recent }),
@@ -150,6 +166,8 @@ Deno.test("TodoBacklog — Done hides to-dos completed more than 7 days ago", ()
 Deno.test("TodoBacklog — no Show earlier button when nothing is outside the window", () => {
   const recent = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString();
   const html = render(h(TodoBacklog, {
+    members: [],
+    actingMemberId: null,
     canDelete: true,
     initialTodos: [
       todo({ id: "t1", title: "Done recently", completedAt: recent }),
@@ -163,6 +181,8 @@ Deno.test("TodoBacklog — no Show earlier button when nothing is outside the wi
 Deno.test("TodoBacklog — Done section (and its reveal) still renders when every done to-do is outside the window, with no open to-dos", () => {
   const old = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
   const html = render(h(TodoBacklog, {
+    members: [],
+    actingMemberId: null,
     canDelete: true,
     initialTodos: [
       todo({ id: "t1", title: "Done ages ago", completedAt: old }),
@@ -178,6 +198,8 @@ Deno.test("TodoBacklog — Done section (and its reveal) still renders when ever
 Deno.test("TodoBacklog — Done section (and its reveal) still renders when every done to-do is outside the window, alongside an open to-do", () => {
   const old = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
   const html = render(h(TodoBacklog, {
+    members: [],
+    actingMemberId: null,
     canDelete: true,
     initialTodos: [
       todo({ id: "t1", title: "Take out the bins" }),
@@ -192,6 +214,8 @@ Deno.test("TodoBacklog — Done section (and its reveal) still renders when ever
 
 Deno.test("TodoBacklog — offers the reminder nudge when a to-do has a due date", () => {
   const html = render(h(TodoBacklog, {
+    members: [],
+    actingMemberId: null,
     canDelete: true,
     initialTodos: [
       todo({ id: "t1", dueAt: new Date(Date.now() + 86400000).toISOString() }),
@@ -203,6 +227,8 @@ Deno.test("TodoBacklog — offers the reminder nudge when a to-do has a due date
 
 Deno.test("TodoBacklog — no nudge when nothing has a due date", () => {
   const html = render(h(TodoBacklog, {
+    members: [],
+    actingMemberId: null,
     canDelete: true,
     initialTodos: [todo({ id: "t1", dueAt: null })],
   }));
@@ -219,6 +245,8 @@ Deno.test("TodoBacklog — canDelete: false never contributes a Delete button", 
   // (always-present-but-unreachable) action button, never a second one from
   // the editor trigger, regardless of `canDelete`.
   const html = render(h(TodoBacklog, {
+    members: [],
+    actingMemberId: null,
     canDelete: false,
     initialTodos: [todo({ id: "t1", title: "Take out the bins" })],
   }));
