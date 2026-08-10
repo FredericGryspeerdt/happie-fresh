@@ -1,7 +1,7 @@
 import { assertEquals } from "jsr:@std/assert@^1.0.19";
 import { type Context } from "fresh";
 import { handler } from "@/routes/api/members/[id].ts";
-import { MemberRepo } from "@/database/member.repo.ts";
+import { MemberRepo, TodoRepo } from "@/database/index.ts";
 import { getKv } from "@/database/db.ts";
 import type { MemberInterface } from "@/models/index.ts";
 import type { StateInterface } from "@/utils/define.ts";
@@ -219,5 +219,45 @@ Deno.test({
     );
     assertEquals(untouched.status, 204);
     assertEquals(untouched.headers.get("set-cookie"), null);
+  },
+});
+
+Deno.test({
+  name: "DELETE — unassigns the removed member's open to-dos, leaves done ones",
+  sanitizeResources: false,
+  async fn() {
+    await clearMembers();
+    const mgr = await seed("Alex", true);
+    const bo = await seed("Bo", false);
+    const openTodo = await TodoRepo.create({
+      householdId: "h1",
+      title: "Water the plants",
+      createdBy: mgr.id,
+      createdAt: new Date().toISOString(),
+      completedAt: null,
+      dueAt: null,
+      assignedTo: bo.id,
+      completedBy: null,
+    });
+    const doneTodo = await TodoRepo.create({
+      householdId: "h1",
+      title: "Feed the cat",
+      createdBy: mgr.id,
+      createdAt: new Date().toISOString(),
+      completedAt: new Date().toISOString(),
+      dueAt: null,
+      assignedTo: bo.id,
+      completedBy: bo.id,
+    });
+
+    const res = await handler.DELETE(
+      ctx(del(), bo.id, { householdId: "h1", actingMember: mgr }),
+    );
+    assertEquals(res.status, 204);
+    assertEquals((await TodoRepo.getById("h1", openTodo.id))?.assignedTo, null);
+    assertEquals(
+      (await TodoRepo.getById("h1", doneTodo.id))?.assignedTo,
+      bo.id,
+    );
   },
 });
