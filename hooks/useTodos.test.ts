@@ -408,6 +408,79 @@ Deno.test("addTodo — a dated new to-do lands in dueAt order, not at the front"
   ]);
 });
 
+Deno.test("assign — optimistic, rolls back when the server rejects", async () => {
+  using _u = stub(
+    api.todos,
+    "update",
+    (_id: string, _patch: unknown) => Promise.resolve(null),
+  );
+  const hook = useTodos([makeTodo({ id: "t1" })]);
+
+  const ok = await hook.assign("t1", "m-bo");
+
+  assertEquals(ok, false);
+  assertEquals(hook.openTodos.value[0].assignedTo, null); // rolled back
+});
+
+Deno.test("assign — persists and keeps the server's value", async () => {
+  const saved = makeTodo({ id: "t1", assignedTo: "m-bo" });
+  const patches: unknown[] = [];
+  using _u = stub(api.todos, "update", (_id: string, patch: unknown) => {
+    patches.push(patch);
+    return Promise.resolve(saved);
+  });
+  const hook = useTodos([makeTodo({ id: "t1" })]);
+
+  const ok = await hook.assign("t1", "m-bo");
+
+  assertEquals(ok, true);
+  assertEquals(hook.openTodos.value[0].assignedTo, "m-bo");
+  assertEquals(patches, [{ assignedTo: "m-bo" }]);
+});
+
+Deno.test("tickOff — adopts the server's completedBy stamp", async () => {
+  const stamped = makeTodo({
+    id: "t1",
+    completedAt: "2026-08-10T12:00:00.000Z",
+    completedBy: "m-demo",
+  });
+  using _u = stub(
+    api.todos,
+    "update",
+    (_id: string, _patch: unknown) => Promise.resolve(stamped),
+  );
+  const hook = useTodos([makeTodo({ id: "t1" })]);
+
+  using time = new FakeTime();
+  const promise = hook.tickOff("t1");
+  await time.tickAsync(300);
+  const ok = await promise;
+
+  assertEquals(ok, true);
+  assertEquals(hook.doneTodos.value[0].completedBy, "m-demo");
+});
+
+Deno.test("unTick — adopts the server's cleared completedBy", async () => {
+  const cleared = makeTodo({ id: "t1", completedAt: null, completedBy: null });
+  using _u = stub(
+    api.todos,
+    "update",
+    (_id: string, _patch: unknown) => Promise.resolve(cleared),
+  );
+  const hook = useTodos([
+    makeTodo({
+      id: "t1",
+      completedAt: "2026-08-02T12:00:00.000Z",
+      completedBy: "m-demo",
+    }),
+  ]);
+
+  const ok = await hook.unTick("t1");
+
+  assertEquals(ok, true);
+  assertEquals(hook.openTodos.value[0].completedBy, null);
+});
+
 Deno.test("addTodo — an undated new to-do still goes to the front of the undated tail", async () => {
   const created = makeTodo({
     id: "new",
