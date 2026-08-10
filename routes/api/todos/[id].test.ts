@@ -426,3 +426,25 @@ Deno.test({
     assertEquals(res.completedBy, null);
   },
 });
+
+Deno.test({
+  name:
+    "PATCH — completedBy is stamped from the acting member even when a spoofed value rides along",
+  sanitizeResources: false,
+  async fn() {
+    await clearTodos();
+    const todo = await seed();
+    const res = await (await handler.PATCH(
+      ctx(
+        patch({
+          completedAt: "2026-08-10T12:00:00.000Z",
+          completedBy: "m-spoofed",
+        }),
+        todo.id,
+        AUTH_MANAGER,
+      ),
+    )).json();
+    assertEquals(res.completedBy, MANAGER.id);
+    assertEquals(res.completedAt, "2026-08-10T12:00:00.000Z");
+  },
+});
