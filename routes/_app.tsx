@@ -25,6 +25,19 @@ export default function App(
           href="/manifest.webmanifest"
         />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        {
+          /* Chromium fires beforeinstallprompt once, possibly before islands
+            hydrate — stash it. Contract (property + event name) is pinned by
+            islands/shell/useInstallPrompt.ts and tests/app-head.test.ts.
+            dangerouslySetInnerHTML because render-to-string HTML-escapes
+            script text children. */
+        }
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              'addEventListener("beforeinstallprompt",(e)=>{e.preventDefault();window.__happieInstallPrompt=e;dispatchEvent(new Event("happie:install-ready"))});',
+          }}
+        />
         {/* Google Fonts link from Task 0.3 stays here */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
