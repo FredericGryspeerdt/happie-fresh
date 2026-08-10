@@ -4,6 +4,7 @@ import type { MemberInterface, TodoInterface } from "@/models/index.ts";
 import { EXIT_MS, useTodos } from "@/hooks/useTodos.ts";
 import { PullToRefresh } from "@/components/md3/PullToRefresh.tsx";
 import { Sheet } from "@/components/md3/Sheet.tsx";
+import { FullScreenDialog } from "@/components/md3/FullScreenDialog.tsx";
 import { Button } from "@/components/md3/Button.tsx";
 import { RoundCheck } from "@/components/md3/RoundCheck.tsx";
 import { Icon } from "@/components/md3/Icon.tsx";
@@ -11,6 +12,7 @@ import { Snackbar } from "@/components/md3/Snackbar.tsx";
 import { Pressable } from "@/components/md3/Pressable.tsx";
 import Fab from "@/islands/shell/Fab.tsx";
 import DueChip from "@/islands/todos/DueChip.tsx";
+import AssigneePicker from "@/islands/todos/AssigneePicker.tsx";
 import { GROUP_LABELS, groupOpenTodos } from "@/utils/todo-due.ts";
 import { usePushNotifications } from "@/islands/shell/usePushNotifications.ts";
 
@@ -24,7 +26,7 @@ interface Props {
 export default function TodoBacklog(
   {
     initialTodos,
-    members: _members,
+    members,
     actingMemberId: _actingMemberId,
     canDelete,
   }: Props,
@@ -38,6 +40,7 @@ export default function TodoBacklog(
     editTodo,
     flushTodo,
     setDueAt,
+    assign,
     tickOff,
     unTick,
     removeTodo,
@@ -57,6 +60,7 @@ export default function TodoBacklog(
   const newTitle = useSignal("");
   const newNotes = useSignal("");
   const newDue = useSignal("");
+  const newAssignee = useSignal<string | null>(null);
   const editingId = useSignal<string | null>(null);
   const confirmingId = useSignal<string | null>(null);
   const dueEditingId = useSignal<string | null>(null);
@@ -89,6 +93,7 @@ export default function TodoBacklog(
     newTitle.value = "";
     newNotes.value = "";
     newDue.value = "";
+    newAssignee.value = null;
     handoff.value = false;
     primerRef.current?.focus();
     createOpen.value = true;
@@ -153,22 +158,13 @@ export default function TodoBacklog(
       title,
       notes: notes || undefined,
       dueAt: newDue.value ? new Date(newDue.value).toISOString() : null,
-      assignedTo: null,
+      assignedTo: newAssignee.value,
     });
     if (!created) {
       say("Couldn't add that to-do. Try again?");
       return;
     }
-    // Keep the sheet open and the field focused so several to-dos can be
-    // captured in a row without the mobile keyboard dismissing. Clearing the
-    // fields doesn't restore focus by itself — the Enter-key path never lost
-    // it, but a pointer tap on the "Add" button below moves focus to the
-    // button, so it must be reclaimed explicitly (mirrors handleCreate in
-    // islands/add-items.tsx).
-    newTitle.value = "";
-    newNotes.value = "";
-    newDue.value = "";
-    titleRef.current?.focus();
+    closeCreate();
   };
 
   const closeEditor = () => {
@@ -423,20 +419,23 @@ export default function TodoBacklog(
       )}
 
       {
-        /* Create sheet — stays open between saves for rapid capture.
-          Body gated on createOpen: <Sheet> renders its children even when
-          closed (see islands/items.tsx:442), so an ungated title input would
-          stay mounted (and stealing focus, see below) while the sheet is
-          closed. Gating also means the title input mounts fresh each time the
-          sheet opens, which is exactly when the focus effect above should run. */
+        /* Create dialog. Body gated on createOpen: <FullScreenDialog> renders
+          its children even when closed (see islands/items.tsx:442 for the
+          same pattern with <Sheet>), so an ungated title input would stay
+          mounted (and stealing focus, see below) while the dialog is closed.
+          Gating also means the title input mounts fresh each time the dialog
+          opens, which is exactly when the focus effect above should run.
+          Closes on save — rapid capture (staying open between saves) was
+          retired after real-world testing. */
       }
-      <Sheet
+      <FullScreenDialog
         open={createOpen.value}
         onClose={closeCreate}
         title="New to-do"
+        action={<Button variant="text" onClick={submitNew}>Add</Button>}
       >
         {createOpen.value && (
-          <div class="flex flex-col gap-3 pb-1">
+          <div class="flex flex-col gap-3 pt-2">
             <input
               ref={titleRef}
               value={newTitle.value}
@@ -466,33 +465,27 @@ export default function TodoBacklog(
               aria-label="Due date and time (optional)"
               class="w-full md-body-large text-on-surface bg-surface-chigh border-0 rounded-[var(--md-shape-lg)] py-3 px-4 outline-none"
             />
-            <Button variant="filled" full onClick={submitNew}>Add</Button>
-            {
-              /* "Close", not "Done" — "Done" beside "Add" reads as a second
-                save, and the Done *section* heading must stay unambiguous. */
-            }
-            <Button
-              variant="text"
-              full
-              onClick={closeCreate}
-            >
-              Close
-            </Button>
+            <AssigneePicker
+              members={members}
+              value={newAssignee.value}
+              onChange={(id) => (newAssignee.value = id)}
+            />
           </div>
         )}
-      </Sheet>
+      </FullScreenDialog>
 
-      {/* Edit sheet */}
-      <Sheet
+      {/* Edit dialog */}
+      <FullScreenDialog
         open={editingId.value !== null}
         onClose={closeEditor}
         title="Edit to-do"
+        action={<Button variant="text" onClick={closeEditor}>Done</Button>}
       >
         {(() => {
           const t = editing();
           if (!t) return null;
           return (
-            <div class="flex flex-col gap-3 pb-1">
+            <div class="flex flex-col gap-3 pt-2">
               <input
                 value={t.title}
                 onInput={(e) =>
@@ -523,7 +516,14 @@ export default function TodoBacklog(
                 aria-label="Due date and time"
                 class="w-full md-body-large text-on-surface bg-surface-chigh border-0 rounded-[var(--md-shape-lg)] py-3 px-4 outline-none"
               />
-              <Button variant="filled" full onClick={closeEditor}>Done</Button>
+              <AssigneePicker
+                members={members}
+                value={t.assignedTo}
+                onChange={async (id) => {
+                  const ok = await assign(t.id, id);
+                  if (!ok) say("Couldn't save that. Try again?");
+                }}
+              />
               {canDelete && (
                 <Button
                   variant="error"
@@ -540,7 +540,7 @@ export default function TodoBacklog(
             </div>
           );
         })()}
-      </Sheet>
+      </FullScreenDialog>
 
       {/* Delete confirmation — the house pattern is a sheet, not a dialog */}
       <Sheet

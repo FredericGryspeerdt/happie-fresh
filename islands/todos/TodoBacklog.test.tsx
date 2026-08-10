@@ -71,9 +71,13 @@ Deno.test("TodoBacklog — no Done heading when nothing is done yet", () => {
   }));
 
   assertStringIncludes(html, "Take out the bins");
-  // The create sheet's body is gated on its open state, so nothing else in the
-  // SSR output says "Done" — this really is the section heading.
-  assertFalse(html.includes(">Done<"));
+  // The edit dialog's header (including its "Done" action button) renders
+  // unconditionally — FullScreenDialog doesn't gate its header on `open`,
+  // only its body — so a bare `>Done<` no longer proves the section heading
+  // is absent. Count instead: the only "Done" text should be that header
+  // button, never the section heading.
+  const doneCount = (html.match(/>Done</g) ?? []).length;
+  assertEquals(doneCount, 1); // edit dialog's header action only
 });
 
 Deno.test("TodoBacklog — create sheet's title input does not rely on the bare autofocus attribute", () => {
@@ -254,4 +258,18 @@ Deno.test("TodoBacklog — canDelete: false never contributes a Delete button", 
   assertStringIncludes(html, "Take out the bins");
   const deleteButtonCount = (html.match(/>Delete</g) ?? []).length;
   assertEquals(deleteButtonCount, 1); // confirm sheet's button only
+});
+
+Deno.test("TodoBacklog — create and edit surfaces are dialogs, not sheets", () => {
+  const html = render(h(TodoBacklog, {
+    initialTodos: [],
+    members: [],
+    actingMemberId: null,
+    canDelete: true,
+  }));
+  // FullScreenDialog renders role="dialog" with an aria-label per title.
+  assertStringIncludes(html, 'aria-label="New to-do"');
+  assertStringIncludes(html, 'aria-label="Edit to-do"');
+  // Rapid capture is retired: no body-level Close button in the create flow.
+  assertFalse(html.includes(">Close<"));
 });
