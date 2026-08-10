@@ -490,48 +490,20 @@ same shape for the create sheet: `primerRef`/`handoff`/`openCreate`/
 
 ---
 
-## 13. Create sheets that stay open for rapid capture
+## 13. Create surfaces close on save
 
-**Rule:** Most create sheets close on save (New list, Add card, Add dish).
-Where a user plausibly adds several things in one sitting — the to-do backlog
-— the sheet **stays open** after a successful save: it clears its fields and
-keeps focus on the title field. Dismissing it is a separate, deliberate step —
-same as any other `Sheet` (`components/md3/Sheet.tsx`): its own "Close"
-button, tapping the scrim, pressing Escape, or swiping it down.
+**Rule:** A create sheet/dialog **closes when the entry is saved**. Do not
+build stays-open "rapid capture" create flows.
 
-**Why:** It removes two taps per item (no re-opening the sheet for each
-entry), and it keeps the mobile keyboard up between entries instead of
-dismissing and re-raising it — the same class of problem the keyboard primer
-(§12) exists to solve.
+**Why:** The to-dos create sheet originally stayed open between saves to
+remove taps for batch entry. Real-world use (tested on device, Aug 2026)
+showed people add one to-do and move on — the open surface read as "did my
+tap work?" rather than an invitation to add more. Retired with the to-do
+assignment iteration; the keyboard primer (§12) is unaffected and still
+applies to dynamically mounted create fields.
 
-**Don't** use this for creates that need a decision per item (choosing a
-category, a barcode format) — there the sheet closing *is* the confirmation
-that the item was captured correctly.
-
-**How:**
-
-```ts
-const submitNew = async () => {
-  const title = newTitle.value.trim();
-  if (!title) return;
-  const notes = newNotes.value.trim();
-  const created = await addTodo({ title, notes: notes || undefined });
-  if (!created) {
-    say("Couldn't add that to-do. Try again?");
-    return;
-  }
-  // Keep the sheet open and the field focused for the next entry. The
-  // Enter-key path never loses focus, but a tap on the "Add" button does —
-  // so focus must be reclaimed explicitly (same as handleCreate in
-  // islands/add-items.tsx).
-  newTitle.value = "";
-  newNotes.value = "";
-  titleRef.current?.focus();
-};
-```
-
-**See:** `islands/todos/TodoBacklog.tsx` — the create `Sheet` (~line 247) and
-`submitNew` (~line 93).
+**See:** `islands/todos/TodoBacklog.tsx` (`submitNew` closes via
+`closeCreate()`).
 
 ---
 

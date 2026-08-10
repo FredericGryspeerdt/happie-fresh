@@ -61,6 +61,12 @@ overdue is not a failure to be scolded for — it is the module doing its job,
 surfacing something the household meant to do and hasn't. _Avoid_: late, missed,
 expired, failed
 
+**Assigned**: A to-do that is _for_ a particular member — at most one. An
+unassigned to-do is **up for grabs**: anyone may claim it or hand it to someone,
+and neither is a special permission. Being assigned says who is _meant_ to do
+it; who actually did it is remembered separately when it is done. _Avoid_:
+owner, responsible, delegated
+
 **Not needed**: The other way a to-do leaves the backlog: the household decided
 it never had to happen at all. Unlike being done, this is not a state a to-do
 can be in — the to-do is simply gone, leaving no trace. Never conflate the two;
