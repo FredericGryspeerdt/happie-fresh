@@ -17,6 +17,8 @@ function todo(over: Partial<TodoInterface>): TodoInterface {
     createdAt: "2026-08-01T10:00:00.000Z",
     completedAt: null,
     dueAt: null,
+    assignedTo: null,
+    completedBy: null,
     ...over,
   };
 }

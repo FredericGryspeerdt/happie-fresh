@@ -66,6 +66,8 @@ function seed(householdId = "h1", title = "Take out the bins") {
     createdAt: "2026-08-03T10:00:00.000Z",
     completedAt: null,
     dueAt: null,
+    assignedTo: null,
+    completedBy: null,
   });
 }
 
@@ -115,6 +117,8 @@ Deno.test({
       createdAt: "2026-08-03T10:00:00.000Z",
       completedAt: null,
       dueAt: null,
+      assignedTo: null,
+      completedBy: null,
     });
 
     const cleared = await (await handler.PATCH(
@@ -311,6 +315,8 @@ Deno.test({
       createdAt: "2026-08-03T10:00:00.000Z",
       completedAt: null,
       dueAt: "2026-08-10T09:00:00.000Z",
+      assignedTo: null,
+      completedBy: null,
     });
 
     const updated = await (await handler.PATCH(

@@ -14,6 +14,8 @@ function makeTodo(over: Partial<TodoInterface> = {}): TodoInterface {
     createdAt: "2026-08-03T10:00:00.000Z",
     completedAt: null,
     dueAt: null,
+    assignedTo: null,
+    completedBy: null,
     ...over,
   };
 }
@@ -396,6 +398,7 @@ Deno.test("addTodo — a dated new to-do lands in dueAt order, not at the front"
     title: "new",
     notes: undefined,
     dueAt: "2026-08-20T09:00:00.000Z",
+    assignedTo: null,
   });
 
   assertEquals(hook.openTodos.value.map((t) => t.id), [
@@ -425,7 +428,12 @@ Deno.test("addTodo — an undated new to-do still goes to the front of the undat
     }),
   ]);
 
-  await hook.addTodo({ title: "new", notes: undefined, dueAt: null });
+  await hook.addTodo({
+    title: "new",
+    notes: undefined,
+    dueAt: null,
+    assignedTo: null,
+  });
 
   assertEquals(hook.openTodos.value.map((t) => t.id), [
     "dated",

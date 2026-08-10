@@ -34,6 +34,8 @@ function todo(
     createdAt,
     completedAt: null,
     dueAt,
+    assignedTo: null,
+    completedBy: null,
   };
 }
 

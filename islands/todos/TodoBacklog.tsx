@@ -144,6 +144,7 @@ export default function TodoBacklog({ initialTodos, canDelete }: Props) {
       title,
       notes: notes || undefined,
       dueAt: newDue.value ? new Date(newDue.value).toISOString() : null,
+      assignedTo: null,
     });
     if (!created) {
       say("Couldn't add that to-do. Try again?");

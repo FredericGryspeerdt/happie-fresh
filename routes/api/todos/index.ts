@@ -37,6 +37,8 @@ export const handler = define.handlers({
       createdAt: new Date().toISOString(),
       completedAt: null,
       dueAt,
+      assignedTo: null,
+      completedBy: null,
     });
     return json(todo, 201);
   },
