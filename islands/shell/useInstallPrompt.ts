@@ -74,14 +74,18 @@ export function useInstallPrompt() {
     try {
       await ev.prompt();
       const choice = await ev.userChoice;
-      // The event is single-use — drop the stash whatever the outcome.
-      delete (globalThis as Record<string, unknown>)[STASH_KEY];
-      state.value = choice.outcome === "accepted" ? "installed" : detect();
-      return choice.outcome;
+      if (choice.outcome === "accepted") {
+        state.value = "installed";
+        return "accepted";
+      }
+      return "dismissed";
     } catch (err) {
       console.error("[install] prompt failed", err);
       return "failed";
     } finally {
+      // A BeforeInstallPromptEvent is single-use — spent whatever the outcome.
+      delete (globalThis as Record<string, unknown>)[STASH_KEY];
+      if (state.value !== "installed") state.value = detect();
       busy.value = false;
     }
   };
