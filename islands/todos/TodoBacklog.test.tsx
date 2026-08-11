@@ -296,7 +296,8 @@ Deno.test("TodoBacklog — open rows show the assignee's avatar, done rows the c
       todo({
         id: "t2",
         title: "Dishes",
-        completedAt: "2026-08-10T10:00:00.000Z",
+        completedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)
+          .toISOString(),
         completedBy: "m-pip",
       }),
     ],

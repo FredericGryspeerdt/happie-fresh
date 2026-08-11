@@ -392,6 +392,27 @@ Deno.test({
 });
 
 Deno.test({
+  name: "PATCH — rejects an assignee from another household with 400",
+  sanitizeResources: false,
+  async fn() {
+    await clearTodos();
+    // A real member, but in a DIFFERENT household than the request.
+    const stranger = await MemberRepo.create({
+      householdId: "h-other",
+      name: "Stranger",
+      color: "slate",
+      emoji: "🐼",
+      isManager: false,
+    });
+    const todo = await seed();
+    const res = await handler.PATCH(
+      ctx(patch({ assignedTo: stranger.id }), todo.id, AUTH_MANAGER),
+    );
+    assertEquals(res.status, 400);
+  },
+});
+
+Deno.test({
   name:
     "PATCH — ticking off stamps completedBy with the acting member; un-ticking clears it",
   sanitizeResources: false,
