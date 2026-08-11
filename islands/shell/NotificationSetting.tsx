@@ -4,6 +4,7 @@ import { Button } from "@/components/md3/Button.tsx";
 import { Sheet } from "@/components/md3/Sheet.tsx";
 import { ListItem } from "@/components/md3/ListItem.tsx";
 import { Icon } from "@/components/md3/Icon.tsx";
+import { InstallGuidance } from "@/components/shell/InstallGuidance.tsx";
 import { usePushNotifications } from "@/islands/shell/usePushNotifications.ts";
 
 interface Props {
@@ -64,10 +65,13 @@ export default function NotificationSetting({ onOpen }: Props) {
             )}
 
             {state.value === "needs-install" && (
-              <div class="md-body-medium text-on-surface-variant">
-                Add Happie to your home screen first — on iPhone and iPad,
-                notifications only work once the app is installed.
-              </div>
+              <>
+                <div class="md-body-medium text-on-surface-variant">
+                  Add Happie to your home screen first — on iPhone and iPad,
+                  notifications only work once the app is installed.
+                </div>
+                <InstallGuidance variant="ios" />
+              </>
             )}
 
             {state.value === "denied" && (

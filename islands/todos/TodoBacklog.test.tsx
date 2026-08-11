@@ -30,7 +30,10 @@ Deno.test("TodoBacklog — renders open and done to-dos, and the FAB", () => {
       todo({
         id: "t3",
         title: "Pay the water bill",
-        completedAt: "2026-08-02T12:00:00.000Z",
+        // Relative, not a literal date: Done only shows the last 7 days, so a
+        // hardcoded completedAt ages out of the window and breaks the test.
+        completedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)
+          .toISOString(),
       }),
     ],
   }));

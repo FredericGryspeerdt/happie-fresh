@@ -36,3 +36,12 @@ Deno.test("app head — apple-touch-icon linked explicitly and file exists", asy
   const stat = await Deno.stat("static/apple-touch-icon.png");
   assert(stat.isFile, "apple-touch-icon.png missing from static/");
 });
+
+Deno.test("app head — install prompt stash script, unescaped", () => {
+  const html = renderApp();
+  assertStringIncludes(html, "__happieInstallPrompt");
+  assertStringIncludes(html, "happie:install-ready");
+  // preact-render-to-string HTML-escapes <script> text children; the
+  // script must be emitted via dangerouslySetInnerHTML to stay executable.
+  assertStringIncludes(html, 'addEventListener("beforeinstallprompt"');
+});
