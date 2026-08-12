@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useRef } from "preact/hooks";
-import { useSignal } from "@preact/signals";
+import { useComputed, useSignal } from "@preact/signals";
 import { For } from "@preact/signals/utils";
 import {
   CategoryInterface,
   ItemInterface,
   ShoppingListItemInterface,
 } from "@/models/index.ts";
-import { useShoppingList } from "@/hooks/index.ts";
+import { useShoppingList, useWakeLock } from "@/hooks/index.ts";
 import { api } from "@/services/api.ts";
 import { Segmented } from "@/components/md3/Segmented.tsx";
 import { Sheet } from "@/components/md3/Sheet.tsx";
@@ -69,6 +69,12 @@ export default function Items(
     () => useShoppingList(listId, catalog, shoppingList, initialCategories),
     [], // intentionally empty — signals are initialized once from SSR data
   );
+
+  // Keep the screen awake mid-shop (#73): held while this list still has
+  // unchecked items — `list` holds the open ones — released when the trip
+  // is done, the tab hides, or the island unmounts.
+  const hasOpenItems = useComputed(() => list.value.length > 0);
+  useWakeLock(hasOpenItems);
 
   // ── mode toggle ──────────────────────────────────────────────────────────
   const mode = useSignal<"plan" | "shop">("plan");
