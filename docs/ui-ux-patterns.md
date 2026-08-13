@@ -557,6 +557,92 @@ islands. Client: `api.members.claim(id)` sets the device cookie; a full
 
 ---
 
+## 16. Pre-hydration browser events: the head stash script
+
+**Rule:** When a one-shot browser event can fire before islands hydrate (e.g.
+`beforeinstallprompt`), capture it with a tiny inline script in the app
+shell's `<Head>` (`routes/_app.tsx`): call `preventDefault()` if the event
+needs it, park the payload on a `window` property, and dispatch a custom
+event so islands that hydrate later still hear about it.
+
+**Why:** Islands hydrate after the page loads, but a one-shot event doesn't
+wait for them. Chromium fires `beforeinstallprompt` once per page load and
+never re-fires it for that page — an instance that lands before hydration and
+isn't captured is gone for good, and the "Install" affordance would have
+nothing to trigger.
+
+**How:** Emit the script via `dangerouslySetInnerHTML`, not JSX text
+children — **preact-render-to-string HTML-escapes text children of
+`<script>`**, so a plain-children script renders as inert, `&quot;`-escaped
+soup instead of executable JS. A file-level
+`// deno-lint-ignore-file react-no-danger` at the top of `_app.tsx` scopes the
+lint suppression to the one file that needs it, rather than disabling the
+rule line-by-line or repo-wide. The `window` property name and the
+re-announce event name are necessarily duplicated between the stash script (a
+plain string, not type-checked) and its consumer — pin both sides with tests
+so the two copies can't drift apart silently.
+
+```ts
+// routes/_app.tsx — inside <Head>, ahead of any island script
+<script
+  dangerouslySetInnerHTML={{
+    __html:
+      'addEventListener("beforeinstallprompt",(e)=>{e.preventDefault();window.__happieInstallPrompt=e;dispatchEvent(new Event("happie:install-ready"))});',
+  }}
+/>
+```
+
+```ts
+// islands/shell/useInstallPrompt.ts — the consumer contract
+const STASH_KEY = "__happieInstallPrompt";
+export const INSTALL_READY_EVENT = "happie:install-ready";
+addEventListener(INSTALL_READY_EVENT, () => (state.value = detect()));
+```
+
+**See:** `routes/_app.tsx` (stash script, ~lines 36–41; file-level lint
+ignore, line 1), `islands/shell/useInstallPrompt.ts` (consumer contract —
+`STASH_KEY`/`INSTALL_READY_EVENT`, ~lines 21–22, and the listener, ~line 66),
+`tests/app-head.test.ts` (pins the unescaped script, ~lines 40–47).
+
+---
+
+## 17. Sheets portal to body — and are transformed containing blocks
+
+**Rule:** `Sheet` renders in place during SSR and the first client render,
+then portals its wrapper to `document.body` after mount. Never rely on a
+sheet's DOM position. Corollary: anything `position: fixed` rendered *inside*
+a sheet panel is positioned relative to the panel, not the viewport — the
+panel always carries an inline `transform`.
+
+**Why:** A CSS `transform` makes an element the containing block for `fixed`
+descendants. Sheets nested inside another sheet's panel (More → Notifications
+/ Install the app) used to open completely off-screen, because their "fixed"
+wrapper was actually anchored to the outer sheet's transformed panel — which
+then slid away the moment that outer sheet closed.
+
+**How:** A mount-gated portal — the §11 progressive-enhancement flip applied
+to portaling, not just to capability probes — keeps SSR output and hydration
+byte-identical, so `preact-render-to-string` tests keep seeing closed-sheet
+content render in place; some flows depend on that. `Dialog` and
+`FullScreenDialog` do **not** portal yet — don't nest either of them inside a
+`Sheet` (tracked as a follow-up alongside #87).
+
+```ts
+// components/md3/Sheet.tsx
+const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
+useEffect(() => {
+  setPortalTarget(document.body); // after mount only — SSR/first render stay in place
+}, []);
+// …
+return portalTarget ? createPortal(tree, portalTarget) : tree;
+```
+
+**See:** `components/md3/Sheet.tsx` (`portalTarget` state and effect, ~lines
+31–34; the conditional portal, ~line 135), `components/md3/Sheet.test.tsx`
+("SSR renders in place (portal waits for mount)", ~lines 6–15).
+
+---
+
 ## Review checklist for user-facing changes
 
 Before merging anything the user sees, tick these (section refs in parens):

@@ -1,4 +1,5 @@
 import { signal } from "@preact/signals";
+import { isIosDevice, isStandaloneDisplay } from "@/islands/shell/platform.ts";
 
 export type PushState =
   | "unsupported"
@@ -22,13 +23,7 @@ function urlBase64ToUint8Array(base64: string): Uint8Array<ArrayBuffer> {
 
 /** iOS only allows push in an installed PWA (16.4+). */
 function iosNeedsInstall(): boolean {
-  const ua = navigator.userAgent;
-  const isIos = /iPad|iPhone|iPod/.test(ua);
-  if (!isIos) return false;
-  const standalone =
-    (navigator as unknown as { standalone?: boolean }).standalone === true ||
-    matchMedia("(display-mode: standalone)").matches;
-  return !standalone;
+  return isIosDevice() && !isStandaloneDisplay();
 }
 
 /**
