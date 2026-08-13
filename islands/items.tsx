@@ -303,10 +303,16 @@ export default function Items(
                 <span class="md-title-medium text-on-surface whitespace-nowrap">
                   {done} / {total} in cart
                 </span>
-                {/* NOTE: Wake Lock API is not implemented in this spike — this is a static label only */}
-                <span class="inline-flex items-center gap-1 md-label-small text-on-surface-variant whitespace-nowrap shrink-0">
-                  <Icon name="bolt" size={13} /> Screen awake
-                </span>
+                {
+                  /* Mirrors the wake lock actually requested by useWakeLock above:
+                    shown only while unchecked items remain, i.e. while the app
+                    is asking the device to keep the screen on. */
+                }
+                {hasOpenItems.value && (
+                  <span class="inline-flex items-center gap-1 md-label-small text-on-surface-variant whitespace-nowrap shrink-0">
+                    <Icon name="bolt" size={13} /> Screen awake
+                  </span>
+                )}
               </div>
               <Progress value={done} total={total} height={8} />
             </Card>
