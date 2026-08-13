@@ -25,4 +25,16 @@ Deno.test("shouldRequestLock — any missing leg refuses the lock", () => {
     shouldRequestLock({ supported: false, visible: false, wanted: false }),
     false,
   );
+  assertEquals(
+    shouldRequestLock({ supported: false, visible: false, wanted: true }),
+    false,
+  );
+  assertEquals(
+    shouldRequestLock({ supported: true, visible: false, wanted: false }),
+    false,
+  );
+  assertEquals(
+    shouldRequestLock({ supported: false, visible: true, wanted: false }),
+    false,
+  );
 });
