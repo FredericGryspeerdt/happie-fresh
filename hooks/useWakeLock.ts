@@ -56,8 +56,12 @@ export function useWakeLock(
           sentinel = s;
           held.value = true;
           s.addEventListener("release", () => {
-            if (sentinel === s) sentinel = null;
-            held.value = false;
+            // Guarded: a stale sentinel's release must not clear the flag for a
+            // newer lock that is still held.
+            if (sentinel === s) {
+              sentinel = null;
+              held.value = false;
+            }
           });
         } catch (err) {
           console.debug("[wake-lock] request failed", err);
