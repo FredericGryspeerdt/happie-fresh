@@ -8,7 +8,7 @@ import {
   notFound,
   requireManager,
 } from "@/utils/index.ts";
-import { MemberRepo } from "@/database/index.ts";
+import { MemberRepo, TodoRepo } from "@/database/index.ts";
 import { isAvatarColor, type UpdateMemberDto } from "@/models/index.ts";
 
 const LAST_MANAGER_MSG =
@@ -91,6 +91,10 @@ export const handler = define.handlers({
     // Hard delete, graceful dangle: attribution (createdBy) may now point at
     // a member that no longer resolves; renderers fall back (grilled Q9).
     await MemberRepo.delete(householdId, target.id);
+
+    // Their open to-dos return to "up for grabs" — the work still needs doing
+    // and must not be parked on a ghost. Done rows dangle (docs/adr/0007).
+    await TodoRepo.unassignMember(householdId, target.id);
 
     // If this device's cookie claimed the removed member, clear it so the
     // picker reappears on the next visit rather than a stale claim lingering.

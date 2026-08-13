@@ -6,7 +6,7 @@ import {
 import { render } from "npm:preact-render-to-string@^6.6.3";
 import { h } from "preact";
 import TodoBacklog from "./TodoBacklog.tsx";
-import type { TodoInterface } from "@/models/index.ts";
+import type { MemberInterface, TodoInterface } from "@/models/index.ts";
 
 function todo(over: Partial<TodoInterface>): TodoInterface {
   return {
@@ -17,12 +17,31 @@ function todo(over: Partial<TodoInterface>): TodoInterface {
     createdAt: "2026-08-03T10:00:00.000Z",
     completedAt: null,
     dueAt: null,
+    assignedTo: null,
+    completedBy: null,
     ...over,
+  };
+}
+
+function member(
+  id: string,
+  name: string,
+  emoji = "🐸",
+): MemberInterface {
+  return {
+    id,
+    householdId: "h1",
+    name,
+    color: "meadow",
+    emoji,
+    isManager: false,
   };
 }
 
 Deno.test("TodoBacklog — renders open and done to-dos, and the FAB", () => {
   const html = render(h(TodoBacklog, {
+    members: [],
+    actingMemberId: null,
     canDelete: true,
     initialTodos: [
       todo({ id: "t1", title: "Take out the bins" }),
@@ -48,6 +67,8 @@ Deno.test("TodoBacklog — renders open and done to-dos, and the FAB", () => {
 
 Deno.test("TodoBacklog — empty state when the household has no to-dos", () => {
   const html = render(h(TodoBacklog, {
+    members: [],
+    actingMemberId: null,
     canDelete: true,
     initialTodos: [],
   }));
@@ -58,18 +79,26 @@ Deno.test("TodoBacklog — empty state when the household has no to-dos", () => 
 
 Deno.test("TodoBacklog — no Done heading when nothing is done yet", () => {
   const html = render(h(TodoBacklog, {
+    members: [],
+    actingMemberId: null,
     canDelete: true,
     initialTodos: [todo({ id: "t1", title: "Take out the bins" })],
   }));
 
   assertStringIncludes(html, "Take out the bins");
-  // The create sheet's body is gated on its open state, so nothing else in the
-  // SSR output says "Done" — this really is the section heading.
-  assertFalse(html.includes(">Done<"));
+  // The edit dialog's header (including its "Done" action button) renders
+  // unconditionally — FullScreenDialog doesn't gate its header on `open`,
+  // only its body — so a bare `>Done<` no longer proves the section heading
+  // is absent. Count instead: the only "Done" text should be that header
+  // button, never the section heading.
+  const doneCount = (html.match(/>Done</g) ?? []).length;
+  assertEquals(doneCount, 1); // edit dialog's header action only
 });
 
 Deno.test("TodoBacklog — create sheet's title input does not rely on the bare autofocus attribute", () => {
   const html = render(h(TodoBacklog, {
+    members: [],
+    actingMemberId: null,
     canDelete: true,
     initialTodos: [],
   }));
@@ -94,6 +123,8 @@ Deno.test("TodoBacklog — renders a section header per populated group", () => 
   ).toISOString();
   const past = new Date(Date.now() - 60 * 60 * 1000).toISOString();
   const html = render(h(TodoBacklog, {
+    members: [],
+    actingMemberId: null,
     canDelete: true,
     initialTodos: [
       todo({ id: "t1", title: "Overdue one", dueAt: past }),
@@ -111,6 +142,8 @@ Deno.test("TodoBacklog — renders a section header per populated group", () => 
 
 Deno.test("TodoBacklog — omits headers for empty groups", () => {
   const html = render(h(TodoBacklog, {
+    members: [],
+    actingMemberId: null,
     canDelete: true,
     initialTodos: [todo({ id: "t1", title: "Undated one", dueAt: null })],
   }));
@@ -122,6 +155,8 @@ Deno.test("TodoBacklog — omits headers for empty groups", () => {
 
 Deno.test("TodoBacklog — an undated to-do offers the add-due affordance", () => {
   const html = render(h(TodoBacklog, {
+    members: [],
+    actingMemberId: null,
     canDelete: true,
     initialTodos: [todo({ id: "t1", dueAt: null })],
   }));
@@ -133,6 +168,8 @@ Deno.test("TodoBacklog — Done hides to-dos completed more than 7 days ago", ()
   const recent = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString();
   const old = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
   const html = render(h(TodoBacklog, {
+    members: [],
+    actingMemberId: null,
     canDelete: true,
     initialTodos: [
       todo({ id: "t1", title: "Done recently", completedAt: recent }),
@@ -148,6 +185,8 @@ Deno.test("TodoBacklog — Done hides to-dos completed more than 7 days ago", ()
 Deno.test("TodoBacklog — no Show earlier button when nothing is outside the window", () => {
   const recent = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString();
   const html = render(h(TodoBacklog, {
+    members: [],
+    actingMemberId: null,
     canDelete: true,
     initialTodos: [
       todo({ id: "t1", title: "Done recently", completedAt: recent }),
@@ -161,6 +200,8 @@ Deno.test("TodoBacklog — no Show earlier button when nothing is outside the wi
 Deno.test("TodoBacklog — Done section (and its reveal) still renders when every done to-do is outside the window, with no open to-dos", () => {
   const old = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
   const html = render(h(TodoBacklog, {
+    members: [],
+    actingMemberId: null,
     canDelete: true,
     initialTodos: [
       todo({ id: "t1", title: "Done ages ago", completedAt: old }),
@@ -176,6 +217,8 @@ Deno.test("TodoBacklog — Done section (and its reveal) still renders when ever
 Deno.test("TodoBacklog — Done section (and its reveal) still renders when every done to-do is outside the window, alongside an open to-do", () => {
   const old = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
   const html = render(h(TodoBacklog, {
+    members: [],
+    actingMemberId: null,
     canDelete: true,
     initialTodos: [
       todo({ id: "t1", title: "Take out the bins" }),
@@ -190,6 +233,8 @@ Deno.test("TodoBacklog — Done section (and its reveal) still renders when ever
 
 Deno.test("TodoBacklog — offers the reminder nudge when a to-do has a due date", () => {
   const html = render(h(TodoBacklog, {
+    members: [],
+    actingMemberId: null,
     canDelete: true,
     initialTodos: [
       todo({ id: "t1", dueAt: new Date(Date.now() + 86400000).toISOString() }),
@@ -201,6 +246,8 @@ Deno.test("TodoBacklog — offers the reminder nudge when a to-do has a due date
 
 Deno.test("TodoBacklog — no nudge when nothing has a due date", () => {
   const html = render(h(TodoBacklog, {
+    members: [],
+    actingMemberId: null,
     canDelete: true,
     initialTodos: [todo({ id: "t1", dueAt: null })],
   }));
@@ -217,6 +264,8 @@ Deno.test("TodoBacklog — canDelete: false never contributes a Delete button", 
   // (always-present-but-unreachable) action button, never a second one from
   // the editor trigger, regardless of `canDelete`.
   const html = render(h(TodoBacklog, {
+    members: [],
+    actingMemberId: null,
     canDelete: false,
     initialTodos: [todo({ id: "t1", title: "Take out the bins" })],
   }));
@@ -224,4 +273,55 @@ Deno.test("TodoBacklog — canDelete: false never contributes a Delete button", 
   assertStringIncludes(html, "Take out the bins");
   const deleteButtonCount = (html.match(/>Delete</g) ?? []).length;
   assertEquals(deleteButtonCount, 1); // confirm sheet's button only
+});
+
+Deno.test("TodoBacklog — create and edit surfaces are dialogs, not sheets", () => {
+  const html = render(h(TodoBacklog, {
+    initialTodos: [],
+    members: [],
+    actingMemberId: null,
+    canDelete: true,
+  }));
+  // FullScreenDialog renders role="dialog" with an aria-label per title.
+  assertStringIncludes(html, 'aria-label="New to-do"');
+  assertStringIncludes(html, 'aria-label="Edit to-do"');
+  // Rapid capture is retired: no body-level Close button in the create flow.
+  assertFalse(html.includes(">Close<"));
+});
+
+Deno.test("TodoBacklog — open rows show the assignee's avatar, done rows the completer's", () => {
+  const html = render(h(TodoBacklog, {
+    initialTodos: [
+      todo({ id: "t1", title: "Bins", assignedTo: "m-bo" }),
+      todo({
+        id: "t2",
+        title: "Dishes",
+        completedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)
+          .toISOString(),
+        completedBy: "m-pip",
+      }),
+    ],
+    members: [member("m-bo", "Bo", "🐸"), member("m-pip", "Pip", "🦄")],
+    actingMemberId: "m-bo",
+    canDelete: true,
+  }));
+  assertStringIncludes(html, "🐸");
+  assertStringIncludes(html, "🦄");
+});
+
+Deno.test("TodoBacklog — renders the All/Mine toggle when the backlog is non-empty", () => {
+  const html = render(h(TodoBacklog, {
+    initialTodos: [todo({ id: "t1", title: "Bins" })],
+    members: [member("m-bo", "Bo")],
+    actingMemberId: "m-bo",
+    canDelete: true,
+  }));
+  // Segmented renders `{icon} {label}` — icon and label are sibling JSX
+  // children, so a text-node space sits between the icon's closing tag and
+  // the label (see components/md3/Segmented.test.tsx, which asserts on the
+  // bare label for the same reason). Anchoring on `</button>` keeps this
+  // specific to the toggle's own option labels rather than any other "All"/
+  // "Mine" substring in the render.
+  assertStringIncludes(html, "All</button>");
+  assertStringIncludes(html, "Mine</button>");
 });

@@ -1,13 +1,19 @@
 import { page } from "fresh";
-import { TodoRepo } from "@/database/index.ts";
+import { MemberRepo, TodoRepo } from "@/database/index.ts";
 import TodoBacklog from "@/islands/todos/TodoBacklog.tsx";
 import { define } from "@/utils/index.ts";
 
 export const handler = define.handlers({
   async GET(ctx) {
     const householdId = ctx.state.householdId!;
+    const [todos, members] = await Promise.all([
+      TodoRepo.getAll(householdId),
+      MemberRepo.getAll(householdId),
+    ]);
     return page({
-      todos: await TodoRepo.getAll(householdId),
+      todos,
+      members,
+      actingMemberId: ctx.state.actingMember?.id ?? null,
       canDelete: ctx.state.actingMember?.isManager === true,
     });
   },
@@ -16,7 +22,12 @@ export const handler = define.handlers({
 export default define.page<typeof handler>(function Todos({ data }) {
   return (
     <main class="max-w-md mx-auto">
-      <TodoBacklog initialTodos={data.todos} canDelete={data.canDelete} />
+      <TodoBacklog
+        initialTodos={data.todos}
+        members={data.members}
+        actingMemberId={data.actingMemberId}
+        canDelete={data.canDelete}
+      />
     </main>
   );
 });

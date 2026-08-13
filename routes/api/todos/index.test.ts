@@ -1,6 +1,7 @@
 import { assertEquals } from "jsr:@std/assert@^1.0.19";
 import { type Context } from "fresh";
 import { handler } from "@/routes/api/todos/index.ts";
+import { MemberRepo } from "@/database/member.repo.ts";
 import { getKv } from "@/database/db.ts";
 import type { MemberInterface } from "@/models/index.ts";
 
@@ -206,5 +207,36 @@ Deno.test({
     );
     assertEquals(res.status, 201);
     assertEquals((await res.json()).createdBy, "m-mgr");
+  },
+});
+
+Deno.test({
+  name: "POST — accepts an optional assignee; rejects a non-member",
+  sanitizeResources: false,
+  async fn() {
+    const member = await MemberRepo.create({
+      householdId: "h-post-assign",
+      name: "Pip",
+      color: "lavender",
+      emoji: "🦄",
+      isManager: false,
+    });
+    const state = {
+      userId: "u1",
+      householdId: "h-post-assign",
+      actingMember: { ...MANAGER, householdId: "h-post-assign" },
+    };
+    const ok = await handler.POST(
+      ctx(post({ title: "Water the plants", assignedTo: member.id }), state),
+    );
+    assertEquals(ok.status, 201);
+    const created = await ok.json();
+    assertEquals(created.assignedTo, member.id);
+    assertEquals(created.completedBy, null);
+
+    const bad = await handler.POST(
+      ctx(post({ title: "Nope", assignedTo: "not-a-member" }), state),
+    );
+    assertEquals(bad.status, 400);
   },
 });

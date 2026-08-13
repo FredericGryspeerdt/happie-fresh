@@ -6,14 +6,16 @@ import {
   notFound,
   requireManager,
 } from "@/utils/index.ts";
-import { TodoRepo } from "@/database/index.ts";
+import { MemberRepo, TodoRepo } from "@/database/index.ts";
 import type { UpdateTodoDto } from "@/models/index.ts";
 import { parseDueAt } from "@/utils/todo-due.ts";
 
 export const handler = define.handlers({
   async PATCH(ctx) {
-    const householdId = ctx.state.householdId;
-    if (!householdId) return new Response("Unauthorized", { status: 401 });
+    const { householdId, actingMember } = ctx.state;
+    if (!householdId || !actingMember) {
+      return new Response("Unauthorized", { status: 401 });
+    }
 
     const body = await ctx.req.json();
     const patch: UpdateTodoDto = {};
@@ -38,6 +40,7 @@ export const handler = define.handlers({
     if (body.completedAt !== undefined) {
       if (body.completedAt === null) {
         patch.completedAt = null;
+        patch.completedBy = null;
       } else {
         if (
           typeof body.completedAt !== "string" ||
@@ -46,6 +49,9 @@ export const handler = define.handlers({
           return badRequest("completedAt must be null or a valid date string");
         }
         patch.completedAt = body.completedAt;
+        // Fact, stamped server-side: whoever is acting ticked it off. A
+        // client-sent completedBy is deliberately ignored (docs/adr/0007).
+        patch.completedBy = actingMember.id;
       }
     }
     if (body.dueAt !== undefined) {
@@ -54,6 +60,20 @@ export const handler = define.handlers({
         return badRequest("dueAt must be null or a valid date string");
       }
       patch.dueAt = parsed;
+    }
+    if (body.assignedTo !== undefined) {
+      if (body.assignedTo === null) {
+        patch.assignedTo = null;
+      } else if (
+        typeof body.assignedTo !== "string" ||
+        !(await MemberRepo.getById(householdId, body.assignedTo))
+      ) {
+        return badRequest(
+          "assignedTo must be null or a member of the household",
+        );
+      } else {
+        patch.assignedTo = body.assignedTo;
+      }
     }
 
     const updated = await TodoRepo.update(householdId, ctx.params.id, patch);

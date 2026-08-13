@@ -315,6 +315,8 @@ Deno.test({
       createdAt: new Date().toISOString(),
       completedAt: null,
       dueAt: null,
+      assignedTo: null,
+      completedBy: null,
     });
 
     const first = await migrateMembers(kv);

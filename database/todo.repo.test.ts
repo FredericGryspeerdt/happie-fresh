@@ -28,6 +28,8 @@ function draft(
     createdAt: new Date().toISOString(),
     completedAt: null,
     dueAt: null,
+    assignedTo: null,
+    completedBy: null,
     ...overrides,
   };
 }
@@ -340,6 +342,71 @@ Deno.test({
         { sent: true },
       ),
       true,
+    );
+  },
+});
+
+Deno.test({
+  name: "normalise — records written before assignment read as null fields",
+  sanitizeResources: false,
+  async fn() {
+    const kv = await getKv();
+    const hh = "hh-norm-assign";
+    // Simulate a pre-assignment record: write directly, without the fields.
+    const legacy = {
+      id: "legacy-todo",
+      householdId: hh,
+      title: "Old row",
+      createdBy: "m-x",
+      createdAt: "2026-08-01T10:00:00.000Z",
+      completedAt: null,
+      dueAt: null,
+    };
+    await kv.set(["todos", hh, legacy.id], legacy);
+    const read = await TodoRepo.getById(hh, legacy.id);
+    assertEquals(read?.assignedTo, null);
+    assertEquals(read?.completedBy, null);
+  },
+});
+
+Deno.test({
+  name: "unassignMember — clears open, leaves done, scoped to household",
+  sanitizeResources: false,
+  async fn() {
+    const hh = "hh-sweep";
+    const openMine = await TodoRepo.create(
+      draft(hh, "Open mine", { assignedTo: "m-bo" }),
+    );
+    const openOther = await TodoRepo.create(
+      draft(hh, "Open other", { assignedTo: "m-pip" }),
+    );
+    const doneMine = await TodoRepo.create(
+      draft(hh, "Done mine", {
+        assignedTo: "m-bo",
+        completedAt: "2026-08-09T10:00:00.000Z",
+        completedBy: "m-bo",
+      }),
+    );
+    const elsewhere = await TodoRepo.create(
+      draft("hh-other", "Elsewhere", { assignedTo: "m-bo" }),
+    );
+
+    const cleared = await TodoRepo.unassignMember(hh, "m-bo");
+    assertEquals(cleared, 1);
+    assertEquals((await TodoRepo.getById(hh, openMine.id))?.assignedTo, null);
+    assertEquals(
+      (await TodoRepo.getById(hh, openOther.id))?.assignedTo,
+      "m-pip",
+    );
+    // Done rows dangle by design (graceful dangle, ADR 0006/0007).
+    assertEquals((await TodoRepo.getById(hh, doneMine.id))?.assignedTo, "m-bo");
+    assertEquals(
+      (await TodoRepo.getById(hh, doneMine.id))?.completedBy,
+      "m-bo",
+    );
+    assertEquals(
+      (await TodoRepo.getById("hh-other", elsewhere.id))?.assignedTo,
+      "m-bo",
     );
   },
 });

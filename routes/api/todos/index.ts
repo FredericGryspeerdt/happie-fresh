@@ -1,5 +1,5 @@
 import { badRequest, define, json } from "@/utils/index.ts";
-import { TodoRepo } from "@/database/index.ts";
+import { MemberRepo, TodoRepo } from "@/database/index.ts";
 import { parseDueAt } from "@/utils/todo-due.ts";
 
 export const handler = define.handlers({
@@ -29,6 +29,19 @@ export const handler = define.handlers({
       dueAt = parsed;
     }
 
+    let assignedTo: string | null = null;
+    if (body.assignedTo !== undefined && body.assignedTo !== null) {
+      if (
+        typeof body.assignedTo !== "string" ||
+        !(await MemberRepo.getById(householdId, body.assignedTo))
+      ) {
+        return badRequest(
+          "assignedTo must be null or a member of the household",
+        );
+      }
+      assignedTo = body.assignedTo;
+    }
+
     const todo = await TodoRepo.create({
       householdId,
       title,
@@ -37,6 +50,8 @@ export const handler = define.handlers({
       createdAt: new Date().toISOString(),
       completedAt: null,
       dueAt,
+      assignedTo,
+      completedBy: null,
     });
     return json(todo, 201);
   },
