@@ -72,9 +72,10 @@ export default function Items(
 
   // Keep the screen awake mid-shop (#73): held while this list still has
   // unchecked items — `list` holds the open ones — released when the trip
-  // is done, the tab hides, or the island unmounts.
+  // is done, the tab hides, or the island unmounts. The chip below follows
+  // the hook's `held` signal, i.e. the real lock state, not this intent.
   const hasOpenItems = useComputed(() => list.value.length > 0);
-  useWakeLock(hasOpenItems);
+  const { held: screenAwake } = useWakeLock(hasOpenItems);
 
   // ── mode toggle ──────────────────────────────────────────────────────────
   const mode = useSignal<"plan" | "shop">("plan");
@@ -304,11 +305,11 @@ export default function Items(
                   {done} / {total} in cart
                 </span>
                 {
-                  /* Mirrors the wake lock actually requested by useWakeLock above:
-                    shown only while unchecked items remain, i.e. while the app
-                    is asking the device to keep the screen on. */
+                  /* Mirrors the wake lock actually held by useWakeLock above:
+                    shown only while a lock is genuinely held, so it disappears
+                    if the browser refuses or revokes it (e.g. battery saver). */
                 }
-                {hasOpenItems.value && (
+                {screenAwake.value && (
                   <span class="inline-flex items-center gap-1 md-label-small text-on-surface-variant whitespace-nowrap shrink-0">
                     <Icon name="bolt" size={13} /> Screen awake
                   </span>

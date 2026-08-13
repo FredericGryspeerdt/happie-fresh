@@ -1,4 +1,4 @@
-import { type ReadonlySignal } from "@preact/signals";
+import { type ReadonlySignal, useSignal } from "@preact/signals";
 import { useEffect } from "preact/hooks";
 
 interface WakeLockProbes {
@@ -21,8 +21,17 @@ export function shouldRequestLock(probes: WakeLockProbes): boolean {
  * The browser force-releases the lock whenever the tab hides (and may
  * release it on its own for battery saving); the `release` listener drops
  * the stale sentinel so the next visibility/signal change re-requests.
+ *
+ * Returns `held`: whether a lock is actually held right now, not merely
+ * requested. It's false whenever the browser doesn't support wake locks,
+ * refuses a request (e.g. battery saver), or revokes a held lock on its
+ * own — so callers can render UI that reflects reality instead of intent.
  */
-export function useWakeLock(shouldHold: ReadonlySignal<boolean>): void {
+export function useWakeLock(
+  shouldHold: ReadonlySignal<boolean>,
+): { held: ReadonlySignal<boolean> } {
+  const held = useSignal(false);
+
   useEffect(() => {
     if (!("wakeLock" in navigator)) return;
 
@@ -45,18 +54,22 @@ export function useWakeLock(shouldHold: ReadonlySignal<boolean>): void {
             return;
           }
           sentinel = s;
+          held.value = true;
           s.addEventListener("release", () => {
             if (sentinel === s) sentinel = null;
+            held.value = false;
           });
         } catch (err) {
           console.debug("[wake-lock] request failed", err);
+          held.value = false;
         } finally {
           requesting = false;
         }
       } else if (!wanted && sentinel) {
         const s = sentinel;
         sentinel = null;
-        await s.release();
+        await s.release().catch(() => {});
+        held.value = false;
       }
     };
 
@@ -74,8 +87,11 @@ export function useWakeLock(shouldHold: ReadonlySignal<boolean>): void {
       disposed = true;
       unsubscribe();
       document.removeEventListener("visibilitychange", onVisibility);
-      void sentinel?.release();
+      void sentinel?.release().catch(() => {});
       sentinel = null;
+      held.value = false;
     };
   }, [shouldHold]);
+
+  return { held };
 }
