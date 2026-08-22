@@ -1,6 +1,7 @@
 import { assertEquals } from "jsr:@std/assert@^1.0.19";
 import { type Context } from "fresh";
 import { handler } from "@/routes/api/menu/plan.ts";
+import { DishRepo } from "@/database/index.ts";
 import { getKv } from "@/database/db.ts";
 import type { StateInterface } from "@/utils/index.ts";
 
@@ -27,6 +28,20 @@ async function clearMenus() {
     await kv.delete(e.key);
   }
 }
+async function clearDishes() {
+  const kv = await getKv();
+  for await (const e of kv.list({ prefix: ["dishes", "h1"] })) {
+    await kv.delete(e.key);
+  }
+}
+async function seedDish(name = "Pancakes") {
+  const dish = await DishRepo.create("h1", {
+    name,
+    ingredientIds: [],
+    tagValueIds: [],
+  });
+  return dish.id;
+}
 const req = (method: string, body?: unknown) =>
   new Request("http://x/api/menu/plan", {
     method,
@@ -47,11 +62,13 @@ Deno.test({
   sanitizeResources: false,
   async fn() {
     await clearMenus();
-    const addRes = await handler.POST(ctx(req("POST", { dishId: "d1" })));
+    await clearDishes();
+    const dishId = await seedDish();
+    const addRes = await handler.POST(ctx(req("POST", { dishId })));
     assertEquals(addRes.status, 200);
     const added = await addRes.json();
     assertEquals(added.entries.map((e: { dishId: string }) => e.dishId), [
-      "d1",
+      dishId,
     ]);
     const entryId = added.entries[0].id;
 
@@ -73,8 +90,9 @@ Deno.test({
   sanitizeResources: false,
   async fn() {
     await clearMenus();
-    await handler.POST(ctx(req("POST", { dishId: "d1" })));
-    await handler.POST(ctx(req("POST", { dishId: "d2" })));
+    await clearDishes();
+    await handler.POST(ctx(req("POST", { dishId: await seedDish("Soup") })));
+    await handler.POST(ctx(req("POST", { dishId: await seedDish("Salad") })));
     assertEquals(
       (await handler.DELETE(ctx(req("DELETE", { clear: true })))).status,
       200,
@@ -110,5 +128,69 @@ Deno.test({
       body: "not json",
     });
     assertEquals((await handler.POST(ctx(badReq))).status, 400);
+  },
+});
+
+Deno.test({
+  name: "POST an unknown dishId is 400 and adds nothing",
+  sanitizeResources: false,
+  async fn() {
+    await clearMenus();
+    await clearDishes();
+    const res = await handler.POST(ctx(req("POST", { dishId: "nope" })));
+    assertEquals(res.status, 400);
+    assertEquals(
+      (await (await handler.GET(ctx(req("GET")))).json()).entries,
+      [],
+    );
+  },
+});
+
+Deno.test({
+  name: "PATCH without a day key is 400; explicit null still unpins",
+  sanitizeResources: false,
+  async fn() {
+    await clearMenus();
+    await clearDishes();
+    const addRes = await handler.POST(
+      ctx(req("POST", { dishId: await seedDish() })),
+    );
+    const entryId = ((await addRes.json()).entries as Array<{
+      id: string;
+    }>)[0].id;
+
+    assertEquals(
+      (await handler.PATCH(ctx(req("PATCH", { entryId })))).status,
+      400,
+    );
+    const pinRes = await handler.PATCH(
+      ctx(req("PATCH", { entryId, day: "Wed" })),
+    );
+    assertEquals((await pinRes.json()).entries[0].day, "Wed");
+    const unpinRes = await handler.PATCH(
+      ctx(req("PATCH", { entryId, day: null })),
+    );
+    assertEquals((await unpinRes.json()).entries[0].day, null);
+  },
+});
+
+Deno.test({
+  name: "DELETE without entryId or clear is 400",
+  sanitizeResources: false,
+  async fn() {
+    await clearMenus();
+    assertEquals((await handler.DELETE(ctx(req("DELETE", {})))).status, 400);
+  },
+});
+
+Deno.test({
+  name: "GET only sees the acting household's menu",
+  sanitizeResources: false,
+  async fn() {
+    await clearMenus();
+    await clearDishes();
+    await handler.POST(ctx(req("POST", { dishId: await seedDish() })));
+    const other = await handler.GET(ctx(req("GET"), "h2"));
+    assertEquals((await other.json()).entries, []);
   },
 });

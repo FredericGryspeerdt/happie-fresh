@@ -1,4 +1,4 @@
-import { WeeklyMenuRepo } from "@/database/index.ts";
+import { DishRepo, WeeklyMenuRepo } from "@/database/index.ts";
 import { WEEKDAY_ORDER } from "@/models/index.ts";
 import type { Weekday } from "@/models/index.ts";
 import { define } from "@/utils/index.ts";
@@ -33,6 +33,8 @@ export const handler = define.handlers({
     if (!parsed.ok) return new Response("invalid JSON", { status: 400 });
     const { dishId } = parsed.body as { dishId?: string };
     if (!dishId) return new Response("dishId required", { status: 400 });
+    const dish = await DishRepo.getById(householdId, dishId);
+    if (!dish) return new Response("unknown dish", { status: 400 });
     return json(await WeeklyMenuRepo.addDish(householdId, dishId));
   },
 
