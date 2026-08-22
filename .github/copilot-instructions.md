@@ -4,6 +4,24 @@ This is a **Fresh** project (Deno-based full-stack framework) for a shopping
 list application. It uses **Deno KV** for data storage and **Tailwind CSS v4**
 for styling.
 
+# Domain Language
+
+**Before naming anything user-facing or domain-level, read
+[`CONTEXT.md`](../CONTEXT.md).** It is the project's domain glossary — the
+ubiquitous language for core concepts like "household," "to-do," and "backlog,"
+and what to avoid instead. Keep it updated when you introduce a new domain
+concept.
+
+# UI/UX Patterns
+
+**Before building or changing anything the user sees, read
+[`docs/ui-ux-patterns.md`](../docs/ui-ux-patterns.md).** It documents the
+established front-end conventions (optimistic vs. pessimistic mutations, the
+`api` error boundary, loading feedback, search/filter, exit animations,
+debounced writes, cross-island signals, the MD3 component library, mobile/PWA
+details) so new features stay consistent. Keep it updated when you introduce a
+new pattern.
+
 # Architecture & Patterns
 
 ## Core Stack

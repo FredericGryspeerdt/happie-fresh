@@ -4,6 +4,8 @@ import { ListItem } from "@/components/md3/ListItem.tsx";
 import { Icon, type IconName } from "@/components/md3/Icon.tsx";
 import { Snackbar } from "@/components/md3/Snackbar.tsx";
 import { navigateTo } from "@/utils/loading.ts";
+import NotificationSetting from "@/islands/shell/NotificationSetting.tsx";
+import InstallSetting from "@/islands/shell/InstallSetting.tsx";
 
 interface MoreSheetProps {
   open: boolean;
@@ -47,7 +49,10 @@ export default function MoreSheet({ open, onClose }: MoreSheetProps) {
           leading={badge("checklist")}
           headline="To-dos"
           trailing={chevron()}
-          onClick={() => soon("To-dos")}
+          onClick={() => {
+            onClose();
+            navigateTo("/todos");
+          }}
         />
         <ListItem
           leading={badge("plate")}
@@ -59,7 +64,10 @@ export default function MoreSheet({ open, onClose }: MoreSheetProps) {
           leading={badge("card")}
           headline="Loyalty cards"
           trailing={chevron()}
-          onClick={() => soon("Loyalty cards")}
+          onClick={() => {
+            onClose();
+            navigateTo("/cards");
+          }}
         />
         <div
           class="md-label-medium text-on-surface-variant uppercase tracking-wide"
@@ -71,7 +79,10 @@ export default function MoreSheet({ open, onClose }: MoreSheetProps) {
           leading={badge("people")}
           headline="Members"
           trailing={chevron()}
-          onClick={() => soon("Members")}
+          onClick={() => {
+            onClose();
+            navigateTo("/members");
+          }}
         />
         <ListItem
           leading={badge("cog")}
@@ -79,6 +90,12 @@ export default function MoreSheet({ open, onClose }: MoreSheetProps) {
           trailing={chevron()}
           onClick={() => soon("Settings")}
         />
+        {
+          /* onOpen={onClose} so the notifications sheet never stacks on top of
+            this one — the same reason the due picker is a sibling sheet. */
+        }
+        <NotificationSetting onOpen={onClose} />
+        <InstallSetting onOpen={onClose} />
         <ListItem
           leading={badge("swap")}
           headline="Switch household"

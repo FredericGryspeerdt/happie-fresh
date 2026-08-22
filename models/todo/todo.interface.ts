@@ -1,0 +1,53 @@
+export interface TodoInterface {
+  id: string;
+  householdId: string;
+  /** What needs doing, as the household typed it. */
+  title: string;
+  /** Optional detail — a phone number, a deadline someone mentioned. */
+  notes?: string;
+  /** memberId of the acting member who added it (see docs/adr/0006). Rows
+   *  written before members existed were rewritten by the migration. */
+  createdBy: string;
+  createdAt: string;
+  /**
+   * When the household actually did this, or null if it is still open. The
+   * timestamp *is* the state — there is no separate `done` boolean. See
+   * docs/adr/0002.
+   */
+  completedAt: string | null;
+  /**
+   * When this is due, as a UTC instant, or null if it has no due moment.
+   * Always a moment and never just a day — see docs/adr/0004. Entered and
+   * displayed in the viewer's timezone; neither this record nor the server
+   * knows what that zone is.
+   */
+  dueAt: string | null;
+  /**
+   * The member this to-do is for, or null when it is up for grabs. Intent —
+   * never mutated by completion (see docs/adr/0007). Anyone may set it.
+   */
+  assignedTo: string | null;
+  /**
+   * The member who ticked it off, or null while open. Fact — server-stamped
+   * from the acting member together with completedAt, cleared together with
+   * it. Clients never send this. See docs/adr/0007.
+   */
+  completedBy: string | null;
+}
+
+// Derived type for creation (no ID — the server mints it).
+export type CreateTodoDto = Omit<TodoInterface, "id">;
+
+/**
+ * What the client sends to create a to-do: a title, optional notes, and an
+ * optional due moment. The server fills in `householdId`, `createdBy`,
+ * `createdAt`, `completedAt` and `id` — the client never sends (and cannot
+ * spoof) the household.
+ */
+export type TodoInput = Pick<
+  TodoInterface,
+  "title" | "notes" | "dueAt" | "assignedTo"
+>;
+
+// Derived type for patch/update: never the id or householdId, everything else optional.
+export type UpdateTodoDto = Partial<Omit<TodoInterface, "id" | "householdId">>;

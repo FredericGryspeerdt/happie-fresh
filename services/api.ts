@@ -5,8 +5,16 @@ import {
   DishTagGroupInterface,
   DishTagValueInterface,
   ItemInterface,
+  LoyaltyCardInput,
+  LoyaltyCardInterface,
+  MemberInput,
+  MemberInterface,
   ShoppingListInterface,
   ShoppingListItemInterface,
+  TodoInput,
+  TodoInterface,
+  UpdateMemberDto,
+  UpdateTodoDto,
   Weekday,
   WeeklyMenuInterface,
 } from "@/models/index.ts";
@@ -206,6 +214,75 @@ export const api = {
       });
     },
   },
+  cards: {
+    getAll: async (): Promise<LoyaltyCardInterface[]> => {
+      const res = await fetch("/api/cards");
+      if (!res.ok) return [];
+      return res.json();
+    },
+    create: async (
+      card: LoyaltyCardInput,
+    ): Promise<LoyaltyCardInterface | null> => {
+      const res = await fetch("/api/cards", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(card),
+      });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    update: async (
+      id: string,
+      card: LoyaltyCardInput,
+    ): Promise<LoyaltyCardInterface | null> => {
+      const res = await fetch("/api/cards", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, ...card }),
+      });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    delete: async (id: string): Promise<void> => {
+      await fetch("/api/cards", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+    },
+  },
+  todos: {
+    getAll: async (): Promise<TodoInterface[]> => {
+      const res = await fetch("/api/todos");
+      if (!res.ok) return [];
+      return res.json();
+    },
+    create: async (input: TodoInput): Promise<TodoInterface | null> => {
+      const res = await fetch("/api/todos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+      });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    update: async (
+      id: string,
+      patch: UpdateTodoDto,
+    ): Promise<TodoInterface | null> => {
+      const res = await fetch(`/api/todos/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(patch),
+      });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    delete: async (id: string): Promise<boolean> => {
+      const res = await fetch(`/api/todos/${id}`, { method: "DELETE" });
+      return res.ok;
+    },
+  },
   dishTagGroups: {
     getAll: async (): Promise<DishTagGroupInterface[]> => {
       const res = await fetch("/api/menu/tag-groups");
@@ -223,6 +300,46 @@ export const api = {
       });
       if (!res.ok) return null;
       return res.json();
+    },
+  },
+  members: {
+    getAll: async (): Promise<MemberInterface[]> => {
+      const res = await fetch("/api/members");
+      if (!res.ok) return [];
+      return res.json();
+    },
+    create: async (input: MemberInput): Promise<MemberInterface | null> => {
+      const res = await fetch("/api/members", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+      });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    update: async (
+      id: string,
+      patch: UpdateMemberDto,
+    ): Promise<MemberInterface | null> => {
+      const res = await fetch(`/api/members/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(patch),
+      });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    remove: async (id: string): Promise<boolean> => {
+      const res = await fetch(`/api/members/${id}`, { method: "DELETE" });
+      return res.ok;
+    },
+    claim: async (id: string): Promise<boolean> => {
+      const res = await fetch("/api/members/acting", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ memberId: id }),
+      });
+      return res.ok;
     },
   },
   weeklyMenu: {

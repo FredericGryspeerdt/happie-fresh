@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useRef } from "preact/hooks";
-import { useSignal } from "@preact/signals";
+import { useComputed, useSignal } from "@preact/signals";
 import { For } from "@preact/signals/utils";
 import {
   CategoryInterface,
   ItemInterface,
   ShoppingListItemInterface,
 } from "@/models/index.ts";
-import { useShoppingList } from "@/hooks/index.ts";
+import { useShoppingList, useWakeLock } from "@/hooks/index.ts";
 import { api } from "@/services/api.ts";
 import { Segmented } from "@/components/md3/Segmented.tsx";
 import { Sheet } from "@/components/md3/Sheet.tsx";
@@ -33,6 +33,7 @@ interface ItemsProps {
   items: Required<ItemInterface>[];
   shoppingList: ShoppingListItemInterface[];
   categories: CategoryInterface[];
+  canDelete: boolean;
 }
 
 export default function Items(
@@ -42,6 +43,7 @@ export default function Items(
     items: catalog,
     shoppingList,
     categories: initialCategories,
+    canDelete,
   }: ItemsProps,
 ) {
   // useMemo with [] ensures useShoppingList is called only once.
@@ -68,6 +70,13 @@ export default function Items(
     [], // intentionally empty — signals are initialized once from SSR data
   );
 
+  // Keep the screen awake mid-shop (#73): held while this list still has
+  // unchecked items — `list` holds the open ones — released when the trip
+  // is done, the tab hides, or the island unmounts. The chip below follows
+  // the hook's `held` signal, i.e. the real lock state, not this intent.
+  const hasOpenItems = useComputed(() => list.value.length > 0);
+  const { held: screenAwake } = useWakeLock(hasOpenItems);
+
   // ── mode toggle ──────────────────────────────────────────────────────────
   const mode = useSignal<"plan" | "shop">("plan");
 
@@ -80,14 +89,20 @@ export default function Items(
   // navigation loses the tap's user-activation, so the keyboard never appears.
   const addOpen = useSignal(false);
   const primerRef = useRef<HTMLInputElement>(null);
+  // Set once the overlay's search field has taken focus, i.e. the keyboard
+  // hand-off is done and the primer can safely leave the DOM (see the primer
+  // comment near the bottom of the render).
+  const handoff = useSignal(false);
 
   const openAdd = () => {
+    handoff.value = false;
     primerRef.current?.focus();
     addOpen.value = true;
   };
 
   const closeAdd = () => {
     addOpen.value = false;
+    handoff.value = false;
     // The overlay runs its own useShoppingList instance, so pull the list back in
     // to reflect anything added while it was open.
     refresh();
@@ -289,10 +304,16 @@ export default function Items(
                 <span class="md-title-medium text-on-surface whitespace-nowrap">
                   {done} / {total} in cart
                 </span>
-                {/* NOTE: Wake Lock API is not implemented in this spike — this is a static label only */}
-                <span class="inline-flex items-center gap-1 md-label-small text-on-surface-variant whitespace-nowrap shrink-0">
-                  <Icon name="bolt" size={13} /> Screen awake
-                </span>
+                {
+                  /* Mirrors the wake lock actually held by useWakeLock above:
+                    shown only while a lock is genuinely held, so it disappears
+                    if the browser refuses or revokes it (e.g. battery saver). */
+                }
+                {screenAwake.value && (
+                  <span class="inline-flex items-center gap-1 md-label-small text-on-surface-variant whitespace-nowrap shrink-0">
+                    <Icon name="bolt" size={13} /> Screen awake
+                  </span>
+                )}
               </div>
               <Progress value={done} total={total} height={8} />
             </Card>
@@ -516,26 +537,31 @@ export default function Items(
               }
               onClick={async () => {
                 mgmtOpen.value = false;
-                await clearCheckedItems();
+                const ok = await clearCheckedItems();
+                if (!ok) showSnack("Couldn't clear checked items — try again");
               }}
             />
 
-            <div class="h-px bg-surface-chigh mx-1 my-1" />
+            {canDelete && (
+              <>
+                <div class="h-px bg-surface-chigh mx-1 my-1" />
 
-            {/* Delete list */}
-            <ListItem
-              headline={<span class="text-error">Delete list</span>}
-              leading={
-                <span class="w-10 h-10 rounded-full bg-error-container text-error grid place-items-center">
-                  <Icon name="trash" size={20} />
-                </span>
-              }
-              onClick={async () => {
-                mgmtOpen.value = false;
-                await api.shoppingLists.delete(listId);
-                navigateTo("/shopping");
-              }}
-            />
+                {/* Delete list */}
+                <ListItem
+                  headline={<span class="text-error">Delete list</span>}
+                  leading={
+                    <span class="w-10 h-10 rounded-full bg-error-container text-error grid place-items-center">
+                      <Icon name="trash" size={20} />
+                    </span>
+                  }
+                  onClick={async () => {
+                    mgmtOpen.value = false;
+                    await api.shoppingLists.delete(listId);
+                    navigateTo("/shopping");
+                  }}
+                />
+              </>
+            )}
           </div>
         </Sheet>
       )}
@@ -696,14 +722,18 @@ export default function Items(
 
       {
         /* Keyboard primer — focused inside the FAB tap (see openAdd) so mobile
-          browsers open the soft keyboard; focus then transfers to the overlay's
-          search field, which keeps it open. Mounted only while the overlay is
-          closed: once open it's dead weight, and leaving it in the DOM makes it a
-          second form field, so iOS adds a prev/next field navigator to the
-          keyboard accessory bar. Unmounting it leaves the search box as the sole
-          field, so the navigator disappears. */
+          browsers open the soft keyboard within the tap's user activation. The
+          overlay mounts asynchronously (signal re-render), so its search field
+          focuses ~80ms later; the primer bridges that gap. It MUST stay mounted
+          and focused until the hand-off: unmounting it the instant the overlay
+          opens drops focus to <body>, the keyboard dismisses, and the later
+          programmatic focus of the search field can't reopen it without a fresh
+          user gesture (this was the autofocus regression). So it lingers until
+          AddItems reports its search field took focus (handoff → true), then
+          unmounts — which also removes the second form field iOS uses to add a
+          prev/next navigator to the keyboard accessory bar. */
       }
-      {!addOpen.value && (
+      {(!addOpen.value || !handoff.value) && (
         <input
           ref={primerRef}
           type="text"
@@ -730,6 +760,7 @@ export default function Items(
             categories={categories.value}
             initialQuery=""
             onClose={closeAdd}
+            onSearchFocus={() => (handoff.value = true)}
           />
         </div>
       )}

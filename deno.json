@@ -3,12 +3,15 @@
   "tasks": {
     "check": "deno fmt --check && deno lint && deno check",
     "test": "deno test --unstable-kv -A",
-    "dev": "deno run --env-file --unstable-kv -A vite",
+    "dev": "deno run --env-file --unstable-kv --unstable-cron -A vite",
+    "dev:mobile": "MOBILE_HTTPS=1 deno run --env-file --unstable-kv --unstable-cron -A vite --host",
     "build": "vite build",
-    "preview": "deno serve --env-file --unstable-kv -A _fresh/server.js",
+    "preview": "deno serve --env-file --unstable-kv --unstable-cron -A _fresh/server.js",
     "db:seed": "deno run --env-file --unstable-kv -A scripts/seed.ts",
     "db:migrate": "deno run --env-file --unstable-kv -A scripts/migrate.ts",
     "db:view": "deno run --env-file --unstable-kv -A scripts/db-viewer.ts",
+    "db:login": "deno run --env-file --unstable-kv -A scripts/provision-login.ts",
+    "db:dedupe-menu-tags": "deno run --env-file --unstable-kv -A scripts/dedupe-dish-tag-groups.ts",
     "update": "deno run -A -r jsr:@fresh/update ."
   },
   "lint": {
@@ -26,11 +29,14 @@
   ],
   "imports": {
     "@/": "./",
+    "@types/web-push": "npm:@types/web-push@^3.6.4",
     "fresh": "jsr:@fresh/core@^2.2.0",
     "preact": "npm:preact@^10.27.2",
     "@preact/signals": "npm:@preact/signals@^2.5.0",
+    "@bwip-js/browser": "npm:@bwip-js/browser@^4.11.2",
     "@fresh/plugin-vite": "jsr:@fresh/plugin-vite@^1.0.8",
     "usehooks-ts": "npm:usehooks-ts@^3.1.1",
+    "web-push": "npm:web-push@^3.6.7",
     "vite": "npm:vite@^7.1.3",
     "tailwindcss": "npm:tailwindcss@^4.1.10",
     "@tailwindcss/vite": "npm:@tailwindcss/vite@^4.1.12",

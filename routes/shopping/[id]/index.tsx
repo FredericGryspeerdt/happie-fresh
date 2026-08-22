@@ -22,11 +22,17 @@ export const handler = define.handlers({
       backUrl: "/shopping",
     };
     const [items, shoppingList, categories] = await Promise.all([
-      ItemRepo.readAll(),
+      ItemRepo.readAll(householdId),
       ShoppingListItemRepo.getAll(listId),
-      CategoryRepo.getAll(),
+      CategoryRepo.getAll(householdId),
     ]);
-    return page({ list, items, shoppingList, categories });
+    return page({
+      list,
+      items,
+      shoppingList,
+      categories,
+      canDelete: ctx.state.actingMember?.isManager === true,
+    });
   },
 });
 
@@ -39,6 +45,7 @@ export default define.page<typeof handler>(function ListDetail({ data }) {
         items={data.items}
         shoppingList={data.shoppingList}
         categories={data.categories}
+        canDelete={data.canDelete}
       />
     </main>
   );

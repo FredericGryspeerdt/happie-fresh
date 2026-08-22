@@ -4,12 +4,17 @@ import Catalogue from "@/islands/catalogue.tsx";
 import { define } from "@/utils/index.ts";
 
 export const handler = define.handlers({
-  async GET(_ctx) {
+  async GET(ctx) {
+    const householdId = ctx.state.householdId!;
     const [items, categories] = await Promise.all([
-      ItemRepo.readAll(),
-      CategoryRepo.getAll(),
+      ItemRepo.readAll(householdId),
+      CategoryRepo.getAll(householdId),
     ]);
-    return page({ items, categories });
+    return page({
+      items,
+      categories,
+      canDelete: ctx.state.actingMember?.isManager === true,
+    });
   },
 });
 
@@ -19,6 +24,7 @@ export default define.page<typeof handler>(function CataloguePage({ data }) {
       <Catalogue
         initialItems={data.items}
         initialCategories={data.categories}
+        canDelete={data.canDelete}
       />
     </main>
   );

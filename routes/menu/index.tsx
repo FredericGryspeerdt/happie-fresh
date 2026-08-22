@@ -10,12 +10,12 @@ import { define } from "@/utils/index.ts";
 
 export const handler = define.handlers({
   async GET(ctx) {
-    await DishTagGroupRepo.ensureDefaults();
-    const householdId = ctx.state.householdId ?? "";
+    const householdId = ctx.state.householdId!;
+    await DishTagGroupRepo.ensureDefaults(householdId);
     const [menu, dishes, tagGroups] = await Promise.all([
       WeeklyMenuRepo.get(householdId),
-      DishRepo.getAll(),
-      DishTagGroupRepo.getAll(),
+      DishRepo.getAll(householdId),
+      DishTagGroupRepo.getAll(householdId),
     ]);
     return page({ menu, dishes, tagGroups });
   },

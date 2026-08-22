@@ -1,13 +1,32 @@
+import { page } from "fresh";
+import { MemberRepo, TodoRepo } from "@/database/index.ts";
+import TodoBacklog from "@/islands/todos/TodoBacklog.tsx";
 import { define } from "@/utils/index.ts";
-import { ComingSoon } from "@/components/md3/ComingSoon.tsx";
 
-export default define.page(function Todos() {
+export const handler = define.handlers({
+  async GET(ctx) {
+    const householdId = ctx.state.householdId!;
+    const [todos, members] = await Promise.all([
+      TodoRepo.getAll(householdId),
+      MemberRepo.getAll(householdId),
+    ]);
+    return page({
+      todos,
+      members,
+      actingMemberId: ctx.state.actingMember?.id ?? null,
+      canDelete: ctx.state.actingMember?.isManager === true,
+    });
+  },
+});
+
+export default define.page<typeof handler>(function Todos({ data }) {
   return (
     <main class="max-w-md mx-auto">
-      <ComingSoon
-        icon="checklist"
-        title="To-dos"
-        blurb="Shared to-dos are coming soon — a place for the whole household's tasks."
+      <TodoBacklog
+        initialTodos={data.todos}
+        members={data.members}
+        actingMemberId={data.actingMemberId}
+        canDelete={data.canDelete}
       />
     </main>
   );

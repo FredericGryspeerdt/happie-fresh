@@ -6,6 +6,13 @@
       "runtimeExecutable": "/Users/frederic.gryspeerdt/.deno/bin/deno",
       "runtimeArgs": ["task", "dev"],
       "port": 5173
+    },
+    {
+      "name": "dev-wt",
+      "runtimeExecutable": "/Users/frederic.gryspeerdt/.deno/bin/deno",
+      "runtimeArgs": ["task", "dev", "--port", "5178"],
+      "port": 5178,
+      "autoPort": false
     }
   ]
 }

@@ -25,6 +25,24 @@ but must also work well on desktop. Mobile is the priority because much of the
 functionality is meant to be used on the go — e.g. checking off items while
 shopping, or quickly adding something to a list from wherever you are.
 
+## Domain Language
+
+**Before naming anything user-facing or domain-level, read
+[`CONTEXT.md`](CONTEXT.md).** It is the project's domain glossary — the
+ubiquitous language for core concepts like "household," "to-do," and "backlog,"
+and what to avoid instead (e.g. "task," "list," "account"). Keep it updated when
+you introduce a new domain concept.
+
+## UI/UX Patterns
+
+**Before building or changing anything the user sees, read
+[`docs/ui-ux-patterns.md`](docs/ui-ux-patterns.md).** It documents the
+established front-end conventions (optimistic vs. pessimistic mutations, the
+`api` error boundary, loading feedback, search/filter, exit animations,
+debounced writes, cross-island signals, the MD3 component library, mobile/PWA
+details) so new features stay consistent. Keep it updated when you introduce a
+new pattern.
+
 ## Build & Development Commands
 
 - `deno task dev` — Start dev server (Vite + HMR, requires `--unstable-kv`)
@@ -64,8 +82,9 @@ signal once on mount and returns the same instance on subsequent renders.
 
 **Routing**: File-system based. `routes/api/*.ts` return JSON responses.
 `routes/*.tsx` return pages. Dynamic segments use `[id]` folders.
-`_middleware.ts` handles cookie-based session auth (24h expiry) with redirect to
-`/login` for unauthorized page requests and 401 for API requests.
+`_middleware.ts` handles cookie-based session auth (sliding 30-day expiry,
+90-day absolute cap) with redirect to `/login` for unauthorized page requests
+and 401 for API requests.
 
 **KV key pattern**: `[collection_name, id]` (e.g., `["items", "uuid"]`). IDs via
 `crypto.randomUUID()`.
@@ -107,3 +126,7 @@ Workflow: `resolve-library-id` → `query-docs` → write code.
 
 Deployed on Deno Deploy (`fredericdev/happie-fresh`). Local dev uses file-based
 KV at `data/kv.db`; production uses remote Deno KV.
+
+**Data migrations** (`scripts/migrate.ts`) are run manually against production —
+never from the Deno Deploy build/pre-deploy command. See
+[`docs/running-migrations.md`](docs/running-migrations.md).

@@ -5,20 +5,29 @@ import { define } from "@/utils/index.ts";
 
 export const handler = define.handlers({
   async GET(ctx) {
-    await DishTagGroupRepo.ensureDefaults();
+    const householdId = ctx.state.householdId!;
+    await DishTagGroupRepo.ensureDefaults(householdId);
     ctx.state.appBar = { mode: "detail", title: "New dish", backUrl: "/menu" };
     const [tagGroups, items] = await Promise.all([
-      DishTagGroupRepo.getAll(),
-      ItemRepo.readAll(),
+      DishTagGroupRepo.getAll(householdId),
+      ItemRepo.readAll(householdId),
     ]);
-    return page({ tagGroups, items });
+    return page({
+      tagGroups,
+      items,
+      canDelete: ctx.state.actingMember?.isManager === true,
+    });
   },
 });
 
 export default define.page<typeof handler>(function NewDishPage({ data }) {
   return (
     <main class="max-w-md mx-auto">
-      <DishEditor tagGroups={data.tagGroups} items={data.items} />
+      <DishEditor
+        tagGroups={data.tagGroups}
+        items={data.items}
+        canDelete={data.canDelete}
+      />
     </main>
   );
 });

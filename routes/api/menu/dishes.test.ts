@@ -1,12 +1,36 @@
 import { assertEquals } from "jsr:@std/assert@^1.0.19";
-import { type Context } from "fresh";
 import { handler } from "@/routes/api/menu/dishes.ts";
 import { getKv } from "@/database/db.ts";
+import type { MemberInterface } from "@/models/index.ts";
 
 Deno.env.set("KV_PATH", ":memory:");
 
-function ctx(req: Request): Context<unknown> {
-  return { req } as unknown as Context<unknown>;
+const MANAGER: MemberInterface = {
+  id: "m-mgr",
+  householdId: "hh-1",
+  name: "Alex",
+  color: "sky",
+  emoji: "⭐",
+  isManager: true,
+};
+const KID: MemberInterface = {
+  id: "m-kid",
+  householdId: "hh-1",
+  name: "Bo",
+  color: "meadow",
+  emoji: "🐸",
+  isManager: false,
+};
+
+function ctx(
+  req: Request,
+  state: {
+    householdId?: string;
+    userId?: string;
+    actingMember?: MemberInterface;
+  } = { householdId: "hh-1", actingMember: MANAGER },
+) {
+  return { req, state } as unknown as Parameters<typeof handler.GET>[0];
 }
 async function clearDishes() {
   const kv = await getKv();
@@ -18,6 +42,17 @@ const post = (body: unknown) =>
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
+
+Deno.test({
+  name: "GET without a household returns 401",
+  sanitizeResources: false,
+  async fn() {
+    const res = await handler.GET(
+      ctx(new Request("http://x/api/menu/dishes"), {}),
+    );
+    assertEquals(res.status, 401);
+  },
+});
 
 Deno.test({
   name: "POST creates (201), GET lists it, POST with id updates (200)",
@@ -42,6 +77,23 @@ Deno.test({
     );
     assertEquals(updateRes.status, 200);
     assertEquals((await updateRes.json()).name, "Veggie Curry");
+  },
+});
+
+Deno.test({
+  name: "dishes are isolated per household",
+  sanitizeResources: false,
+  async fn() {
+    await clearDishes();
+    await handler.POST(
+      ctx(post({ name: "OnlyA", ingredientIds: [], tagValueIds: [] }), {
+        householdId: "hh-a",
+      }),
+    );
+    const bList = await (await handler.GET(
+      ctx(new Request("http://x/api/menu/dishes"), { householdId: "hh-b" }),
+    )).json();
+    assertEquals(bList, []);
   },
 });
 
@@ -76,5 +128,47 @@ Deno.test({
       body: JSON.stringify({}),
     });
     assertEquals((await handler.DELETE(ctx(badReq))).status, 400);
+  },
+});
+
+Deno.test({
+  name: "DELETE — a non-manager acting member gets 403",
+  sanitizeResources: false,
+  async fn() {
+    await clearDishes();
+    const created = await (await handler.POST(
+      ctx(post({ name: "Toast", ingredientIds: [], tagValueIds: [] })),
+    )).json();
+    const delReq = new Request("http://x/api/menu/dishes", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: created.id }),
+    });
+    const res = await handler.DELETE(
+      ctx(delReq, { householdId: "hh-1", actingMember: KID }),
+    );
+    assertEquals(res.status, 403);
+    // Still there — nothing was deleted.
+    const list = await (await handler.GET(
+      ctx(new Request("http://x/api/menu/dishes")),
+    )).json();
+    assertEquals(list.map((d: { id: string }) => d.id), [created.id]);
+  },
+});
+
+Deno.test({
+  name: "DELETE — a manager acting member deletes",
+  sanitizeResources: false,
+  async fn() {
+    await clearDishes();
+    const created = await (await handler.POST(
+      ctx(post({ name: "Toast", ingredientIds: [], tagValueIds: [] })),
+    )).json();
+    const delReq = new Request("http://x/api/menu/dishes", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: created.id }),
+    });
+    assertEquals((await handler.DELETE(ctx(delReq))).status, 204);
   },
 });

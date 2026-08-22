@@ -5,12 +5,13 @@ import { define } from "@/utils/index.ts";
 
 export const handler = define.handlers({
   async GET(ctx) {
+    const householdId = ctx.state.householdId!;
     ctx.state.appBar = {
       mode: "detail",
       title: "Aisle order",
       backUrl: "/shopping/catalogue",
     };
-    const categories = await CategoryRepo.getAll();
+    const categories = await CategoryRepo.getAll(householdId);
     return page({ categories });
   },
 });
