@@ -13,6 +13,12 @@ async function clearMenus() {
   }
 }
 
+async function storedVersionstamp(householdId: string) {
+  const kv = await getKv();
+  const res = await kv.get<unknown>(["weekly_menu", householdId]);
+  return res.versionstamp;
+}
+
 Deno.test({
   name: "get — returns an empty menu for a household with no data",
   sanitizeResources: false,
@@ -85,6 +91,28 @@ Deno.test({
     await clearMenus();
     await WeeklyMenuRepo.addDish("h1", "d1");
     assertEquals((await WeeklyMenuRepo.clear("h1")).entries, []);
+  },
+});
+
+Deno.test({
+  name: "clear on an already-empty menu does not persist anything",
+  sanitizeResources: false,
+  async fn() {
+    await clearMenus();
+    await WeeklyMenuRepo.clear("noop-h");
+    assertEquals(await storedVersionstamp("noop-h"), null);
+  },
+});
+
+Deno.test({
+  name: "removeEntry with an unknown entryId leaves the menu untouched",
+  sanitizeResources: false,
+  async fn() {
+    await clearMenus();
+    await WeeklyMenuRepo.addDish("noop-h", "d1");
+    const stampBefore = await storedVersionstamp("noop-h");
+    await WeeklyMenuRepo.removeEntry("noop-h", "missing");
+    assertEquals(await storedVersionstamp("noop-h"), stampBefore);
   },
 });
 
