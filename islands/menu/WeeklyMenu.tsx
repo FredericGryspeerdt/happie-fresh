@@ -34,8 +34,15 @@ interface Snack {
 export default function WeeklyMenu(
   { initialMenu, initialDishes, initialTagGroups }: Props,
 ) {
-  const { menu, sortedEntries, addDish, setDay, removeEntry, clear, refresh } =
-    useMemo(() => useWeeklyMenu(initialMenu), []);
+  const {
+    menu,
+    sortedEntries,
+    setDay,
+    removeEntry,
+    clear,
+    restoreEntries,
+    refresh,
+  } = useMemo(() => useWeeklyMenu(initialMenu), []);
 
   const dishById = useMemo(() => {
     const m = new Map<string, DishInterface>();
@@ -62,20 +69,20 @@ export default function WeeklyMenu(
     if (snackTimer.current) clearTimeout(snackTimer.current);
   }, []);
 
-  // Undo for Clear: re-add each dish, then re-apply its weekday pin.
-  const undoClear = async (prev: WeeklyMenuInterface["entries"]) => {
-    for (const e of prev) {
-      await addDish(e.dishId);
-      if (e.day) {
-        const added = menu.value.entries.find((x) => x.dishId === e.dishId);
-        if (added) await setDay(added.id, e.day);
-      }
-    }
-  };
+  // Undo for Clear: re-add each dish, then re-apply its weekday pin. The snack
+  // (and its Undo action) only appears once Clear has settled, so Undo can
+  // never race an in-flight wipe.
   const onClear = () => {
     const prev = menu.value.entries;
-    clear();
-    showSnack("Cleared this week", "Undo", () => undoClear(prev));
+    void clear().then((ok) =>
+      ok
+        ? showSnack(
+          "Cleared this week",
+          "Undo",
+          () => void restoreEntries(prev),
+        )
+        : showSnack("Couldn't clear this week")
+    );
   };
 
   const tagsFor = (dish?: DishInterface) =>
@@ -182,8 +189,11 @@ export default function WeeklyMenu(
                           dish?.name ?? "dish"
                         } from this week`}
                         onClick={() => {
-                          removeEntry(e.id);
-                          showSnack("Removed from this week");
+                          void removeEntry(e.id).then((ok) =>
+                            ok
+                              ? showSnack("Removed from this week")
+                              : showSnack("Couldn't remove it")
+                          );
                         }}
                       />
                     </div>

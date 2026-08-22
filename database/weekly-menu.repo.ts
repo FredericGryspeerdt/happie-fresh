@@ -90,7 +90,10 @@ export class WeeklyMenuRepo {
   }
 
   static async clear(householdId: string): Promise<WeeklyMenuInterface> {
-    return await this.mutate(householdId, (current) =>
-      current.entries.length === 0 ? null : { ...current, entries: [] });
+    return await this.mutate(
+      householdId,
+      (current) =>
+        current.entries.length === 0 ? null : { ...current, entries: [] },
+    );
   }
 }

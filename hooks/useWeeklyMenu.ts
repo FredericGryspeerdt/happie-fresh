@@ -90,8 +90,26 @@ export function useWeeklyMenu(initialMenu: WeeklyMenuInterface) {
   };
 
   const clear = async (): Promise<boolean> => {
-    return await run({ ...menu.value, entries: [] }, () =>
-      api.weeklyMenu.clear());
+    return await run(
+      { ...menu.value, entries: [] },
+      () => api.weeklyMenu.clear(),
+    );
+  };
+
+  // Re-add previously planned dishes (e.g. after a Clear) and re-pin their
+  // weekdays. Resolves false if any step had to roll back.
+  const restoreEntries = async (
+    prev: MenuEntryInterface[],
+  ): Promise<boolean> => {
+    let ok = true;
+    for (const e of prev) {
+      if (!(await addDish(e.dishId))) ok = false;
+      if (e.day) {
+        const added = menu.value.entries.find((x) => x.dishId === e.dishId);
+        if (!added || !(await setDay(added.id, e.day))) ok = false;
+      }
+    }
+    return ok;
   };
 
   const refresh = async (): Promise<void> => {
@@ -114,6 +132,7 @@ export function useWeeklyMenu(initialMenu: WeeklyMenuInterface) {
     removeDishFromPlan,
     setDay,
     clear,
+    restoreEntries,
     refresh,
   };
 }
