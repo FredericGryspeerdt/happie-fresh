@@ -6,6 +6,7 @@ export * from "./category/index.ts";
 export * from "./household/index.ts";
 export * from "./member/index.ts";
 export * from "./dish/index.ts";
+export * from "./menu/index.ts";
 export * from "./loyalty-card/index.ts";
 export * from "./todo/index.ts";
 export * from "./push-subscription/index.ts";

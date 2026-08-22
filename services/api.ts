@@ -1,23 +1,24 @@
 import {
   CategoryInterface,
-  ItemInterface,
-  ShoppingListInterface,
-  ShoppingListItemInterface,
-} from "@/models/index.ts";
-import { CreateItemDto } from "@/models/item/item.interface.ts";
-import {
   CreateDishDto,
   DishInterface,
   DishTagGroupInterface,
   DishTagValueInterface,
-} from "@/models/index.ts";
-import { LoyaltyCardInput, LoyaltyCardInterface } from "@/models/index.ts";
-import { TodoInput, TodoInterface, UpdateTodoDto } from "@/models/index.ts";
-import {
+  ItemInterface,
+  LoyaltyCardInput,
+  LoyaltyCardInterface,
   MemberInput,
   MemberInterface,
+  ShoppingListInterface,
+  ShoppingListItemInterface,
+  TodoInput,
+  TodoInterface,
   UpdateMemberDto,
+  UpdateTodoDto,
+  Weekday,
+  WeeklyMenuInterface,
 } from "@/models/index.ts";
+import { CreateItemDto } from "@/models/item/item.interface.ts";
 
 export const api = {
   items: {
@@ -339,6 +340,54 @@ export const api = {
         body: JSON.stringify({ memberId: id }),
       });
       return res.ok;
+    },
+  },
+  weeklyMenu: {
+    get: async (): Promise<WeeklyMenuInterface | null> => {
+      const res = await fetch("/api/menu/plan");
+      if (!res.ok) return null;
+      return res.json();
+    },
+    addDish: async (dishId: string): Promise<WeeklyMenuInterface | null> => {
+      const res = await fetch("/api/menu/plan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dishId }),
+      });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    setDay: async (
+      entryId: string,
+      day: Weekday | null,
+    ): Promise<WeeklyMenuInterface | null> => {
+      const res = await fetch("/api/menu/plan", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ entryId, day }),
+      });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    removeEntry: async (
+      entryId: string,
+    ): Promise<WeeklyMenuInterface | null> => {
+      const res = await fetch("/api/menu/plan", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ entryId }),
+      });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    clear: async (): Promise<WeeklyMenuInterface | null> => {
+      const res = await fetch("/api/menu/plan", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clear: true }),
+      });
+      if (!res.ok) return null;
+      return res.json();
     },
   },
 };

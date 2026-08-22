@@ -9,6 +9,7 @@ export * from "./member.repo.ts";
 export * from "./category.repo.ts";
 export * from "./dish.repo.ts";
 export * from "./dish-tag-group.repo.ts";
+export * from "./weekly-menu.repo.ts";
 export * from "./loyalty-card.repo.ts";
 export * from "./todo.repo.ts";
 export * from "./push-subscription.repo.ts";
