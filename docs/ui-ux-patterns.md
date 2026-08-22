@@ -643,6 +643,46 @@ return portalTarget ? createPortal(tree, portalTarget) : tree;
 
 ---
 
+## 18. Device-capability hooks publish real state, not intent
+
+**Rule:** A reusable hook wrapping a browser capability (wake lock,
+geolocation, sensors, …) belongs in `hooks/` behind a signal-driven API — it
+takes its inputs as `ReadonlySignal`s and returns one. Publish the
+capability's *actual, granted* state, not merely what was requested, and
+degrade silently when the capability is unsupported or refused (§11).
+
+**Why:** UI driven by intent instead of outcome lies. A "we want this" signal
+stays true even when the browser can't or won't grant it — an unsupported
+API, a request the OS refuses (battery saver, most commonly), or a grant the
+browser later revokes on its own — so any indicator built on it keeps
+claiming something is happening when it isn't.
+
+**How:** Track the granted state in its own `useSignal`, flip it at every
+point the underlying resource is acquired, released, revoked, or refused, and
+return *that* signal (not the input intent) for callers to render from.
+
+```ts
+// hooks/useWakeLock.ts
+export function useWakeLock(
+  shouldHold: ReadonlySignal<boolean>,
+): { held: ReadonlySignal<boolean> } { /* … */ }
+```
+
+```ts
+// islands/items.tsx
+const { held: screenAwake } = useWakeLock(hasOpenItems);
+// …
+{screenAwake.value && <span>… Screen awake</span>}
+```
+
+The Shop-mode chip renders from `held`, so it disappears the moment a browser
+refuses the lock (battery saver mid-shop) instead of claiming an awake screen
+that isn't there.
+
+**See:** `hooks/useWakeLock.ts`, `islands/items.tsx`.
+
+---
+
 ## Review checklist for user-facing changes
 
 Before merging anything the user sees, tick these (section refs in parens):

@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useRef } from "preact/hooks";
-import { useSignal } from "@preact/signals";
+import { useComputed, useSignal } from "@preact/signals";
 import { For } from "@preact/signals/utils";
 import {
   CategoryInterface,
   ItemInterface,
   ShoppingListItemInterface,
 } from "@/models/index.ts";
-import { useShoppingList } from "@/hooks/index.ts";
+import { useShoppingList, useWakeLock } from "@/hooks/index.ts";
 import { api } from "@/services/api.ts";
 import { Segmented } from "@/components/md3/Segmented.tsx";
 import { Sheet } from "@/components/md3/Sheet.tsx";
@@ -69,6 +69,13 @@ export default function Items(
     () => useShoppingList(listId, catalog, shoppingList, initialCategories),
     [], // intentionally empty — signals are initialized once from SSR data
   );
+
+  // Keep the screen awake mid-shop (#73): held while this list still has
+  // unchecked items — `list` holds the open ones — released when the trip
+  // is done, the tab hides, or the island unmounts. The chip below follows
+  // the hook's `held` signal, i.e. the real lock state, not this intent.
+  const hasOpenItems = useComputed(() => list.value.length > 0);
+  const { held: screenAwake } = useWakeLock(hasOpenItems);
 
   // ── mode toggle ──────────────────────────────────────────────────────────
   const mode = useSignal<"plan" | "shop">("plan");
@@ -297,10 +304,16 @@ export default function Items(
                 <span class="md-title-medium text-on-surface whitespace-nowrap">
                   {done} / {total} in cart
                 </span>
-                {/* NOTE: Wake Lock API is not implemented in this spike — this is a static label only */}
-                <span class="inline-flex items-center gap-1 md-label-small text-on-surface-variant whitespace-nowrap shrink-0">
-                  <Icon name="bolt" size={13} /> Screen awake
-                </span>
+                {
+                  /* Mirrors the wake lock actually held by useWakeLock above:
+                    shown only while a lock is genuinely held, so it disappears
+                    if the browser refuses or revokes it (e.g. battery saver). */
+                }
+                {screenAwake.value && (
+                  <span class="inline-flex items-center gap-1 md-label-small text-on-surface-variant whitespace-nowrap shrink-0">
+                    <Icon name="bolt" size={13} /> Screen awake
+                  </span>
+                )}
               </div>
               <Progress value={done} total={total} height={8} />
             </Card>
