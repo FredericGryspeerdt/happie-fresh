@@ -26,11 +26,13 @@ export function useWeeklyMenu(initialMenu: WeeklyMenuInterface) {
   });
 
   // apply an optimistic value, call the API, reconcile with the result, or roll
-  // back to the previous value on null/throw.
+  // back to the previous value on null/throw. Resolves false when rolled back,
+  // so callers can tell the user that nothing was saved. Idempotent no-ops
+  // (dedup add, removing an unplanned dish) count as success.
   const run = async (
     optimistic: WeeklyMenuInterface,
     call: () => Promise<WeeklyMenuInterface | null>,
-  ): Promise<void> => {
+  ): Promise<boolean> => {
     const prev = menu.value;
     menu.value = optimistic;
     pendingCount.value++;
@@ -38,16 +40,18 @@ export function useWeeklyMenu(initialMenu: WeeklyMenuInterface) {
     try {
       const result = await call();
       menu.value = result ?? prev;
+      return result !== null;
     } catch {
       menu.value = prev;
+      return false;
     } finally {
       pendingCount.value--;
       endBusy();
     }
   };
 
-  const addDish = async (dishId: string): Promise<void> => {
-    if (menu.value.entries.some((e) => e.dishId === dishId)) return; // dedup
+  const addDish = async (dishId: string): Promise<boolean> => {
+    if (menu.value.entries.some((e) => e.dishId === dishId)) return true; // dedup
     const optimistic: WeeklyMenuInterface = {
       ...menu.value,
       entries: [...menu.value.entries, {
@@ -56,37 +60,38 @@ export function useWeeklyMenu(initialMenu: WeeklyMenuInterface) {
         day: null,
       }],
     };
-    await run(optimistic, () => api.weeklyMenu.addDish(dishId));
+    return await run(optimistic, () => api.weeklyMenu.addDish(dishId));
   };
 
-  const removeEntry = async (entryId: string): Promise<void> => {
+  const removeEntry = async (entryId: string): Promise<boolean> => {
     const optimistic: WeeklyMenuInterface = {
       ...menu.value,
       entries: menu.value.entries.filter((e) => e.id !== entryId),
     };
-    await run(optimistic, () => api.weeklyMenu.removeEntry(entryId));
+    return await run(optimistic, () => api.weeklyMenu.removeEntry(entryId));
   };
 
-  const removeDishFromPlan = async (dishId: string): Promise<void> => {
+  const removeDishFromPlan = async (dishId: string): Promise<boolean> => {
     const entry = menu.value.entries.find((e) => e.dishId === dishId);
-    if (entry) await removeEntry(entry.id);
+    return entry ? await removeEntry(entry.id) : true;
   };
 
   const setDay = async (
     entryId: string,
     day: Weekday | null,
-  ): Promise<void> => {
+  ): Promise<boolean> => {
     const optimistic: WeeklyMenuInterface = {
       ...menu.value,
       entries: menu.value.entries.map((
         e,
       ) => (e.id === entryId ? { ...e, day } : e)),
     };
-    await run(optimistic, () => api.weeklyMenu.setDay(entryId, day));
+    return await run(optimistic, () => api.weeklyMenu.setDay(entryId, day));
   };
 
-  const clear = async (): Promise<void> => {
-    await run({ ...menu.value, entries: [] }, () => api.weeklyMenu.clear());
+  const clear = async (): Promise<boolean> => {
+    return await run({ ...menu.value, entries: [] }, () =>
+      api.weeklyMenu.clear());
   };
 
   const refresh = async (): Promise<void> => {

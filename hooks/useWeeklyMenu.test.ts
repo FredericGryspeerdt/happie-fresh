@@ -17,7 +17,7 @@ Deno.test("addDish — optimistic add, reconciles with the server menu", async (
   const add = stub(api.weeklyMenu, "addDish", () => Promise.resolve(server));
   const hook = useWeeklyMenu(menu());
   try {
-    await hook.addDish("d1");
+    assertEquals(await hook.addDish("d1"), true);
     assertEquals(hook.menu.value.entries.map((e) => e.id), ["e1"]);
     assertEquals(add.calls.length, 1);
     assertEquals([...hook.plannedDishIds.value], ["d1"]);
@@ -30,7 +30,7 @@ Deno.test("addDish — dedups a dish already in the plan (no API call)", async (
   const add = stub(api.weeklyMenu, "addDish", () => Promise.resolve(menu()));
   const hook = useWeeklyMenu(menu([{ id: "e1", dishId: "d1", day: null }]));
   try {
-    await hook.addDish("d1");
+    assertEquals(await hook.addDish("d1"), true); // idempotent success
     assertEquals(add.calls.length, 0);
     assertEquals(hook.menu.value.entries.length, 1);
   } finally {
@@ -85,10 +85,36 @@ Deno.test("clear — rolls back when the API returns null", async () => {
   const cl = stub(api.weeklyMenu, "clear", () => Promise.resolve(null));
   const hook = useWeeklyMenu(menu([{ id: "e1", dishId: "d1", day: null }]));
   try {
-    await hook.clear();
+    assertEquals(await hook.clear(), false); // reports failure
     assertEquals(hook.menu.value.entries.map((e) => e.id), ["e1"]); // restored
   } finally {
     cl.restore();
+  }
+});
+
+Deno.test("setDay and removeEntry — resolve false when the API rejects", async () => {
+  const reject = () => Promise.reject(new Error("boom"));
+  const sd = stub(api.weeklyMenu, "setDay", reject);
+  const rm = stub(api.weeklyMenu, "removeEntry", reject);
+  const hook = useWeeklyMenu(menu([{ id: "e1", dishId: "d1", day: null }]));
+  try {
+    assertEquals(await hook.setDay("e1", "Wed"), false);
+    assertEquals(await hook.removeEntry("e1"), false);
+  } finally {
+    sd.restore();
+    rm.restore();
+  }
+});
+
+Deno.test("removeDishFromPlan — an unplanned dish is idempotent success", async () => {
+  const rm = stub(api.weeklyMenu, "removeEntry", () =>
+    Promise.resolve(menu()));
+  const hook = useWeeklyMenu(menu([{ id: "e1", dishId: "d1", day: null }]));
+  try {
+    assertEquals(await hook.removeDishFromPlan("nope"), true);
+    assertEquals(rm.calls.length, 0);
+  } finally {
+    rm.restore();
   }
 });
 
