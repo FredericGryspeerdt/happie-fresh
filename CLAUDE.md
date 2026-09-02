@@ -130,3 +130,19 @@ KV at `data/kv.db`; production uses remote Deno KV.
 **Data migrations** (`scripts/migrate.ts`) are run manually against production —
 never from the Deno Deploy build/pre-deploy command. See
 [`docs/running-migrations.md`](docs/running-migrations.md).
+
+## Agent skills
+
+### Issue tracker
+
+Issues are tracked on GitHub. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Canonical five-role vocabulary (`needs-triage`, `needs-info`, `ready-for-agent`,
+`ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: `CONTEXT.md` at the root + `docs/adr/`. See
+`docs/agents/domain.md`.
