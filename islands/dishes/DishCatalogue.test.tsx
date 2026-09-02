@@ -1,9 +1,9 @@
-import { assertStringIncludes } from "jsr:@std/assert@^1.0.19";
+import { assertEquals, assertStringIncludes } from "jsr:@std/assert@^1.0.19";
 import { render } from "npm:preact-render-to-string@^6.6.3";
 import { h } from "preact";
 import DishCatalogue from "./DishCatalogue.tsx";
 
-Deno.test("DishCatalogue — renders dishes, tag filter groups, and the add FAB", () => {
+Deno.test("DishCatalogue — renders dishes, search, and the add FAB", () => {
   const html = render(h(DishCatalogue, {
     initialDishes: [
       {
@@ -33,8 +33,7 @@ Deno.test("DishCatalogue — renders dishes, tag filter groups, and the add FAB"
   }));
   assertStringIncludes(html, "Pasta Bolognese");
   assertStringIncludes(html, "Veggie Curry");
-  assertStringIncludes(html, "Type"); // group label
-  assertStringIncludes(html, "Vegetarian"); // value chip
+  assertStringIncludes(html, "Search dishes"); // search kept
   assertStringIncludes(html, "Add dish"); // FAB label
 });
 
@@ -44,4 +43,24 @@ Deno.test("DishCatalogue — empty state prompts adding a dish", () => {
     initialTagGroups: [],
   }));
   assertStringIncludes(html, "No dishes yet");
+});
+
+Deno.test("DishCatalogue — shows Added for a dish already in the week", () => {
+  const html = render(h(DishCatalogue, {
+    initialDishes: [
+      { id: "1", name: "Pasta Bolognese", ingredientIds: [], tagValueIds: [] },
+      { id: "2", name: "Veggie Curry", ingredientIds: [], tagValueIds: [] },
+    ],
+    initialTagGroups: [],
+    initialMenu: {
+      householdId: "h1",
+      entries: [{ id: "e1", dishId: "1", day: null }],
+    },
+  }));
+  assertStringIncludes(html, "Added"); // dish 1 is in the week
+  // "Add" is a substring of "Added", so a plain includes() check here is
+  // trivially satisfied by dish 1 alone — count exact label matches instead
+  // to prove dish 2 renders the un-planned "Add" label.
+  assertEquals((html.match(/>Added</g) || []).length, 1);
+  assertEquals((html.match(/>Add</g) || []).length, 1);
 });

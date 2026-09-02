@@ -1,8 +1,12 @@
 import { useMemo } from "preact/hooks";
-import type { DishInterface, DishTagGroupInterface } from "@/models/index.ts";
+import type {
+  DishInterface,
+  DishTagGroupInterface,
+  WeeklyMenuInterface,
+} from "@/models/index.ts";
 import { useDishes } from "@/hooks/useDishes.ts";
+import { useWeeklyMenu } from "@/hooks/useWeeklyMenu.ts";
 import { PullToRefresh } from "@/components/md3/PullToRefresh.tsx";
-import { Chip } from "@/components/md3/Chip.tsx";
 import { Icon } from "@/components/md3/Icon.tsx";
 import { IconButton } from "@/components/md3/IconButton.tsx";
 import { Pressable } from "@/components/md3/Pressable.tsx";
@@ -13,25 +17,26 @@ import { navigateTo } from "@/utils/loading.ts";
 interface Props {
   initialDishes: DishInterface[];
   initialTagGroups: DishTagGroupInterface[];
+  initialMenu?: WeeklyMenuInterface;
 }
 
 export default function DishCatalogue(
-  { initialDishes, initialTagGroups }: Props,
+  { initialDishes, initialTagGroups, initialMenu }: Props,
 ) {
   // useMemo([]) so the hook's signals are created once from SSR props.
   const {
     dishes,
-    tagGroups,
     query,
-    selectedTagValueIds,
     filtered,
-    toggleTagValue,
-    clearFilters,
     refresh,
   } = useMemo(() => useDishes(initialDishes, initialTagGroups), []);
 
-  const groups = tagGroups.value;
-  const selected = selectedTagValueIds.value;
+  const { plannedDishIds, addDish, removeDishFromPlan } = useMemo(
+    () => useWeeklyMenu(initialMenu ?? { householdId: "", entries: [] }),
+    [],
+  );
+  const planned = plannedDishIds.value;
+
   const list = filtered.value;
 
   return (
@@ -58,35 +63,6 @@ export default function DishCatalogue(
           )}
         </div>
 
-        {/* tag filter rail — one row of chips per dimension */}
-        {groups.map((g) => (
-          <div key={g.id} class="flex flex-col gap-1.5">
-            <div class="md-label-medium uppercase text-on-surface-variant px-1">
-              {g.label}
-            </div>
-            <div class="flex gap-2 overflow-x-auto pr-1">
-              {g.values.map((v) => (
-                <Chip
-                  key={v.id}
-                  selected={selected.has(v.id)}
-                  leadingCheck={false}
-                  onClick={() => toggleTagValue(v.id)}
-                >
-                  {v.label}
-                </Chip>
-              ))}
-            </div>
-          </div>
-        ))}
-        {selected.size > 0 && (
-          <Pressable
-            onClick={clearFilters}
-            class="self-start md-label-large text-primary px-1"
-          >
-            Clear filters
-          </Pressable>
-        )}
-
         {/* count */}
         <div class="md-body-medium text-on-surface-variant px-1">
           {list.length} dish{list.length === 1 ? "" : "es"}
@@ -99,7 +75,7 @@ export default function DishCatalogue(
               <div class="md-title-medium text-on-surface">
                 {dishes.value.length === 0
                   ? "No dishes yet"
-                  : "No dishes match your filters"}
+                  : "No dishes match your search"}
               </div>
               <Button
                 variant="tonal"
@@ -113,22 +89,50 @@ export default function DishCatalogue(
           : (
             <div class="grid grid-cols-2 gap-2.5">
               {list.map((d) => (
-                <Pressable
+                <div
                   key={d.id}
-                  onClick={() => navigateTo(`/menu/${d.id}`)}
-                  class="flex flex-col gap-1 bg-surface border border-outline-variant rounded-[var(--md-shape-md)] px-4 py-3.5 text-left"
+                  class="flex flex-col bg-surface border border-outline-variant rounded-[var(--md-shape-md)] overflow-hidden"
                 >
-                  <span class="md-body-large text-on-surface truncate">
-                    {d.name}
-                  </span>
-                  <span class="md-body-small text-on-surface-variant truncate">
-                    {d.ingredientIds.length}{" "}
-                    ingredient{d.ingredientIds.length ===
-                        1
-                      ? ""
-                      : "s"}
-                  </span>
-                </Pressable>
+                  <Pressable
+                    as="div"
+                    onClick={() => navigateTo(`/menu/${d.id}`)}
+                    class="flex flex-col gap-1 px-4 py-3.5 text-left"
+                  >
+                    <span class="md-body-large text-on-surface truncate">
+                      {d.name}
+                    </span>
+                    <span class="md-body-small text-on-surface-variant truncate">
+                      {d.ingredientIds.length}{" "}
+                      ingredient{d.ingredientIds.length ===
+                          1
+                        ? ""
+                        : "s"}
+                    </span>
+                  </Pressable>
+                  <div class="px-4 pb-3">
+                    {planned.has(d.id)
+                      ? (
+                        <Button
+                          variant="tonal"
+                          icon="check"
+                          full
+                          onClick={() => removeDishFromPlan(d.id)}
+                        >
+                          Added
+                        </Button>
+                      )
+                      : (
+                        <Button
+                          variant="outlined"
+                          icon="plus"
+                          full
+                          onClick={() => addDish(d.id)}
+                        >
+                          Add
+                        </Button>
+                      )}
+                  </div>
+                </div>
               ))}
             </div>
           )}
