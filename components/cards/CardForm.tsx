@@ -58,9 +58,12 @@ export function CardForm(
   const isAuto = !form.manualFormat.value;
 
   const onValueInput = (next: string) => {
-    form.value.value = next;
+    // Code 39 is uppercase-only; reflect canonical form immediately while
+    // the user types so the preview and stored value stay consistent.
+    const normalized = format === "code39" ? next.toUpperCase() : next;
+    form.value.value = normalized;
     // Keep the format in sync with the value until the user picks one by hand.
-    if (!form.manualFormat.value) form.format.value = detectFormat(next);
+    if (!form.manualFormat.value) form.format.value = detectFormat(normalized);
   };
 
   const pickAuto = () => {
@@ -71,6 +74,7 @@ export function CardForm(
   const pickFormat = (f: BarcodeFormat) => {
     form.manualFormat.value = true;
     form.format.value = f;
+    if (f === "code39") form.value.value = form.value.value.toUpperCase();
   };
 
   return (

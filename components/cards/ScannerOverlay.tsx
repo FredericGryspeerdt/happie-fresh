@@ -22,6 +22,7 @@ const DETECTED_FORMAT: Record<string, BarcodeFormat> = {
   ean_8: "ean8",
   upc_a: "upca",
   code_128: "code128",
+  code_39: "code39",
   qr_code: "qrcode",
 };
 
@@ -165,10 +166,12 @@ export function ScannerOverlay(
             if (codes.length > 0) {
               console.debug("[scan] detected", codes[0]);
               const { rawValue, format } = codes[0];
-              finish(
-                rawValue,
-                DETECTED_FORMAT[format] ?? detectFormat(rawValue),
-              );
+              const mapped = DETECTED_FORMAT[format] ??
+                detectFormat(rawValue);
+              const normalized = mapped === "code39"
+                ? rawValue.toUpperCase().trim()
+                : rawValue;
+              finish(normalized, mapped);
               return;
             }
           } catch (err) {

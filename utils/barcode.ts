@@ -12,6 +12,7 @@ export const SUPPORTED_FORMATS: { format: BarcodeFormat; label: string }[] = [
   { format: "ean8", label: "EAN-8" },
   { format: "upca", label: "UPC-A" },
   { format: "code128", label: "Code 128" },
+  { format: "code39", label: "Code 39" },
   { format: "qrcode", label: "QR code" },
 ];
 
@@ -95,6 +96,21 @@ export function validateBarcode(
     // Code 128 covers the printable ASCII range (0x20–0x7E).
     if (!/^[\x20-\x7E]+$/.test(v)) {
       return { ok: false, message: "Use letters, digits and basic symbols." };
+    }
+    return { ok: true };
+  }
+
+  if (format === "code39") {
+    // Code 39: 0-9, A-Z, space and - . $ / + % — no * sentinels (bwip-js
+    // adds them). Case-insensitive on input, but canonical is upper-case so
+    // we validate the upper-cased value to guarantee bwip-js can render and
+    // the printed symbol re-scans to the stored value.
+    const upper = v.toUpperCase();
+    if (!/^[0-9A-Z \-\.\$\/\+\%]+$/.test(upper)) {
+      return {
+        ok: false,
+        message: "Use uppercase letters, digits and - . $ / + % or space.",
+      };
     }
     return { ok: true };
   }

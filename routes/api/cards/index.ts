@@ -8,6 +8,7 @@ const FORMATS = new Set<BarcodeFormat>([
   "ean8",
   "upca",
   "code128",
+  "code39",
   "qrcode",
 ]);
 
@@ -32,7 +33,7 @@ export const handler = define.handlers({
     }
     const body = await ctx.req.json();
     const label = String(body.label ?? "").trim();
-    const value = String(body.value ?? "").trim();
+    let value = String(body.value ?? "").trim();
     const format = body.format as BarcodeFormat;
     const color = body.color ? String(body.color) : undefined;
 
@@ -40,6 +41,7 @@ export const handler = define.handlers({
     if (!FORMATS.has(format)) {
       return new Response("invalid format", { status: 400 });
     }
+    if (format === "code39") value = value.toUpperCase();
     const check = validateBarcode(value, format);
     if (!check.ok) return new Response(check.message, { status: 400 });
 
@@ -63,7 +65,7 @@ export const handler = define.handlers({
     if (!id) return new Response("ID is required", { status: 400 });
 
     const label = String(body.label ?? "").trim();
-    const value = String(body.value ?? "").trim();
+    let value = String(body.value ?? "").trim();
     const format = body.format as BarcodeFormat;
     const color = body.color ? String(body.color) : undefined;
 
@@ -71,6 +73,7 @@ export const handler = define.handlers({
     if (!FORMATS.has(format)) {
       return new Response("invalid format", { status: 400 });
     }
+    if (format === "code39") value = value.toUpperCase();
     const check = validateBarcode(value, format);
     if (!check.ok) return new Response(check.message, { status: 400 });
 
