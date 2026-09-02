@@ -7,7 +7,6 @@ import type {
 import { useDishes } from "@/hooks/useDishes.ts";
 import { useWeeklyMenu } from "@/hooks/useWeeklyMenu.ts";
 import { PullToRefresh } from "@/components/md3/PullToRefresh.tsx";
-import { Chip } from "@/components/md3/Chip.tsx";
 import { Icon } from "@/components/md3/Icon.tsx";
 import { IconButton } from "@/components/md3/IconButton.tsx";
 import { Pressable } from "@/components/md3/Pressable.tsx";
@@ -27,12 +26,8 @@ export default function DishCatalogue(
   // useMemo([]) so the hook's signals are created once from SSR props.
   const {
     dishes,
-    tagGroups,
     query,
-    selectedTagValueIds,
     filtered,
-    toggleTagValue,
-    clearFilters,
     refresh,
   } = useMemo(() => useDishes(initialDishes, initialTagGroups), []);
 
@@ -42,8 +37,6 @@ export default function DishCatalogue(
   );
   const planned = plannedDishIds.value;
 
-  const groups = tagGroups.value;
-  const selected = selectedTagValueIds.value;
   const list = filtered.value;
 
   return (
@@ -70,35 +63,6 @@ export default function DishCatalogue(
           )}
         </div>
 
-        {/* tag filter rail — one row of chips per dimension */}
-        {groups.map((g) => (
-          <div key={g.id} class="flex flex-col gap-1.5">
-            <div class="md-label-medium uppercase text-on-surface-variant px-1">
-              {g.label}
-            </div>
-            <div class="flex gap-2 overflow-x-auto pr-1">
-              {g.values.map((v) => (
-                <Chip
-                  key={v.id}
-                  selected={selected.has(v.id)}
-                  leadingCheck={false}
-                  onClick={() => toggleTagValue(v.id)}
-                >
-                  {v.label}
-                </Chip>
-              ))}
-            </div>
-          </div>
-        ))}
-        {selected.size > 0 && (
-          <Pressable
-            onClick={clearFilters}
-            class="self-start md-label-large text-primary px-1"
-          >
-            Clear filters
-          </Pressable>
-        )}
-
         {/* count */}
         <div class="md-body-medium text-on-surface-variant px-1">
           {list.length} dish{list.length === 1 ? "" : "es"}
@@ -111,7 +75,7 @@ export default function DishCatalogue(
               <div class="md-title-medium text-on-surface">
                 {dishes.value.length === 0
                   ? "No dishes yet"
-                  : "No dishes match your filters"}
+                  : "No dishes match your search"}
               </div>
               <Button
                 variant="tonal"

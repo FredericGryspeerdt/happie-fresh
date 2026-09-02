@@ -3,7 +3,7 @@ import { render } from "npm:preact-render-to-string@^6.6.3";
 import { h } from "preact";
 import DishCatalogue from "./DishCatalogue.tsx";
 
-Deno.test("DishCatalogue — renders dishes, tag filter groups, and the add FAB", () => {
+Deno.test("DishCatalogue — renders dishes, search, and the add FAB", () => {
   const html = render(h(DishCatalogue, {
     initialDishes: [
       {
@@ -33,8 +33,7 @@ Deno.test("DishCatalogue — renders dishes, tag filter groups, and the add FAB"
   }));
   assertStringIncludes(html, "Pasta Bolognese");
   assertStringIncludes(html, "Veggie Curry");
-  assertStringIncludes(html, "Type"); // group label
-  assertStringIncludes(html, "Vegetarian"); // value chip
+  assertStringIncludes(html, "Search dishes"); // search kept
   assertStringIncludes(html, "Add dish"); // FAB label
 });
 
