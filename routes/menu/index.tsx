@@ -2,6 +2,7 @@ import { page } from "fresh";
 import {
   DishRepo,
   DishTagGroupRepo,
+  ItemRepo,
   WeeklyMenuRepo,
 } from "@/database/index.ts";
 import MenuSubNav from "@/islands/menu/MenuSubNav.tsx";
@@ -12,12 +13,13 @@ export const handler = define.handlers({
   async GET(ctx) {
     const householdId = ctx.state.householdId!;
     await DishTagGroupRepo.ensureDefaults(householdId);
-    const [menu, dishes, tagGroups] = await Promise.all([
+    const [menu, dishes, tagGroups, items] = await Promise.all([
       WeeklyMenuRepo.get(householdId),
       DishRepo.getAll(householdId),
       DishTagGroupRepo.getAll(householdId),
+      ItemRepo.readAll(householdId),
     ]);
-    return page({ menu, dishes, tagGroups });
+    return page({ menu, dishes, tagGroups, items });
   },
 });
 
@@ -29,6 +31,7 @@ export default define.page<typeof handler>(function MenuPage({ data }) {
         initialMenu={data.menu}
         initialDishes={data.dishes}
         initialTagGroups={data.tagGroups}
+        initialItems={data.items}
       />
     </main>
   );

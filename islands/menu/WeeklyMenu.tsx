@@ -3,11 +3,13 @@ import { useEffect, useMemo, useRef } from "preact/hooks";
 import type {
   DishInterface,
   DishTagGroupInterface,
+  ItemInterface,
   Weekday,
   WeeklyMenuInterface,
 } from "@/models/index.ts";
 import { WEEKDAY_ORDER } from "@/models/index.ts";
 import { useWeeklyMenu } from "@/hooks/useWeeklyMenu.ts";
+import { useMenuShopping } from "@/hooks/useMenuShopping.ts";
 import { PullToRefresh } from "@/components/md3/PullToRefresh.tsx";
 import { Card } from "@/components/md3/Card.tsx";
 import { Chip } from "@/components/md3/Chip.tsx";
@@ -17,12 +19,15 @@ import { IconButton } from "@/components/md3/IconButton.tsx";
 import { Pressable } from "@/components/md3/Pressable.tsx";
 import { Sheet } from "@/components/md3/Sheet.tsx";
 import { Snackbar } from "@/components/md3/Snackbar.tsx";
+import { ShoppingListPickerSheet } from "@/components/menu/ShoppingListPickerSheet.tsx";
+import { IngredientPreviewSheet } from "@/components/menu/IngredientPreviewSheet.tsx";
 import { navigateTo } from "@/utils/loading.ts";
 
 interface Props {
   initialMenu: WeeklyMenuInterface;
   initialDishes: DishInterface[];
   initialTagGroups: DishTagGroupInterface[];
+  initialItems: ItemInterface[];
 }
 
 interface Snack {
@@ -32,7 +37,7 @@ interface Snack {
 }
 
 export default function WeeklyMenu(
-  { initialMenu, initialDishes, initialTagGroups }: Props,
+  { initialMenu, initialDishes, initialTagGroups, initialItems }: Props,
 ) {
   const {
     menu,
@@ -43,6 +48,15 @@ export default function WeeklyMenu(
     restoreEntries,
     refresh,
   } = useMemo(() => useWeeklyMenu(initialMenu), []);
+
+  // False positive: react-rules-of-hooks flags this call when the useMemo
+  // result is kept as one object instead of destructured (see useWeeklyMenu
+  // above, which lints clean only because it destructures). Naming the
+  // initializer keeps the ignore comment attached to a stable, short line
+  // that deno fmt won't rewrap.
+  // deno-lint-ignore react-rules-of-hooks
+  const initShopping = () => useMenuShopping(menu, initialDishes, initialItems);
+  const shopping = useMemo(initShopping, []);
 
   const dishById = useMemo(() => {
     const m = new Map<string, DishInterface>();
@@ -83,6 +97,22 @@ export default function WeeklyMenu(
         )
         : showSnack("Couldn't clear this week")
     );
+  };
+
+  // Pessimistic bulk write; the preview stays open on failure so nothing is
+  // lost (patterns doc §1/§3).
+  const onConfirmShopping = () => {
+    void shopping.confirm().then((out) => {
+      if (!out) return showSnack("Couldn't add to the list — try again");
+      if (out.count === 0) {
+        return showSnack("Everything was already on the list");
+      }
+      showSnack(
+        `Added ${out.count} to ${out.list.name}`,
+        "Open list",
+        () => navigateTo(`/shopping/${out.list.id}`),
+      );
+    });
   };
 
   const tagsFor = (dish?: DishInterface) =>
@@ -126,6 +156,20 @@ export default function WeeklyMenu(
             </Pressable>
           )}
         </div>
+
+        {entries.length > 0 && (
+          <div class="px-4 pt-3">
+            <Button
+              full
+              icon="cart"
+              loading={shopping.loading.value &&
+                shopping.step.value === "idle"}
+              onClick={() => void shopping.start()}
+            >
+              Add to shopping list
+            </Button>
+          </div>
+        )}
 
         {entries.length === 0
           ? (
@@ -225,6 +269,29 @@ export default function WeeklyMenu(
           ))}
         </div>
       </Sheet>
+
+      <ShoppingListPickerSheet
+        open={shopping.step.value === "pick"}
+        lists={shopping.lists.value}
+        rememberedListId={shopping.rememberedListId.value}
+        busy={shopping.loading.value}
+        onPick={(l) => void shopping.chooseList(l)}
+        onCreate={shopping.createList}
+        onClose={shopping.cancel}
+      />
+      <IngredientPreviewSheet
+        open={shopping.step.value === "preview"}
+        listName={shopping.chosenList.value?.name ?? ""}
+        rows={shopping.rows.value}
+        isSelected={shopping.isSelected}
+        emptyDishes={shopping.emptyDishes.value}
+        selectedCount={shopping.selectedCount.value}
+        adding={shopping.adding.value}
+        onToggle={shopping.toggle}
+        onConfirm={onConfirmShopping}
+        onOpenDish={(d) => navigateTo(`/menu/${d.id}`)}
+        onClose={shopping.cancel}
+      />
 
       <Snackbar data={snack.value} />
     </PullToRefresh>
