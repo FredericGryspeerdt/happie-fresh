@@ -32,6 +32,7 @@ export function ShoppingListPickerSheet(
 
   const closeDialog = () => {
     creating.value = false;
+    name.value = DEFAULT_NAME;
     if (noLists) onClose();
   };
   const submit = async () => {
@@ -48,7 +49,13 @@ export function ShoppingListPickerSheet(
           title in the DOM, and there is nothing to pick from. */
       }
       {!noLists && (
-        <Sheet open={open} onClose={onClose} title="Which list?">
+        // Hide the Sheet while creating a new list to avoid Escape firing both
+        // the Sheet and Dialog handlers, and to prevent stacking issues (z-[200]).
+        <Sheet
+          open={open && !creating.value}
+          onClose={onClose}
+          title="Which list?"
+        >
           <div class="-mx-6">
             {lists.map((l) => {
               const remembered = l.id === rememberedListId;
@@ -102,6 +109,7 @@ export function ShoppingListPickerSheet(
           </p>
         )}
         <TextField
+          id="new-shopping-list-name"
           label="List name"
           value={name.value}
           onInput={(v) => (name.value = v)}

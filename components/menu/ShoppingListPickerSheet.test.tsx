@@ -46,3 +46,17 @@ Deno.test("ShoppingListPickerSheet — with no lists, opens the create dialog pr
   assertStringIncludes(html, "Create list");
   assertEquals(html.includes("Which list?"), false);
 });
+
+Deno.test("ShoppingListPickerSheet — the list-name field is labelled for assistive tech", () => {
+  const html = render(h(ShoppingListPickerSheet, {
+    open: true,
+    lists: [],
+    rememberedListId: null,
+    busy: false,
+    onPick: noop,
+    onCreate: never,
+    onClose: noop,
+  }));
+  assertStringIncludes(html, 'for="new-shopping-list-name"');
+  assertStringIncludes(html, 'id="new-shopping-list-name"');
+});
