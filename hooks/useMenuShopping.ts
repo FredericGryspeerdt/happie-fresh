@@ -74,11 +74,11 @@ export function useMenuShopping(
     unticked.value = new Set();
     step.value = "preview";
     // Remember the choice household-wide. Fire-and-forget: a failure here
-    // costs nothing but next time's preselection.
+    // costs nothing but next time's preselection. Rejected fetch is swallowed.
     if (menu.value.shoppingListId !== list.id) {
       void api.weeklyMenu.setShoppingList(list.id).then((m) => {
         if (m) menu.value = { ...menu.value, shoppingListId: m.shoppingListId };
-      });
+      }).catch(() => {});
     }
   };
 

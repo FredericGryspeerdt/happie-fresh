@@ -118,6 +118,29 @@ Deno.test("chooseList — does not re-remember the already remembered list", asy
   }
 });
 
+Deno.test("chooseList — a rejected remember call is swallowed, preview still opens", async () => {
+  const getItems = stub(
+    api.shoppingList,
+    "getItems",
+    () => Promise.resolve([]),
+  );
+  const remember = stub(
+    api.weeklyMenu,
+    "setShoppingList",
+    () => Promise.reject(new Error("offline")),
+  );
+  const hook = useMenuShopping(menuOf(), dishes, items);
+  try {
+    await hook.chooseList(list("A"));
+    await new Promise((r) => setTimeout(r, 0)); // let the rejection settle
+    assertEquals(hook.step.value, "preview");
+    assertEquals(remember.calls.length, 1);
+  } finally {
+    getItems.restore();
+    remember.restore();
+  }
+});
+
 Deno.test("toggle — flips new/bought rows, ignores on-list rows", async () => {
   const getItems = stub(
     api.shoppingList,
