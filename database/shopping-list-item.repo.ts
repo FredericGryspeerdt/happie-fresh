@@ -1,4 +1,8 @@
-import { ShoppingListItemInterface } from "@/models/index.ts";
+import type {
+  BulkAddItemInput,
+  BulkAddResult,
+  ShoppingListItemInterface,
+} from "@/models/index.ts";
 import { getKv } from "./db.ts";
 import { mergeDefinedPatch } from "./merge-patch.ts";
 
@@ -76,5 +80,72 @@ export class ShoppingListItemRepo {
     const { ok } = await atomic.commit();
     if (!ok) throw new Error("Failed to clear checked items.");
     return count;
+  }
+
+  // Put many items on a list at once (the weekly-menu "Add to shopping list"
+  // action). The rules live here, not in the caller, so two people tapping at
+  // once cannot double-add:
+  //   - no entry for the item      → create it (quantity 1, unchecked, note)
+  //   - unchecked entry exists     → skip; fill its note only if empty
+  //   - checked entry exists       → uncheck it ("restored"); fill note if empty
+  // Never overwrites a written note, never bumps quantity. One atomic commit.
+  static async bulkAdd(
+    listId: string,
+    inputs: BulkAddItemInput[],
+  ): Promise<BulkAddResult> {
+    const kv = await getKv();
+    const existing = await this.getAll(listId);
+    // One entry per item; when the list holds duplicates, an unchecked entry
+    // is the one that represents "still to buy".
+    const byItem = new Map<string, ShoppingListItemInterface>();
+    for (const li of existing) {
+      const cur = byItem.get(li.itemId);
+      if (!cur || (cur.checked && !li.checked)) byItem.set(li.itemId, li);
+    }
+
+    const result: BulkAddResult = { added: [], restored: [], skipped: [] };
+    const seen = new Set<string>();
+    let atomic = kv.atomic();
+    let writes = 0;
+
+    for (const input of inputs) {
+      if (seen.has(input.itemId)) continue;
+      seen.add(input.itemId);
+      const cur = byItem.get(input.itemId);
+
+      if (!cur) {
+        const entry: ShoppingListItemInterface = {
+          id: crypto.randomUUID(),
+          listId,
+          itemId: input.itemId,
+          quantity: 1,
+          checked: false,
+          ...(input.note ? { note: input.note } : {}),
+        };
+        atomic = atomic.set(["shopping_list_items", listId, entry.id], entry);
+        writes++;
+        result.added.push(entry);
+        continue;
+      }
+
+      const note = cur.note?.trim() ? cur.note : input.note;
+      const next: ShoppingListItemInterface = {
+        ...cur,
+        checked: false,
+        ...(note ? { note } : {}),
+      };
+      if (cur.checked) result.restored.push(next);
+      else result.skipped.push(cur.itemId);
+      if (next.checked !== cur.checked || next.note !== cur.note) {
+        atomic = atomic.set(["shopping_list_items", listId, cur.id], next);
+        writes++;
+      }
+    }
+
+    if (writes > 0) {
+      const { ok } = await atomic.commit();
+      if (!ok) throw new Error("Failed to add items to the list.");
+    }
+    return result;
   }
 }
