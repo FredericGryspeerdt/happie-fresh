@@ -82,11 +82,16 @@ export function useMenuShopping(
     }
   };
 
-  const start = async (): Promise<void> => {
-    const all = await withLoading(() => api.shoppingLists.getAll());
+  const start = async (): Promise<boolean> => {
+    const all = await withLoading(() => api.shoppingLists.getAllOrNull());
+    if (all === null) return false;
     lists.value = all;
-    if (all.length === 1) return await chooseList(all[0]);
+    if (all.length === 1) {
+      await chooseList(all[0]);
+      return true;
+    }
     step.value = "pick";
+    return true;
   };
 
   const createList = async (name: string): Promise<boolean> => {

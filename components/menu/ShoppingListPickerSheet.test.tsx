@@ -29,6 +29,7 @@ Deno.test("ShoppingListPickerSheet — lists every list and marks the remembered
   assertStringIncludes(html, "DIY store");
   assertStringIncludes(html, "Used last time");
   assertStringIncludes(html, "New list");
+  assertEquals(html.includes('value="Groceries"'), false);
 });
 
 Deno.test("ShoppingListPickerSheet — with no lists, opens the create dialog prefilled with Groceries", () => {

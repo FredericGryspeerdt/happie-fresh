@@ -46,9 +46,9 @@ const li = (itemId: string, checked: boolean): ShoppingListItemInterface => ({
 
 Deno.test("start — one list goes straight to the preview and remembers it", async () => {
   const menu = menuOf();
-  const getAll = stub(
+  const getAllOrNull = stub(
     api.shoppingLists,
-    "getAll",
+    "getAllOrNull",
     () => Promise.resolve([list("A")]),
   );
   const getItems = stub(
@@ -63,7 +63,7 @@ Deno.test("start — one list goes straight to the preview and remembers it", as
   );
   const hook = useMenuShopping(menu, dishes, items);
   try {
-    await hook.start();
+    assertEquals(await hook.start(), true);
     assertEquals(hook.step.value, "preview");
     assertEquals(hook.chosenList.value?.id, "A");
     assertEquals(getItems.calls[0].args, ["A"]);
@@ -74,26 +74,63 @@ Deno.test("start — one list goes straight to the preview and remembers it", as
     assertEquals(menu.value.shoppingListId, "A");
     assertEquals(hook.loading.value, false);
   } finally {
-    getAll.restore();
+    getAllOrNull.restore();
     getItems.restore();
     remember.restore();
   }
 });
 
 Deno.test("start — several lists opens the picker; remembered id is exposed", async () => {
-  const getAll = stub(
+  const getAllOrNull = stub(
     api.shoppingLists,
-    "getAll",
+    "getAllOrNull",
     () => Promise.resolve([list("A"), list("B")]),
   );
   const hook = useMenuShopping(menuOf("B"), dishes, items);
   try {
-    await hook.start();
+    assertEquals(await hook.start(), true);
     assertEquals(hook.step.value, "pick");
     assertEquals(hook.lists.value.length, 2);
     assertEquals(hook.rememberedListId.value, "B");
   } finally {
-    getAll.restore();
+    getAllOrNull.restore();
+  }
+});
+
+Deno.test('start — a failed fetch does not masquerade as "no lists"', async () => {
+  const getAllOrNull = stub(
+    api.shoppingLists,
+    "getAllOrNull",
+    () => Promise.resolve(null),
+  );
+  const hook = useMenuShopping(menuOf(), dishes, items);
+  try {
+    assertEquals(await hook.start(), false);
+    assertEquals(hook.step.value, "idle");
+    assertEquals(hook.lists.value, []);
+  } finally {
+    getAllOrNull.restore();
+  }
+});
+
+Deno.test("start — a dangling remembered list id (not among the fetched lists) opens the picker without it", async () => {
+  const getAllOrNull = stub(
+    api.shoppingLists,
+    "getAllOrNull",
+    () => Promise.resolve([list("A"), list("B")]),
+  );
+  const hook = useMenuShopping(menuOf("gone"), dishes, items);
+  try {
+    assertEquals(await hook.start(), true);
+    assertEquals(hook.step.value, "pick");
+    assertEquals(hook.rememberedListId.value, "gone");
+    assertEquals(hook.lists.value.map((l) => l.id), ["A", "B"]);
+    assertEquals(
+      hook.lists.value.some((l) => l.id === "gone"),
+      false,
+    );
+  } finally {
+    getAllOrNull.restore();
   }
 });
 
@@ -265,9 +302,9 @@ Deno.test("createList — creates, appends, and continues to the preview", async
 });
 
 Deno.test("cancel — returns to idle", async () => {
-  const getAll = stub(
+  const getAllOrNull = stub(
     api.shoppingLists,
-    "getAll",
+    "getAllOrNull",
     () => Promise.resolve([list("A"), list("B")]),
   );
   const hook = useMenuShopping(menuOf(), dishes, items);
@@ -276,6 +313,6 @@ Deno.test("cancel — returns to idle", async () => {
     hook.cancel();
     assertEquals(hook.step.value, "idle");
   } finally {
-    getAll.restore();
+    getAllOrNull.restore();
   }
 });

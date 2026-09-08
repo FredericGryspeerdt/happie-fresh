@@ -109,6 +109,14 @@ export const api = {
       if (!res.ok) return [];
       return res.json();
     },
+    // Like getAll, but distinguishes "no lists" from "request failed" — the
+    // menu's list picker must never tell a household it has no lists because
+    // the network blipped.
+    getAllOrNull: async (): Promise<ShoppingListInterface[] | null> => {
+      const res = await fetch("/api/shopping/lists");
+      if (!res.ok) return null;
+      return res.json();
+    },
     create: async (name: string): Promise<ShoppingListInterface | null> => {
       const res = await fetch("/api/shopping/lists", {
         method: "POST",

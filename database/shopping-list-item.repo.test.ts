@@ -188,6 +188,25 @@ Deno.test({
 });
 
 Deno.test({
+  name: "deleteAll — also removes the list's revision key",
+  sanitizeResources: false,
+  async fn() {
+    const listId = "list-delete-all-1";
+    await clearListItems(listId);
+    await ShoppingListItemRepo.bulkAdd(listId, [{ itemId: "pasta" }]);
+    const kv = await getKv();
+    const before = await kv.get(["shopping_list_items_rev", listId]);
+    assertEquals(before.value !== null, true);
+
+    await ShoppingListItemRepo.deleteAll(listId);
+
+    const after = await kv.get(["shopping_list_items_rev", listId]);
+    assertEquals(after.value, null);
+    assertEquals(await ShoppingListItemRepo.getAll(listId), []);
+  },
+});
+
+Deno.test({
   name: "bulkAdd — a whitespace-only note is treated as no note",
   sanitizeResources: false,
   async fn() {

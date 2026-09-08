@@ -112,7 +112,13 @@ export default function WeeklyMenu(
         "Open list",
         () => navigateTo(`/shopping/${out.list.id}`),
       );
-    });
+    }).catch(() => showSnack("Couldn't add to the list — try again"));
+  };
+
+  const onStartShopping = () => {
+    void shopping.start().then((ok) => {
+      if (!ok) showSnack("Couldn't load your lists — try again");
+    }).catch(() => showSnack("Couldn't load your lists — try again"));
   };
 
   const tagsFor = (dish?: DishInterface) =>
@@ -164,7 +170,7 @@ export default function WeeklyMenu(
               icon="cart"
               loading={shopping.loading.value &&
                 shopping.step.value === "idle"}
-              onClick={() => void shopping.start()}
+              onClick={onStartShopping}
             >
               Add to shopping list
             </Button>
@@ -276,7 +282,14 @@ export default function WeeklyMenu(
         rememberedListId={shopping.rememberedListId.value}
         busy={shopping.loading.value}
         onPick={(l) => void shopping.chooseList(l)}
-        onCreate={shopping.createList}
+        onCreate={(name) =>
+          shopping.createList(name).then((ok) => {
+            if (!ok) showSnack("Couldn't create the list — try again");
+            return ok;
+          }).catch(() => {
+            showSnack("Couldn't create the list — try again");
+            return false;
+          })}
         onClose={shopping.cancel}
       />
       <IngredientPreviewSheet

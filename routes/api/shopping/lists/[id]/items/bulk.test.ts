@@ -58,6 +58,11 @@ Deno.test({
       ctx(post(list.id, { items: [{ itemId: "x" }] }), list.id),
     );
     assertEquals(res.status, 403);
+
+    const noHousehold = await handler.POST(
+      ctx(post(list.id, { items: [{ itemId: "x" }] }), list.id, undefined),
+    );
+    assertEquals(noHousehold.status, 403);
   },
 });
 

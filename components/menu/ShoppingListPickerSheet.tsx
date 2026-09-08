@@ -25,20 +25,26 @@ const DEFAULT_NAME = "Groceries";
 export function ShoppingListPickerSheet(
   { open, lists, rememberedListId, busy, onPick, onCreate, onClose }: Props,
 ) {
-  const creating = useSignal(false);
-  const name = useSignal(DEFAULT_NAME);
   const noLists = lists.length === 0;
+  // Only prefill "Groceries" when the household has no lists at all — once
+  // there's at least one, a new list is a deliberate addition and shouldn't
+  // nudge the name toward a duplicate-sounding default. useSignal's initial
+  // value is read only on mount, which is fine here: `noLists` can't flip
+  // while this sheet instance is alive.
+  const defaultName = noLists ? DEFAULT_NAME : "";
+  const creating = useSignal(false);
+  const name = useSignal(defaultName);
   const dialogOpen = open && (noLists || creating.value);
 
   const closeDialog = () => {
     creating.value = false;
-    name.value = DEFAULT_NAME;
+    name.value = defaultName;
     if (noLists) onClose();
   };
   const submit = async () => {
     if (await onCreate(name.value)) {
       creating.value = false;
-      name.value = DEFAULT_NAME;
+      name.value = defaultName;
     }
   };
 

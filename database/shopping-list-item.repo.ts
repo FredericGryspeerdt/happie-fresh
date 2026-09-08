@@ -60,6 +60,7 @@ export class ShoppingListItemRepo {
     ) {
       await kv.delete(entry.key);
     }
+    await kv.delete(["shopping_list_items_rev", listId]);
   }
 
   static async clearChecked(listId: string): Promise<number> {

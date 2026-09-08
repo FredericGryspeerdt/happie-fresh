@@ -1,4 +1,8 @@
-import { assertEquals, assertStringIncludes } from "jsr:@std/assert@^1.0.19";
+import {
+  assertEquals,
+  assertMatch,
+  assertStringIncludes,
+} from "jsr:@std/assert@^1.0.19";
 import { render } from "npm:preact-render-to-string@^6.6.3";
 import { h } from "preact";
 import { IngredientPreviewSheet } from "./IngredientPreviewSheet.tsx";
@@ -51,7 +55,12 @@ Deno.test("IngredientPreviewSheet — singular label and disabled at zero", () =
   );
   const zero = render(h(IngredientPreviewSheet, { ...base, selectedCount: 0 }));
   assertStringIncludes(zero, "Add 0 items");
-  assertStringIncludes(zero, "disabled");
+  // Scoped to the confirm button itself — a bare "includes disabled" check
+  // would pass even if some unrelated element carried the attribute.
+  assertMatch(
+    zero,
+    /<button[^>]*disabled[^>]*>[^<]*(<[^>]+>[^<]*)*Add 0 items/,
+  );
 });
 
 Deno.test("IngredientPreviewSheet — nothing to add message when there are no rows or empty dishes", () => {
