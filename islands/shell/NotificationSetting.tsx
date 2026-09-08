@@ -21,7 +21,7 @@ interface Props {
  * for a cron tick.
  */
 export default function NotificationSetting({ onOpen }: Props) {
-  const { state, busy, enable, disable, sendTest } = useMemo(
+  const { state, busy, enable, disable, sendTest, syncIfGranted } = useMemo(
     () => usePushNotifications(),
     [],
   );
@@ -48,6 +48,14 @@ export default function NotificationSetting({ onOpen }: Props) {
         onClick={() => {
           onOpen?.();
           open.value = true;
+          // Silent repair for a device whose permission is granted but which
+          // the server has never heard of (a phone restored from backup keeps
+          // the permission, not the push endpoint). Runs inside the tap so
+          // Safari treats the subscribe as user-initiated; nothing to show if
+          // it fails — the test button below reports the real outcome.
+          syncIfGranted().catch((err) =>
+            console.error("[push] resubscribe failed", err)
+          );
         }}
       />
 
