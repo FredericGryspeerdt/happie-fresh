@@ -525,6 +525,14 @@ trap, which is why the More sheet row exists alongside it.
 show a dead button), granted but nothing stored (subscribe silently), and — on
 iOS — not yet installed to the home screen, where the API exists but cannot work.
 
+**Granted ≠ registered.** `Notification.permission` says what the browser will
+allow, not whether the server knows this device. A phone restored from backup
+keeps the granted permission but not its device-bound push endpoint, so the UI
+reads "on" while nothing ever arrives — and a household-wide test "succeeds" on
+someone else's phone. Any flow that reports on *this* device must first
+re-subscribe it (`syncIfGranted()` on the settings row tap, `subscribe()` inside
+`sendTest()`), inside a user gesture so Safari accepts it.
+
 **See:** `islands/shell/usePushNotifications.ts` and
 `islands/shell/NotificationSetting.tsx`; the nudge in `islands/todos/TodoBacklog.tsx`.
 
