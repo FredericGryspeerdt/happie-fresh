@@ -1,4 +1,8 @@
-import { DishRepo, WeeklyMenuRepo } from "@/database/index.ts";
+import {
+  DishRepo,
+  ShoppingListRepo,
+  WeeklyMenuRepo,
+} from "@/database/index.ts";
 import { WEEKDAY_ORDER } from "@/models/index.ts";
 import type { Weekday } from "@/models/index.ts";
 import { badRequest, json } from "@/utils/index.ts";
@@ -38,10 +42,22 @@ export const handler = define.handlers({
     if (!householdId) return new Response("Unauthorized", { status: 401 });
     const parsed = await readJsonBody(ctx.req);
     if (!parsed.ok) return badRequest("invalid JSON");
-    const { entryId, day } = parsed.body as {
+    const { entryId, day, shoppingListId } = parsed.body as {
       entryId?: string;
       day?: Weekday | null;
+      shoppingListId?: string;
     };
+    // Remember the shopping list this week's ingredients go to.
+    if (shoppingListId !== undefined) {
+      if (typeof shoppingListId !== "string" || !shoppingListId) {
+        return badRequest("invalid shoppingListId");
+      }
+      const list = await ShoppingListRepo.getById(householdId, shoppingListId);
+      if (!list) return badRequest("unknown shopping list");
+      return json(
+        await WeeklyMenuRepo.setShoppingList(householdId, shoppingListId),
+      );
+    }
     if (!entryId) return badRequest("entryId required");
     if (day !== null && !WEEKDAY_ORDER.includes(day as Weekday)) {
       return badRequest("invalid day");

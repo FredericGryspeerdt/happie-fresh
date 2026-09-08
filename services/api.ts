@@ -403,5 +403,16 @@ export const api = {
       if (!res.ok) return null;
       return res.json();
     },
+    setShoppingList: async (
+      shoppingListId: string,
+    ): Promise<WeeklyMenuInterface | null> => {
+      const res = await fetch("/api/menu/plan", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ shoppingListId }),
+      });
+      if (!res.ok) return null;
+      return res.json();
+    },
   },
 };
