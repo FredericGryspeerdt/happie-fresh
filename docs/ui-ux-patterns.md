@@ -691,6 +691,31 @@ that isn't there.
 
 ---
 
+## 19. Bulk writes go through a review sheet and one server-side endpoint
+
+**Rule:** When one tap would write many records (e.g. "Add to shopping list"
+on the weekly menu), show a review `Sheet` first — every row ticked by
+default, rows that would be no-ops shown but locked — and send the confirmed
+set as **one** request whose handler applies the dedup/merge rules and commits
+atomically. Never loop single-record POSTs from the client.
+
+**Why:** A blind bulk add is noisy (pantry staples) and hard to undo; per-row
+requests leave half-written state on flaky mobile connections and race when two
+members tap at once. The preview *is* the undo, and the server is the only
+place the "already there" decision can be made safely.
+
+**How:** Pure row-builder (`collectIngredients`) → flow hook holds
+`step`/selection signals → presentational sheet renders rows with `RoundCheck`
++ `ListItem` and a `Button loading` confirm labelled with the count → `api`
+call to a `/bulk` route → repo method builds one `kv.atomic()`.
+
+**See:** `utils/menu-ingredients.ts`, `hooks/useMenuShopping.ts`,
+`components/menu/IngredientPreviewSheet.tsx`,
+`routes/api/shopping/lists/[id]/items/bulk.ts`,
+`database/shopping-list-item.repo.ts` (`bulkAdd`).
+
+---
+
 ## Review checklist for user-facing changes
 
 Before merging anything the user sees, tick these (section refs in parens):
@@ -717,6 +742,8 @@ Before merging anything the user sees, tick these (section refs in parens):
       flows? (§9)
 - [ ] Works mobile-first: safe areas respected, primary actions reachable, touch
       targets generous, gestures supported? (§10)
+- [ ] A single tap that writes many records goes through a review sheet and one
+      bulk endpoint, never a client-side loop of single writes? (§19)
 
 ## Extending this document
 
