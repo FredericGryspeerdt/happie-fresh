@@ -56,6 +56,7 @@ async function clearListItems(listId: string) {
   ) {
     await kv.delete(e.key);
   }
+  await kv.delete(["shopping_list_items_rev", listId]);
 }
 
 Deno.test({
@@ -166,5 +167,35 @@ Deno.test({
     const res = await ShoppingListItemRepo.bulkAdd("L6", []);
     assertEquals(res, { added: [], restored: [], skipped: [] });
     assertEquals(await ShoppingListItemRepo.getAll("L6"), []);
+  },
+});
+
+Deno.test({
+  name:
+    "bulkAdd — two concurrent bulk adds of the same new item create exactly one entry",
+  sanitizeResources: false,
+  async fn() {
+    await clearListItems("L7");
+    await Promise.all([
+      ShoppingListItemRepo.bulkAdd("L7", [{ itemId: "pasta", note: "A" }]),
+      ShoppingListItemRepo.bulkAdd("L7", [{ itemId: "pasta", note: "B" }]),
+    ]);
+    const all = await ShoppingListItemRepo.getAll("L7");
+    assertEquals(all.length, 1);
+    assertEquals(all[0].itemId, "pasta");
+    assertEquals(all[0].checked, false);
+  },
+});
+
+Deno.test({
+  name: "bulkAdd — a whitespace-only note is treated as no note",
+  sanitizeResources: false,
+  async fn() {
+    await clearListItems("L8");
+    const res = await ShoppingListItemRepo.bulkAdd("L8", [
+      { itemId: "pasta", note: "   " },
+    ]);
+    assertEquals(res.added[0].note, undefined);
+    assertEquals((await ShoppingListItemRepo.getAll("L8"))[0].note, undefined);
   },
 });

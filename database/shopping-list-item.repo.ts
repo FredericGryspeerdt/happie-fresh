@@ -83,69 +83,87 @@ export class ShoppingListItemRepo {
   }
 
   // Put many items on a list at once (the weekly-menu "Add to shopping list"
-  // action). The rules live here, not in the caller, so two people tapping at
-  // once cannot double-add:
+  // action):
   //   - no entry for the item      → create it (quantity 1, unchecked, note)
   //   - unchecked entry exists     → skip; fill its note only if empty
   //   - checked entry exists       → uncheck it ("restored"); fill note if empty
-  // Never overwrites a written note, never bumps quantity. One atomic commit.
+  // Never overwrites a written note, never bumps quantity. Concurrency safety
+  // (so two people tapping at once cannot double-add) is handled by the
+  // revision CAS below, not by the atomic commit alone.
   static async bulkAdd(
     listId: string,
     inputs: BulkAddItemInput[],
   ): Promise<BulkAddResult> {
     const kv = await getKv();
-    const existing = await this.getAll(listId);
-    // One entry per item; when the list holds duplicates, an unchecked entry
-    // is the one that represents "still to buy".
-    const byItem = new Map<string, ShoppingListItemInterface>();
-    for (const li of existing) {
-      const cur = byItem.get(li.itemId);
-      if (!cur || (cur.checked && !li.checked)) byItem.set(li.itemId, li);
-    }
+    // Serialise concurrent bulk adds on one list: every bulkAdd reads this
+    // revision key and commits only if it is unchanged, bumping it in the
+    // same atomic. A loser retries against the fresh entry set, so two
+    // people tapping "Add to shopping list" at once cannot double-add.
+    // (A single add() from the add-items screen does not take part; that
+    // screen already hides items which are on the list.)
+    const revKey = ["shopping_list_items_rev", listId];
+    for (let attempt = 0; attempt < 8; attempt++) {
+      const rev = await kv.get<number>(revKey);
+      const existing = await this.getAll(listId);
+      // One entry per item; when the list holds duplicates, an unchecked
+      // entry is the one that represents "still to buy".
+      const byItem = new Map<string, ShoppingListItemInterface>();
+      for (const li of existing) {
+        const cur = byItem.get(li.itemId);
+        if (!cur || (cur.checked && !li.checked)) byItem.set(li.itemId, li);
+      }
 
-    const result: BulkAddResult = { added: [], restored: [], skipped: [] };
-    const seen = new Set<string>();
-    let atomic = kv.atomic();
-    let writes = 0;
+      const result: BulkAddResult = { added: [], restored: [], skipped: [] };
+      const seen = new Set<string>();
+      let atomic = kv.atomic();
+      let writes = 0;
 
-    for (const input of inputs) {
-      if (seen.has(input.itemId)) continue;
-      seen.add(input.itemId);
-      const cur = byItem.get(input.itemId);
+      for (const input of inputs) {
+        if (seen.has(input.itemId)) continue;
+        seen.add(input.itemId);
+        const cur = byItem.get(input.itemId);
+        const incomingNote = input.note?.trim() || undefined;
 
-      if (!cur) {
-        const entry: ShoppingListItemInterface = {
-          id: crypto.randomUUID(),
-          listId,
-          itemId: input.itemId,
-          quantity: 1,
+        if (!cur) {
+          const entry: ShoppingListItemInterface = {
+            id: crypto.randomUUID(),
+            listId,
+            itemId: input.itemId,
+            quantity: 1,
+            checked: false,
+            ...(incomingNote ? { note: incomingNote } : {}),
+          };
+          atomic = atomic.set(
+            ["shopping_list_items", listId, entry.id],
+            entry,
+          );
+          writes++;
+          result.added.push(entry);
+          continue;
+        }
+
+        const note = cur.note?.trim() ? cur.note : incomingNote;
+        const next: ShoppingListItemInterface = {
+          ...cur,
           checked: false,
-          ...(input.note ? { note: input.note } : {}),
+          ...(note ? { note } : {}),
         };
-        atomic = atomic.set(["shopping_list_items", listId, entry.id], entry);
-        writes++;
-        result.added.push(entry);
-        continue;
+        if (cur.checked) result.restored.push(next);
+        else result.skipped.push(cur.itemId);
+        if (next.checked !== cur.checked || next.note !== cur.note) {
+          atomic = atomic.set(["shopping_list_items", listId, cur.id], next);
+          writes++;
+        }
       }
 
-      const note = cur.note?.trim() ? cur.note : input.note;
-      const next: ShoppingListItemInterface = {
-        ...cur,
-        checked: false,
-        ...(note ? { note } : {}),
-      };
-      if (cur.checked) result.restored.push(next);
-      else result.skipped.push(cur.itemId);
-      if (next.checked !== cur.checked || next.note !== cur.note) {
-        atomic = atomic.set(["shopping_list_items", listId, cur.id], next);
-        writes++;
-      }
+      if (writes === 0) return result; // nothing to write, nothing to guard
+      const { ok } = await atomic
+        .check({ key: revKey, versionstamp: rev.versionstamp })
+        .set(revKey, (rev.value ?? 0) + 1)
+        .commit();
+      if (ok) return result;
+      // lost the race — loop and recompute against the new entry set
     }
-
-    if (writes > 0) {
-      const { ok } = await atomic.commit();
-      if (!ok) throw new Error("Failed to add items to the list.");
-    }
-    return result;
+    throw new Error("ShoppingListItemRepo.bulkAdd: conflict after retries");
   }
 }
