@@ -17,8 +17,9 @@ Vocabulary comes from [`CONTEXT.md`](../../../CONTEXT.md): **dish**,
 
 - A menu-side action on _This week_ that adds the week's ingredients to one
   shopping list.
-- Picking the target list (skipped when there is exactly one), remembering the
-  last-used list household-wide, creating a list inline when there is none.
+- Resolving the target list without asking whenever possible, showing it inside
+  the review with a Change action, remembering the last-used list household-wide,
+  creating a list inline when there is none.
 - A review sheet before anything is written.
 - One bulk endpoint on the list that performs the dedup server-side.
 
@@ -35,24 +36,46 @@ A full-width filled button **"Add to shopping list"** sits under the _This
 week_ header, only when the week has at least one dish. Any member may use it;
 it is not manager-gated (adding to a list is not destructive).
 
-### Picking a list
+### Choosing the target list
 
-1. Exactly one shopping list → it is used, no picker.
-2. Several lists → a sheet lists them; the last-used list (see _Remembering_) is
-   preselected. Tapping a list continues to the preview. A "New list" affordance
-   reveals a name field.
-3. Zero lists → the sheet opens directly on the name field, prefilled
-   **"Groceries"**, editable. Creating the list continues to the preview.
+_Revised 2026-09-09._ The list is a **parameter of the review, not a step
+before it**. The picker is an exception path, never a routine second sheet.
+
+When the button is tapped, the target list is resolved without asking whenever
+it can be:
+
+1. Exactly one shopping list → it is the target.
+2. Several lists and the remembered list (see _Remembering_) still exists → it
+   is the target.
+3. Several lists and nothing usable is remembered → the picker sheet opens
+   first, once; from then on the household's choice is remembered.
+4. Zero lists → the "New shopping list" dialog opens directly, prefilled
+   **"Groceries"**, editable. Creating the list continues to the review.
+
+The review names its target in its first row and offers **"Change"** whenever
+the household has more than one list. Change closes the review, opens the
+picker sheet with the **current** list marked, and picking a list reopens the
+review recomputed for that list. Cancelling the picker from Change returns to
+the review with the previous list; cancelling the first-time picker returns to
+the menu. The picker also offers "New list" (the same dialog as case 4), and a
+list created there becomes the target.
+
+Ticks the member has already un-set are **kept** when the list changes: "we
+have salt at home" does not depend on which list is being written.
 
 ### Remembering the last-used list
 
 The chosen list id is stored **household-wide on the weekly menu record**
 (`shoppingListId`). It is a preference, not a "was this shopped" flag. If the
-remembered list no longer exists, nothing is preselected.
+remembered list no longer exists, the picker opens as if nothing were
+remembered (case 3 above).
 
 ### Preview sheet
 
-- Title: the target list's name.
+- Title: **"Add to shopping list"**.
+- First row: the target list (cart icon, list name, supporting text "Adding to
+  this list") with a **"Change"** action when the household has more than one
+  list; otherwise the row is plain.
 - Rows: the **deduped** ingredients of every planned dish, **flat and
   alphabetical** by item name, with the names of the dishes that call for it as
   supporting text ("Lasagne, Curry").
