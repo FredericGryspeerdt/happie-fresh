@@ -10,7 +10,8 @@ import { TextField } from "@/components/md3/TextField.tsx";
 interface Props {
   open: boolean;
   lists: ShoppingListInterface[];
-  rememberedListId: string | null;
+  markedListId: string | null;
+  markedLabel: string;
   busy: boolean;
   onPick: (list: ShoppingListInterface) => void;
   onCreate: (name: string) => Promise<boolean>;
@@ -23,7 +24,8 @@ const DEFAULT_NAME = "Groceries";
 // happens in a centered Dialog (patterns doc §9). With no lists at all the
 // Dialog opens directly.
 export function ShoppingListPickerSheet(
-  { open, lists, rememberedListId, busy, onPick, onCreate, onClose }: Props,
+  { open, lists, markedListId, markedLabel, busy, onPick, onCreate, onClose }:
+    Props,
 ) {
   const noLists = lists.length === 0;
   // Only prefill "Groceries" when the household has no lists at all — once
@@ -64,13 +66,13 @@ export function ShoppingListPickerSheet(
         >
           <div class="-mx-6">
             {lists.map((l) => {
-              const remembered = l.id === rememberedListId;
+              const marked = l.id === markedListId;
               return (
                 <ListItem
                   key={l.id}
                   headline={l.name}
-                  supporting={remembered ? "Used last time" : undefined}
-                  trailing={remembered
+                  supporting={marked ? markedLabel : undefined}
+                  trailing={marked
                     ? <Icon name="check" size={20} />
                     : undefined}
                   onClick={() => onPick(l)}

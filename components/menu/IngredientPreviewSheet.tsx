@@ -6,10 +6,13 @@ import { ListSubheader } from "@/components/md3/ListSubheader.tsx";
 import { RoundCheck } from "@/components/md3/RoundCheck.tsx";
 import { Icon } from "@/components/md3/Icon.tsx";
 import { Button } from "@/components/md3/Button.tsx";
+import { Divider } from "@/components/md3/Divider.tsx";
 
 interface Props {
   open: boolean;
   listName: string;
+  canChangeList: boolean;
+  onChangeList: () => void;
   rows: IngredientRow[];
   isSelected: (row: IngredientRow) => boolean;
   emptyDishes: DishInterface[];
@@ -35,6 +38,8 @@ export function IngredientPreviewSheet(
   {
     open,
     listName,
+    canChangeList,
+    onChangeList,
     rows,
     isSelected,
     emptyDishes,
@@ -52,8 +57,26 @@ export function IngredientPreviewSheet(
   const nothing = rows.length === 0 && emptyDishes.length === 0;
 
   return (
-    <Sheet open={open} onClose={onClose} title={listName} size="large">
+    <Sheet
+      open={open}
+      onClose={onClose}
+      // Guarded on `open`: Sheet renders its content (title included) into
+      // the DOM even while closed, for SSR/hydration parity. A literal,
+      // unconditional title would then always show up in the markup — even
+      // on weeks with no "Add to shopping list" button at all.
+      title={open ? "Add to shopping list" : undefined}
+      size="large"
+    >
       <div class="-mx-6">
+        <ListItem
+          leading={<Icon name="cart" size={22} />}
+          headline={listName}
+          supporting="Adding to this list"
+          trailing={canChangeList
+            ? <Button variant="text" onClick={onChangeList}>Change</Button>
+            : undefined}
+        />
+        <Divider />
         {nothing && (
           <p class="md-body-medium text-on-surface-variant px-6 py-6 text-center">
             Nothing to add — the planned dishes have no ingredients yet.

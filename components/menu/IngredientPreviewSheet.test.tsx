@@ -26,6 +26,8 @@ const noop = () => {};
 const base = {
   open: true,
   listName: "Weekly shop",
+  canChangeList: true,
+  onChangeList: noop,
   rows,
   isSelected: (r: IngredientRow) => r.state !== "on-list",
   emptyDishes,
@@ -38,7 +40,10 @@ const base = {
 
 Deno.test("IngredientPreviewSheet — rows, states, empty dishes, and the count button", () => {
   const html = render(h(IngredientPreviewSheet, { ...base, selectedCount: 2 }));
+  assertStringIncludes(html, "Add to shopping list");
   assertStringIncludes(html, "Weekly shop");
+  assertStringIncludes(html, "Adding to this list");
+  assertStringIncludes(html, ">Change<");
   assertStringIncludes(html, "Mince");
   assertStringIncludes(html, "Lasagne, Curry");
   assertStringIncludes(html, "Already on the list");
@@ -46,6 +51,17 @@ Deno.test("IngredientPreviewSheet — rows, states, empty dishes, and the count 
   assertStringIncludes(html, "No ingredients yet");
   assertStringIncludes(html, "Pizza night");
   assertStringIncludes(html, "Add 2 items");
+});
+
+Deno.test("IngredientPreviewSheet — no Change action when there is only one list", () => {
+  const html = render(h(IngredientPreviewSheet, {
+    ...base,
+    canChangeList: false,
+    selectedCount: 2,
+  }));
+  assertStringIncludes(html, "Weekly shop");
+  assertStringIncludes(html, "Adding to this list");
+  assertEquals(html.includes(">Change<"), false);
 });
 
 Deno.test("IngredientPreviewSheet — singular label and disabled at zero", () => {

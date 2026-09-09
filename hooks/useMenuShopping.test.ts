@@ -80,20 +80,34 @@ Deno.test("start — one list goes straight to the preview and remembers it", as
   }
 });
 
-Deno.test("start — several lists opens the picker; remembered id is exposed", async () => {
+Deno.test("start — remembered list that still exists goes straight to the preview", async () => {
+  const menu = menuOf("B");
   const getAllOrNull = stub(
     api.shoppingLists,
     "getAllOrNull",
     () => Promise.resolve([list("A"), list("B")]),
   );
-  const hook = useMenuShopping(menuOf("B"), dishes, items);
+  const getItems = stub(
+    api.shoppingList,
+    "getItems",
+    () => Promise.resolve([]),
+  );
+  const remember = stub(
+    api.weeklyMenu,
+    "setShoppingList",
+    () => Promise.resolve(null),
+  );
+  const hook = useMenuShopping(menu, dishes, items);
   try {
     assertEquals(await hook.start(), true);
-    assertEquals(hook.step.value, "pick");
-    assertEquals(hook.lists.value.length, 2);
-    assertEquals(hook.rememberedListId.value, "B");
+    assertEquals(hook.step.value, "preview");
+    assertEquals(hook.chosenList.value?.id, "B");
+    assertEquals(getItems.calls[0].args, ["B"]);
+    assertEquals(remember.calls.length, 0);
   } finally {
     getAllOrNull.restore();
+    getItems.restore();
+    remember.restore();
   }
 });
 
@@ -301,7 +315,7 @@ Deno.test("createList — creates, appends, and continues to the preview", async
   }
 });
 
-Deno.test("cancel — returns to idle", async () => {
+Deno.test("cancel — first-time picker returns to idle", async () => {
   const getAllOrNull = stub(
     api.shoppingLists,
     "getAllOrNull",
@@ -310,9 +324,75 @@ Deno.test("cancel — returns to idle", async () => {
   const hook = useMenuShopping(menuOf(), dishes, items);
   try {
     await hook.start();
+    assertEquals(hook.step.value, "pick");
     hook.cancel();
     assertEquals(hook.step.value, "idle");
   } finally {
     getAllOrNull.restore();
+  }
+});
+
+Deno.test("changeList — opens the picker keeping the chosen list; cancel returns to the preview", async () => {
+  const getAllOrNull = stub(
+    api.shoppingLists,
+    "getAllOrNull",
+    () => Promise.resolve([list("A")]),
+  );
+  const getItems = stub(
+    api.shoppingList,
+    "getItems",
+    () => Promise.resolve([]),
+  );
+  const remember = stub(
+    api.weeklyMenu,
+    "setShoppingList",
+    () => Promise.resolve(null),
+  );
+  const hook = useMenuShopping(menuOf(), dishes, items);
+  try {
+    await hook.start();
+    assertEquals(hook.step.value, "preview");
+    hook.changeList();
+    assertEquals(hook.step.value, "pick");
+    assertEquals(hook.chosenList.value?.id, "A");
+    hook.cancel();
+    assertEquals(hook.step.value, "preview");
+  } finally {
+    getAllOrNull.restore();
+    getItems.restore();
+    remember.restore();
+  }
+});
+
+Deno.test("chooseList — unticked rows survive a list change", async () => {
+  const getAllOrNull = stub(
+    api.shoppingLists,
+    "getAllOrNull",
+    () => Promise.resolve([list("A")]),
+  );
+  const getItems = stub(
+    api.shoppingList,
+    "getItems",
+    () => Promise.resolve([]),
+  );
+  const remember = stub(
+    api.weeklyMenu,
+    "setShoppingList",
+    () => Promise.resolve(null),
+  );
+  const hook = useMenuShopping(menuOf(), dishes, items);
+  try {
+    await hook.start();
+    assertEquals(hook.step.value, "preview");
+    hook.toggle("mince");
+    assertEquals(hook.selectedCount.value, 1);
+    await hook.chooseList(list("B"));
+    assertEquals(hook.selectedCount.value, 1);
+    await hook.start();
+    assertEquals(hook.selectedCount.value, 2);
+  } finally {
+    getAllOrNull.restore();
+    getItems.restore();
+    remember.restore();
   }
 });

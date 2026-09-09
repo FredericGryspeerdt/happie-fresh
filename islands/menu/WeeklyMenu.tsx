@@ -279,7 +279,11 @@ export default function WeeklyMenu(
       <ShoppingListPickerSheet
         open={shopping.step.value === "pick"}
         lists={shopping.lists.value}
-        rememberedListId={shopping.rememberedListId.value}
+        markedListId={shopping.chosenList.value?.id ??
+          shopping.rememberedListId.value}
+        markedLabel={shopping.chosenList.value
+          ? "Current list"
+          : "Used last time"}
         busy={shopping.loading.value}
         onPick={(l) => void shopping.chooseList(l)}
         onCreate={(name) =>
@@ -295,6 +299,8 @@ export default function WeeklyMenu(
       <IngredientPreviewSheet
         open={shopping.step.value === "preview"}
         listName={shopping.chosenList.value?.name ?? ""}
+        canChangeList={shopping.lists.value.length > 1}
+        onChangeList={shopping.changeList}
         rows={shopping.rows.value}
         isSelected={shopping.isSelected}
         emptyDishes={shopping.emptyDishes.value}

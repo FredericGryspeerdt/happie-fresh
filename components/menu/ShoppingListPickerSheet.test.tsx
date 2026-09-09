@@ -14,11 +14,12 @@ const list = (id: string, name: string): ShoppingListInterface => ({
 const noop = () => {};
 const never = () => Promise.resolve(false);
 
-Deno.test("ShoppingListPickerSheet — lists every list and marks the remembered one", () => {
+Deno.test("ShoppingListPickerSheet — lists every list and marks the marked one", () => {
   const html = render(h(ShoppingListPickerSheet, {
     open: true,
     lists: [list("A", "Weekly shop"), list("B", "DIY store")],
-    rememberedListId: "B",
+    markedListId: "B",
+    markedLabel: "Used last time",
     busy: false,
     onPick: noop,
     onCreate: never,
@@ -32,11 +33,26 @@ Deno.test("ShoppingListPickerSheet — lists every list and marks the remembered
   assertEquals(html.includes('value="Groceries"'), false);
 });
 
+Deno.test("ShoppingListPickerSheet — marks the current list with its own label", () => {
+  const html = render(h(ShoppingListPickerSheet, {
+    open: true,
+    lists: [list("A", "Weekly shop"), list("B", "DIY store")],
+    markedListId: "A",
+    markedLabel: "Current list",
+    busy: false,
+    onPick: noop,
+    onCreate: never,
+    onClose: noop,
+  }));
+  assertStringIncludes(html, "Current list");
+});
+
 Deno.test("ShoppingListPickerSheet — with no lists, opens the create dialog prefilled with Groceries", () => {
   const html = render(h(ShoppingListPickerSheet, {
     open: true,
     lists: [],
-    rememberedListId: null,
+    markedListId: null,
+    markedLabel: "",
     busy: false,
     onPick: noop,
     onCreate: never,
@@ -52,7 +68,8 @@ Deno.test("ShoppingListPickerSheet — the list-name field is labelled for assis
   const html = render(h(ShoppingListPickerSheet, {
     open: true,
     lists: [],
-    rememberedListId: null,
+    markedListId: null,
+    markedLabel: "",
     busy: false,
     onPick: noop,
     onCreate: never,

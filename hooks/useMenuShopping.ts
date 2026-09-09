@@ -21,10 +21,13 @@ export interface AddOutcome {
   list: ShoppingListInterface;
 }
 
-// Drives "Add to shopping list" on the weekly menu: pick a list (skipped when
-// there is exactly one), review the deduped ingredients, confirm one bulk
-// write. `menu` is the live signal from useWeeklyMenu so the remembered list
-// stays in sync. Instantiate once per island via useMemo (see CLAUDE.md).
+// Drives "Add to shopping list" on the weekly menu. The target list is
+// resolved without asking whenever it can be: exactly one list, or several
+// lists with a remembered list that still exists; only otherwise does the
+// picker sheet open (once — from then on the household's choice is
+// remembered). Then: review the deduped ingredients, confirm one bulk write.
+// `menu` is the live signal from useWeeklyMenu so the remembered list stays in
+// sync. Instantiate once per island via useMemo (see CLAUDE.md).
 export function useMenuShopping(
   menu: Signal<WeeklyMenuInterface>,
   dishes: DishInterface[],
@@ -71,7 +74,6 @@ export function useMenuShopping(
     );
     rows.value = preview.rows;
     emptyDishes.value = preview.emptyDishes;
-    unticked.value = new Set();
     step.value = "preview";
     // Remember the choice household-wide. Fire-and-forget: a failure here
     // costs nothing but next time's preselection. Rejected fetch is swallowed.
@@ -83,11 +85,18 @@ export function useMenuShopping(
   };
 
   const start = async (): Promise<boolean> => {
+    chosenList.value = null;
+    unticked.value = new Set();
     const all = await withLoading(() => api.shoppingLists.getAllOrNull());
     if (all === null) return false;
     lists.value = all;
     if (all.length === 1) {
       await chooseList(all[0]);
+      return true;
+    }
+    const remembered = all.find((l) => l.id === menu.value.shoppingListId);
+    if (remembered) {
+      await chooseList(remembered);
       return true;
     }
     step.value = "pick";
@@ -133,8 +142,16 @@ export function useMenuShopping(
     }
   };
 
+  // From "Change" the previous list and rows are still intact, so cancelling
+  // the picker returns to the preview rather than dropping the whole flow.
+  const changeList = (): void => {
+    step.value = "pick";
+  };
+
   const cancel = (): void => {
-    step.value = "idle";
+    step.value = (step.value === "pick" && chosenList.value !== null)
+      ? "preview"
+      : "idle";
   };
 
   return {
@@ -150,6 +167,7 @@ export function useMenuShopping(
     isSelected,
     start,
     chooseList,
+    changeList,
     createList,
     toggle,
     confirm,
