@@ -1,4 +1,8 @@
-import { assertEquals, assertStringIncludes } from "jsr:@std/assert@^1.0.19";
+import {
+  assertMatch,
+  assertNotMatch,
+  assertStringIncludes,
+} from "jsr:@std/assert@^1.0.19";
 import { render } from "npm:preact-render-to-string@^6.6.3";
 import { h } from "preact";
 import WeeklyMenu from "./WeeklyMenu.tsx";
@@ -59,7 +63,10 @@ Deno.test("WeeklyMenu — offers 'Add to shopping list' when the week has dishes
     initialTagGroups: tagGroups,
     initialItems: [],
   }));
-  assertStringIncludes(html, "Add to shopping list");
+  assertMatch(
+    html,
+    /<button[^>]*>(?:[^<]|<(?!\/button>))*Add to shopping list/,
+  );
 });
 
 Deno.test("WeeklyMenu — no shopping action on an empty week", () => {
@@ -69,5 +76,8 @@ Deno.test("WeeklyMenu — no shopping action on an empty week", () => {
     initialTagGroups: tagGroups,
     initialItems: [],
   }));
-  assertEquals(html.includes("Add to shopping list"), false);
+  assertNotMatch(
+    html,
+    /<button[^>]*>(?:[^<]|<(?!\/button>))*Add to shopping list/,
+  );
 });

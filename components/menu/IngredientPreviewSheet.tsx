@@ -60,11 +60,7 @@ export function IngredientPreviewSheet(
     <Sheet
       open={open}
       onClose={onClose}
-      // Guarded on `open`: Sheet renders its content (title included) into
-      // the DOM even while closed, for SSR/hydration parity. A literal,
-      // unconditional title would then always show up in the markup — even
-      // on weeks with no "Add to shopping list" button at all.
-      title={open ? "Add to shopping list" : undefined}
+      title="Add to shopping list"
       size="large"
     >
       <div class="-mx-6">
