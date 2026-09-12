@@ -2,6 +2,7 @@ import { useSignal } from "@preact/signals";
 import type { ShoppingListInterface } from "@/models/index.ts";
 import { Dialog } from "@/components/md3/Dialog.tsx";
 import { ListItem } from "@/components/md3/ListItem.tsx";
+import { Pressable } from "@/components/md3/Pressable.tsx";
 import { Icon } from "@/components/md3/Icon.tsx";
 import { Button } from "@/components/md3/Button.tsx";
 import { TextField } from "@/components/md3/TextField.tsx";
@@ -38,6 +39,7 @@ export function ShoppingListPickerDialog(
   const dialogOpen = open && (noLists || creating.value);
 
   const closeDialog = () => {
+    if (busy) return;
     creating.value = false;
     name.value = defaultName;
     if (noLists) onClose();
@@ -67,15 +69,20 @@ export function ShoppingListPickerDialog(
             {lists.map((l) => {
               const marked = l.id === markedListId;
               return (
-                <ListItem
+                <Pressable
                   key={l.id}
-                  headline={l.name}
-                  supporting={marked ? markedLabel : undefined}
-                  trailing={marked
-                    ? <Icon name="check" size={20} />
-                    : undefined}
-                  onClick={busy ? undefined : () => onPick(l)}
-                />
+                  disabled={busy}
+                  onClick={() => onPick(l)}
+                  class="block w-full text-left text-on-surface"
+                >
+                  <ListItem
+                    headline={l.name}
+                    supporting={marked ? markedLabel : undefined}
+                    trailing={marked
+                      ? <Icon name="check" size={20} />
+                      : undefined}
+                  />
+                </Pressable>
               );
             })}
           </div>
@@ -98,7 +105,9 @@ export function ShoppingListPickerDialog(
         headline="New shopping list"
         actions={
           <>
-            <Button variant="text" onClick={closeDialog}>Cancel</Button>
+            <Button variant="text" disabled={busy} onClick={closeDialog}>
+              Cancel
+            </Button>
             <Button
               variant="text"
               loading={busy}

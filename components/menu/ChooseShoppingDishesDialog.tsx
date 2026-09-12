@@ -17,7 +17,7 @@ export function ChooseShoppingDishesDialog(
   return (
     <FullScreenDialog
       open={open}
-      title="Choose dishes"
+      title="Shop for dishes"
       onClose={onClose}
       footer={
         <Button

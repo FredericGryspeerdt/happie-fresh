@@ -338,6 +338,14 @@ like the same product.
 - **`FullScreenDialog`** is for multi-field create/edit flows on mobile; on
   larger screens it renders as a centered dialog.
 
+`FullScreenDialog` can take a `footer` outside its scrolling body for persistent
+selection summaries and completion actions. The menu dish picker derives its
+summary from the whole plan, independently of search; “View all” temporarily
+shows planned dishes and preserves the query for “Back to results”. Selection
+saves immediately, so its completion button says “Back to this week”. Disable
+an ancestor `PullToRefresh` while this picker is open so it cannot intercept
+scrolling inside the dialog. See `components/menu/DishPicker.tsx`.
+
 Both dialogs share `useModal` (`components/md3/useModal.ts`): while open they
 lock background scrolling, trap `Tab` focus inside the surface, focus the first
 control on open, and restore focus to the trigger on close. `Sheet` does not
@@ -693,11 +701,17 @@ that isn't there.
 
 ## 19. Bulk writes go through a guided review and one server-side endpoint
 
-**Rule:** When one tap would write many records (e.g. "Add to shopping list"
+**Rule:** When one tap would write many records (e.g. "Add ingredients to a shopping list"
 on the weekly menu), show a guided `FullScreenDialog` first — every row ticked by
 default, including editable additions to existing entries — and send the confirmed
 set as **one** request whose handler applies the dedup/merge rules and commits
 atomically. Never loop single-record POSTs from the client.
+
+Keep weekly planning and shopping as distinct entry points: outlined **Add
+dishes** opens the planning checklist; the filled bottom **Add ingredients to a
+shopping list** action starts **Shop for dishes**, using the current weekly plan.
+The planning picker returns to the week before shopping begins. Its persistent
+summary only describes the plan; shopping selections belong to the guided review.
 
 **Why:** A blind bulk add is noisy (pantry staples) and hard to undo; per-row
 requests leave half-written state on flaky mobile connections and race when two

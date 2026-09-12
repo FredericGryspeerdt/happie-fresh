@@ -66,6 +66,7 @@ export function IngredientPreviewDialog(p: Props) {
         title="Check your cupboards"
         onClose={p.onClose}
         onBack={locked ? undefined : p.onBack}
+        backLabel="Back to shopping dishes"
         footer={
           <>
             <p

@@ -105,3 +105,20 @@ Deno.test("bulkAdd — sends the retry identity and distinguishes rejection from
   status = 0;
   assertEquals(await api.shoppingList.bulkAdd("list", items, options), null);
 });
+
+Deno.test("menu shopping API — nullable methods contain transport and decoding errors", async () => {
+  let offline = true;
+  using _fetch = stub(
+    globalThis,
+    "fetch",
+    () =>
+      offline
+        ? Promise.reject(new TypeError("offline"))
+        : Promise.resolve(new Response("invalid JSON")),
+  );
+  for (const failedTransport of [true, false]) {
+    offline = failedTransport;
+    assertEquals(await api.shoppingLists.getAllOrNull(), null);
+    assertEquals(await api.weeklyMenu.setShoppingList("list"), null);
+  }
+});

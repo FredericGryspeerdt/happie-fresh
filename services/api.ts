@@ -114,9 +114,13 @@ export const api = {
     // menu's list picker must never tell a household it has no lists because
     // the network blipped.
     getAllOrNull: async (): Promise<ShoppingListInterface[] | null> => {
-      const res = await fetch("/api/shopping/lists");
-      if (!res.ok) return null;
-      return res.json();
+      try {
+        const res = await fetch("/api/shopping/lists");
+        if (!res.ok) return null;
+        return await res.json();
+      } catch {
+        return null;
+      }
     },
     create: async (name: string): Promise<ShoppingListInterface | null> => {
       const res = await fetch("/api/shopping/lists", {
@@ -440,13 +444,17 @@ export const api = {
     setShoppingList: async (
       shoppingListId: string,
     ): Promise<WeeklyMenuInterface | null> => {
-      const res = await fetch("/api/menu/plan", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ shoppingListId }),
-      });
-      if (!res.ok) return null;
-      return res.json();
+      try {
+        const res = await fetch("/api/menu/plan", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ shoppingListId }),
+        });
+        if (!res.ok) return null;
+        return await res.json();
+      } catch {
+        return null;
+      }
     },
   },
 };

@@ -1,4 +1,8 @@
-import { assertEquals, assertStringIncludes } from "jsr:@std/assert@^1.0.19";
+import {
+  assertEquals,
+  assertMatch,
+  assertStringIncludes,
+} from "jsr:@std/assert@^1.0.19";
 import { render } from "npm:preact-render-to-string@^6.6.3";
 import { h } from "preact";
 import { ShoppingListPickerDialog } from "./ShoppingListPickerDialog.tsx";
@@ -77,4 +81,38 @@ Deno.test("ShoppingListPickerDialog — the list-name field is labelled for assi
   }));
   assertStringIncludes(html, 'for="new-shopping-list-name"');
   assertStringIncludes(html, 'id="new-shopping-list-name"');
+});
+
+Deno.test("ShoppingListPickerDialog — existing destinations are native keyboard buttons", () => {
+  const html = render(h(ShoppingListPickerDialog, {
+    open: true,
+    lists: [list("A", "Weekly shop")],
+    markedListId: null,
+    markedLabel: "",
+    busy: false,
+    onPick: noop,
+    onCreate: never,
+    onClose: noop,
+  }));
+  assertMatch(
+    html,
+    /<button[^>]*type="button"[^>]*>(?:(?!<\/button>)[\s\S])*Weekly shop[\s\S]*?<\/button>/,
+  );
+});
+
+Deno.test("ShoppingListPickerDialog — creation cannot be cancelled while saving", () => {
+  const html = render(h(ShoppingListPickerDialog, {
+    open: true,
+    lists: [],
+    markedListId: null,
+    markedLabel: "",
+    busy: true,
+    onPick: noop,
+    onCreate: never,
+    onClose: noop,
+  }));
+  assertMatch(
+    html,
+    /<button[^>]*disabled[^>]*>(?:(?!<\/button>)[\s\S])*Cancel<\/button>/,
+  );
 });

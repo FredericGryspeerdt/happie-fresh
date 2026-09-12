@@ -51,9 +51,10 @@ Deno.test("WeeklyMenu — renders an entry with its dish name, tag, and day chip
   assertStringIncludes(html, "Meat"); // resolved tag label
   assertStringIncludes(html, "Any"); // unpinned day chip
   assertStringIncludes(html, "1 dish planned");
+  assertStringIncludes(html, "Add dishes");
 });
 
-Deno.test("WeeklyMenu — offers 'Add to shopping list' when the week has dishes", () => {
+Deno.test("WeeklyMenu — offers 'Add ingredients to a shopping list' when the week has dishes", () => {
   const html = render(h(WeeklyMenu, {
     initialMenu: {
       householdId: "h1",
@@ -65,7 +66,7 @@ Deno.test("WeeklyMenu — offers 'Add to shopping list' when the week has dishes
   }));
   assertMatch(
     html,
-    /<button[^>]*>(?:[^<]|<(?!\/button>))*Add to shopping list/,
+    /<button[^>]*>(?:[^<]|<(?!\/button>))*Add ingredients to a shopping list/,
   );
 });
 
@@ -78,6 +79,6 @@ Deno.test("WeeklyMenu — no shopping action on an empty week", () => {
   }));
   assertNotMatch(
     html,
-    /<button[^>]*>(?:[^<]|<(?!\/button>))*Add to shopping list/,
+    /<button[^>]*>(?:[^<]|<(?!\/button>))*Add ingredients to a shopping list/,
   );
 });

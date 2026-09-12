@@ -9,8 +9,7 @@ import type {
   WeeklyMenuInterface,
 } from "@/models/index.ts";
 import { WEEKDAY_ORDER } from "@/models/index.ts";
-import { useWeeklyMenu } from "@/hooks/useWeeklyMenu.ts";
-import { useMenuShopping } from "@/hooks/useMenuShopping.ts";
+import { useWeeklyMenu as createWeeklyMenu } from "@/hooks/useWeeklyMenu.ts";
 import { PullToRefresh } from "@/components/md3/PullToRefresh.tsx";
 import { Card } from "@/components/md3/Card.tsx";
 import { Chip } from "@/components/md3/Chip.tsx";
@@ -20,10 +19,12 @@ import { IconButton } from "@/components/md3/IconButton.tsx";
 import { Pressable } from "@/components/md3/Pressable.tsx";
 import { Sheet } from "@/components/md3/Sheet.tsx";
 import { Snackbar } from "@/components/md3/Snackbar.tsx";
+import { useMenuShopping as createMenuShopping } from "@/hooks/useMenuShopping.ts";
 import { ShoppingListPickerDialog } from "@/components/menu/ShoppingListPickerDialog.tsx";
 import { IngredientPreviewDialog } from "@/components/menu/IngredientPreviewDialog.tsx";
 import { ChooseShoppingDishesDialog } from "@/components/menu/ChooseShoppingDishesDialog.tsx";
 import { navigateTo } from "@/utils/loading.ts";
+import { DishPicker } from "@/components/menu/DishPicker.tsx";
 
 interface Props {
   initialCategories?: CategoryInterface[];
@@ -48,6 +49,8 @@ export default function WeeklyMenu(
     initialCategories = [],
   }: Props,
 ) {
+  const weeklyMenu = useMemo(() => createWeeklyMenu(initialMenu), []);
+  const pickerOpen = useSignal(false);
   const {
     menu,
     sortedEntries,
@@ -56,16 +59,12 @@ export default function WeeklyMenu(
     clear,
     restoreEntries,
     refresh,
-  } = useMemo(() => useWeeklyMenu(initialMenu), []);
+  } = weeklyMenu;
 
-  // False positive: react-rules-of-hooks flags this call when the useMemo
-  // result is kept as one object instead of destructured (see useWeeklyMenu
-  // above, which lints clean only because it destructures). Naming the
-  // initializer keeps the ignore comment attached to a stable, short line
-  // that deno fmt won't rewrap.
-  // deno-lint-ignore react-rules-of-hooks
-  const initShopping = () => useMenuShopping(menu, initialDishes, initialItems);
-  const shopping = useMemo(initShopping, []);
+  const shopping = useMemo(
+    () => createMenuShopping(menu, initialDishes, initialItems),
+    [],
+  );
 
   const dishById = useMemo(() => {
     const m = new Map<string, DishInterface>();
@@ -125,6 +124,7 @@ export default function WeeklyMenu(
   };
 
   const onStartShopping = () => {
+    if (pickerOpen.value || weeklyMenu.pendingCount.value > 0) return;
     void shopping.start().then((ok) => {
       if (!ok) showSnack("Couldn't load your lists — try again");
     }).catch(() => showSnack("Couldn't load your lists — try again"));
@@ -150,9 +150,10 @@ export default function WeeklyMenu(
   return (
     <PullToRefresh
       onRefresh={refresh}
-      disabled={shopping.step.value !== "idle"}
+      disabled={pickerOpen.value || shopping.step.value !== "idle" ||
+        shopping.loading.value}
     >
-      <div class="pb-[calc(96px+env(safe-area-inset-bottom))]">
+      <div class="pb-[calc(168px+env(safe-area-inset-bottom))]">
         {/* header */}
         <div class="flex items-center justify-between px-4 pt-4">
           <div>
@@ -168,6 +169,8 @@ export default function WeeklyMenu(
           {entries.length > 0 && (
             <Pressable
               onClick={onClear}
+              disabled={shopping.loading.value ||
+                weeklyMenu.pendingCount.value > 0}
               class="md-label-large text-on-surface-variant px-2 py-1 rounded-[var(--md-shape-full)]"
             >
               Clear
@@ -178,13 +181,12 @@ export default function WeeklyMenu(
         {entries.length > 0 && (
           <div class="px-4 pt-3">
             <Button
-              full
-              icon="cart"
-              loading={shopping.loading.value &&
-                shopping.step.value === "idle"}
-              onClick={onStartShopping}
+              variant="outlined"
+              icon="plus"
+              disabled={shopping.loading.value}
+              onClick={() => (pickerOpen.value = true)}
             >
-              Add to shopping list
+              Add dishes
             </Button>
           </div>
         )}
@@ -207,7 +209,8 @@ export default function WeeklyMenu(
               <Button
                 variant="filled"
                 icon="plus"
-                onClick={() => navigateTo("/menu/dishes")}
+                disabled={shopping.loading.value}
+                onClick={() => (pickerOpen.value = true)}
               >
                 Add dishes
               </Button>
@@ -265,6 +268,37 @@ export default function WeeklyMenu(
             </div>
           )}
       </div>
+
+      {entries.length > 0 && (
+        <div class="fixed inset-x-0 z-20 bottom-[calc(80px+env(safe-area-inset-bottom))] bg-surface border-t border-outline-variant">
+          <div class="max-w-md mx-auto px-4 py-3">
+            <Button
+              full
+              icon="cart"
+              disabled={weeklyMenu.pendingCount.value > 0}
+              loading={shopping.loading.value && shopping.step.value === "idle"}
+              onClick={onStartShopping}
+              style={{
+                minHeight: 48,
+                height: "auto",
+                whiteSpace: "normal",
+                paddingTop: 8,
+                paddingBottom: 8,
+              }}
+            >
+              Add ingredients to a shopping list
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {pickerOpen.value && (
+        <DishPicker
+          dishes={initialDishes}
+          menu={weeklyMenu}
+          onClose={() => (pickerOpen.value = false)}
+        />
+      )}
 
       {/* day picker */}
       <Sheet
