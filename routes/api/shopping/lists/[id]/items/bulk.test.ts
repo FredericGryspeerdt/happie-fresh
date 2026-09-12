@@ -136,3 +136,136 @@ Deno.test({
     assertEquals(all.some((li) => li.itemId === "deleted-item"), false);
   },
 });
+
+Deno.test({
+  name:
+    "POST — persists fractional amounts and rejects invalid quantities or units",
+  sanitizeResources: false,
+  async fn() {
+    await clearAll();
+    const list = await seedList();
+    const meat = await ItemRepo.create("h1", { name: "Minced meat" });
+    for (
+      const amount of [
+        { quantity: 0 },
+        { quantity: -1 },
+        { quantity: 100000 },
+        { quantity: 0.1234 },
+        { quantity: "0.5" },
+        { quantity: null },
+        { unit: "litres" },
+        { unit: null },
+      ]
+    ) {
+      const res = await handler.POST(
+        ctx(
+          post(list.id, { items: [{ itemId: meat.id, ...amount }] }),
+          list.id,
+        ),
+      );
+      assertEquals(res.status, 400, JSON.stringify(amount));
+    }
+    const res = await handler.POST(
+      ctx(
+        post(list.id, {
+          items: [{ itemId: meat.id, quantity: 0.5, unit: "kg" }],
+        }),
+        list.id,
+      ),
+    );
+    assertEquals(res.status, 201);
+    const body = await res.json();
+    assertEquals(body.added[0].quantity, 0.5);
+    assertEquals(body.added[0].unit, "kg");
+  },
+});
+
+Deno.test({
+  name:
+    "POST — additive request requires identity, returns updated totals, and retries safely",
+  sanitizeResources: false,
+  async fn() {
+    await clearAll();
+    const list = await seedList();
+    const carrot = await ItemRepo.create("h1", { name: "Carrot" });
+    await ShoppingListItemRepo.add(list.id, carrot.id);
+    for (
+      const options of [
+        { addToExisting: true },
+        { requestId: "x" },
+        { addToExisting: false, requestId: "x" },
+        { addToExisting: true, requestId: " " },
+        { addToExisting: true, requestId: "x".repeat(129) },
+      ]
+    ) {
+      const response = await handler.POST(
+        ctx(
+          post(list.id, { items: [{ itemId: carrot.id }], ...options }),
+          list.id,
+        ),
+      );
+      assertEquals(response.status, 400);
+    }
+    const request = {
+      items: [{ itemId: carrot.id, quantity: 3 }],
+      addToExisting: true,
+      requestId: "carrots",
+    };
+    const first = await handler.POST(ctx(post(list.id, request), list.id));
+    assertEquals(first.status, 201);
+    const result = await first.json();
+    assertEquals(result.updated[0].quantity, 4);
+    const retry = await handler.POST(ctx(post(list.id, request), list.id));
+    assertEquals(await retry.json(), result);
+    const conflict = await handler.POST(
+      ctx(
+        post(list.id, {
+          ...request,
+          items: [{ itemId: carrot.id, quantity: 2 }],
+        }),
+        list.id,
+      ),
+    );
+    assertEquals(conflict.status, 409);
+    assertEquals(typeof (await conflict.json()).error, "string");
+    const units = await handler.POST(
+      ctx(
+        post(list.id, {
+          ...request,
+          requestId: "units",
+          items: [{ itemId: carrot.id, quantity: 2, unit: "kg" }],
+        }),
+        list.id,
+      ),
+    );
+    assertEquals(units.status, 409);
+    assertEquals((await ShoppingListItemRepo.getAll(list.id))[0].quantity, 4);
+  },
+});
+
+Deno.test({
+  name:
+    "POST — committed additive retry survives catalogue deletion; new request rejects deleted ingredient atomically",
+  sanitizeResources: false,
+  async fn() {
+    await clearAll();
+    const list = await seedList();
+    const carrot = await ItemRepo.create("h1", { name: "Carrot" });
+    const request = {
+      items: [{ itemId: carrot.id, quantity: 3 }],
+      addToExisting: true,
+      requestId: "deleted-carrots",
+    };
+    const response = await handler.POST(ctx(post(list.id, request), list.id));
+    const result = await response.json();
+    await ItemRepo.delete("h1", carrot.id);
+    const retry = await handler.POST(ctx(post(list.id, request), list.id));
+    assertEquals(retry.status, 201);
+    assertEquals(await retry.json(), result);
+    const rejected = await handler.POST(
+      ctx(post(list.id, { ...request, requestId: "new" }), list.id),
+    );
+    assertEquals(rejected.status, 409);
+    assertEquals((await ShoppingListItemRepo.getAll(list.id))[0].quantity, 3);
+  },
+});

@@ -1,13 +1,15 @@
+import { shoppingEntriesByItem } from "@/utils/shopping-list-entries.ts";
 import type {
   DishInterface,
   ItemInterface,
   MenuEntryInterface,
+  ShoppingAmount,
   ShoppingListItemInterface,
 } from "@/models/index.ts";
 
 // How an ingredient relates to the target shopping list:
 //   new     — not on the list; will be created
-//   on-list — already on the list, unchecked; nothing to do
+//   on-list — already on the list, unchecked; the selected amount is additional
 //   bought  — on the list but checked off; will be unchecked again
 export type IngredientState = "new" | "on-list" | "bought";
 
@@ -17,6 +19,7 @@ export interface IngredientRow {
   // Names of the planned dishes that call for this item, in menu order.
   dishNames: string[];
   state: IngredientState;
+  existingAmount?: ShoppingAmount;
 }
 
 export interface IngredientPreview {
@@ -36,13 +39,7 @@ export function collectIngredients(
   const dishById = new Map(dishes.map((d) => [d.id, d]));
   const itemById = new Map(items.map((i) => [i.id, i]));
 
-  // One state per item; an unchecked entry means "still to buy" and wins over
-  // a checked duplicate.
-  const stateByItem = new Map<string, IngredientState>();
-  for (const li of listItems) {
-    if (stateByItem.get(li.itemId) === "on-list") continue;
-    stateByItem.set(li.itemId, li.checked ? "bought" : "on-list");
-  }
+  const listEntryByItem = shoppingEntriesByItem(listItems);
 
   const rowByItem = new Map<string, IngredientRow>();
   const emptyDishes: DishInterface[] = [];
@@ -59,11 +56,20 @@ export function collectIngredients(
         if (!row.dishNames.includes(dish.name)) row.dishNames.push(dish.name);
         continue;
       }
+      const existing = listEntryByItem.get(itemId);
       rowByItem.set(itemId, {
         itemId,
         name: item.name,
         dishNames: [dish.name],
-        state: stateByItem.get(itemId) ?? "new",
+        state: existing ? (existing.checked ? "bought" : "on-list") : "new",
+        ...(existing && !existing.checked
+          ? {
+            existingAmount: {
+              quantity: existing.quantity,
+              unit: existing.unit ?? "pieces",
+            },
+          }
+          : {}),
       });
     }
     if (resolved === 0) emptyDishes.push(dish);

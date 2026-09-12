@@ -2,6 +2,7 @@ import { computed, signal } from "@preact/signals";
 import {
   CategoryInterface,
   ItemInterface,
+  ShoppingAmount,
   ShoppingListItemInterface,
 } from "@/models/index.ts";
 import { createDebouncedMergeScheduler } from "@/utils/debounce-update.ts";
@@ -60,22 +61,38 @@ export function useShoppingList(
     savingIds.value = next;
   };
 
+  // The debounce scheduler's flush is fire-and-forget. Track each item's
+  // write chain so explicit amount saves can wait for older patches first.
+  const pendingWrites = new Map<string, Promise<void>>();
   const patchScheduler = createDebouncedMergeScheduler<
     ShoppingListItemInterface
   >({
     delayMs: 500,
-    flush: async (id, patch) => {
-      try {
-        await api.shoppingList.updateItem(listId, id, patch);
-        lastSaved.value = lastSaved.value + 1;
-      } finally {
-        clearSaving(id);
-      }
+    flush: (id, patch) => {
+      const previous = pendingWrites.get(id);
+      const write = (async () => {
+        if (previous) await previous;
+        const saved = await api.shoppingList.updateItem(listId, id, patch);
+        if (saved) lastSaved.value++;
+      })().catch(() => {
+        // Release the queue if an unexpected caller error occurs, so a later
+        // explicit save can still be attempted.
+      }).finally(() => {
+        if (pendingWrites.get(id) === write) {
+          pendingWrites.delete(id);
+          clearSaving(id);
+        }
+      });
+      pendingWrites.set(id, write);
+      return write;
     },
   });
 
   /** Immediately flush the pending debounced write for a list item (e.g. on editor close). */
-  const flushListItem = (id: string) => patchScheduler.flush(id);
+  const flushListItem = async (id: string): Promise<void> => {
+    patchScheduler.flush(id);
+    await pendingWrites.get(id);
+  };
 
   const updateListItem = (
     id: string,
@@ -86,6 +103,29 @@ export function useShoppingList(
     );
     markSaving(id);
     patchScheduler.schedule(id, patch);
+  };
+
+  /** Explicit dialog save: commit the amount only after the server confirms. */
+  const saveAmount = async (
+    id: string,
+    amount: ShoppingAmount,
+  ): Promise<boolean> => {
+    startPending();
+    try {
+      await flushListItem(id);
+      markSaving(id);
+      const saved = await api.shoppingList.updateItem(listId, id, amount);
+      if (!saved) return false;
+      list.value = list.value.map((li) => li.id === id ? saved : li);
+      checkedItems.value = checkedItems.value.map((li) =>
+        li.id === id ? saved : li
+      );
+      lastSaved.value++;
+      return true;
+    } finally {
+      clearSaving(id);
+      endPending();
+    }
   };
 
   const _addToList = async (itemId: string): Promise<string | null> => {
@@ -289,6 +329,7 @@ export function useShoppingList(
     exitingItems,
     pendingCount,
     updateListItem,
+    saveAmount,
     addToList,
     addToCatalog,
     removeListItem,

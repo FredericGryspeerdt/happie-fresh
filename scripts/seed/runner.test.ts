@@ -54,6 +54,8 @@ Deno.test({
       ["dish_tag_groups"],
       ["shopping_lists"],
       ["shopping_list_items"],
+      ["shopping_list_items_rev"],
+      ["shopping_bulk_receipts"],
       ["sessions"],
     ];
     // Seed one entry under each prefix.
