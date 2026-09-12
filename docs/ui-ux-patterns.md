@@ -351,6 +351,15 @@ lock background scrolling, trap `Tab` focus inside the surface, focus the first
 control on open, and restore focus to the trigger on close. `Sheet` does not
 yet do this — treat that as a known gap, not a pattern to copy.
 
+**Ingredient entry:** use `FullScreenDialog` for repeated search-and-select
+inside the dish editor. Keep a bounded, scrollable selection summary above
+search; matched selections remain visible as “Already added”. Additions clear
+and refocus search (§5); failed creates keep the query and show a Snackbar.
+Close and Done both return to the same dish draft — saving the dish remains
+separate. This is a picker within a create/edit flow, not a stays-open dish
+creation form (§13). See `components/dishes/IngredientPicker.tsx` and
+`islands/dishes/DishEditor.tsx`.
+
 **See:** `components/md3/` (component set), `components/md3/tokens.ts` (tokens +
 `cn` helper), `/design` (dev-only showcase of every component and state — 404s
 in production; use it to verify component changes live).

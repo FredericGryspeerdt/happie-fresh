@@ -38,6 +38,7 @@ Deno.test("DishEditor — existing dish prefills name, shows ingredient chip + d
   }));
   assertStringIncludes(html, 'value="Pasta"'); // prefilled name field
   assertStringIncludes(html, "Onion"); // resolved ingredient chip
+  assertStringIncludes(html, 'aria-label="Remove Onion"');
   assertStringIncludes(html, "Save changes");
   assertStringIncludes(html, "Delete dish");
 });
