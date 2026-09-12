@@ -1,7 +1,7 @@
 import { assertEquals, assertStringIncludes } from "jsr:@std/assert@^1.0.19";
 import { render } from "npm:preact-render-to-string@^6.6.3";
 import { h } from "preact";
-import { ShoppingListPickerSheet } from "./ShoppingListPickerSheet.tsx";
+import { ShoppingListPickerDialog } from "./ShoppingListPickerDialog.tsx";
 import type { ShoppingListInterface } from "@/models/index.ts";
 
 const list = (id: string, name: string): ShoppingListInterface => ({
@@ -14,8 +14,8 @@ const list = (id: string, name: string): ShoppingListInterface => ({
 const noop = () => {};
 const never = () => Promise.resolve(false);
 
-Deno.test("ShoppingListPickerSheet — lists every list and marks the marked one", () => {
-  const html = render(h(ShoppingListPickerSheet, {
+Deno.test("ShoppingListPickerDialog — lists every list and marks the marked one", () => {
+  const html = render(h(ShoppingListPickerDialog, {
     open: true,
     lists: [list("A", "Weekly shop"), list("B", "DIY store")],
     markedListId: "B",
@@ -33,8 +33,8 @@ Deno.test("ShoppingListPickerSheet — lists every list and marks the marked one
   assertEquals(html.includes('value="Groceries"'), false);
 });
 
-Deno.test("ShoppingListPickerSheet — marks the current list with its own label", () => {
-  const html = render(h(ShoppingListPickerSheet, {
+Deno.test("ShoppingListPickerDialog — marks the current list with its own label", () => {
+  const html = render(h(ShoppingListPickerDialog, {
     open: true,
     lists: [list("A", "Weekly shop"), list("B", "DIY store")],
     markedListId: "A",
@@ -47,8 +47,8 @@ Deno.test("ShoppingListPickerSheet — marks the current list with its own label
   assertStringIncludes(html, "Current list");
 });
 
-Deno.test("ShoppingListPickerSheet — with no lists, opens the create dialog prefilled with Groceries", () => {
-  const html = render(h(ShoppingListPickerSheet, {
+Deno.test("ShoppingListPickerDialog — with no lists, opens the create dialog prefilled with Groceries", () => {
+  const html = render(h(ShoppingListPickerDialog, {
     open: true,
     lists: [],
     markedListId: null,
@@ -64,8 +64,8 @@ Deno.test("ShoppingListPickerSheet — with no lists, opens the create dialog pr
   assertEquals(html.includes("Which list?"), false);
 });
 
-Deno.test("ShoppingListPickerSheet — the list-name field is labelled for assistive tech", () => {
-  const html = render(h(ShoppingListPickerSheet, {
+Deno.test("ShoppingListPickerDialog — the list-name field is labelled for assistive tech", () => {
+  const html = render(h(ShoppingListPickerDialog, {
     open: true,
     lists: [],
     markedListId: null,

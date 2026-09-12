@@ -57,7 +57,11 @@ Deno.test("useShoppingList — initialises checkedItems with only checked items"
 // ── checkItem ─────────────────────────────────────────────────────────────────
 
 Deno.test("checkItem — moves item from list to checkedItems", async () => {
-  using _patch = stub(api.shoppingList, "updateItem", () => Promise.resolve());
+  using _patch = stub(
+    api.shoppingList,
+    "updateItem",
+    () => Promise.resolve(null),
+  );
 
   const hook = useShoppingList(
     TEST_LIST_ID,
@@ -77,7 +81,11 @@ Deno.test("checkItem — moves item from list to checkedItems", async () => {
 });
 
 Deno.test("checkItem — item is in exitingItems during the 300ms animation", async () => {
-  using _patch = stub(api.shoppingList, "updateItem", () => Promise.resolve());
+  using _patch = stub(
+    api.shoppingList,
+    "updateItem",
+    () => Promise.resolve(null),
+  );
 
   const hook = useShoppingList(
     TEST_LIST_ID,
@@ -103,7 +111,7 @@ Deno.test("checkItem — calls api.shoppingList.updateItem with checked: true", 
     "updateItem",
     (listId, id, patch) => {
       calls.push([listId, id, patch]);
-      return Promise.resolve();
+      return Promise.resolve(null);
     },
   );
 
@@ -127,7 +135,11 @@ Deno.test("checkItem — calls api.shoppingList.updateItem with checked: true", 
 // ── uncheckItem ───────────────────────────────────────────────────────────────
 
 Deno.test("uncheckItem — moves item from checkedItems back to list", async () => {
-  using _patch = stub(api.shoppingList, "updateItem", () => Promise.resolve());
+  using _patch = stub(
+    api.shoppingList,
+    "updateItem",
+    () => Promise.resolve(null),
+  );
 
   const hook = useShoppingList(
     TEST_LIST_ID,
@@ -153,7 +165,7 @@ Deno.test("uncheckItem — calls api.shoppingList.updateItem with checked: false
     "updateItem",
     (listId, id, patch) => {
       calls.push([listId, id, patch]);
-      return Promise.resolve();
+      return Promise.resolve(null);
     },
   );
 
@@ -179,7 +191,11 @@ Deno.test("pendingCount — starts at 0", () => {
 });
 
 Deno.test("pendingCount — returns to 0 after uncheckItem completes", async () => {
-  using _patch = stub(api.shoppingList, "updateItem", () => Promise.resolve());
+  using _patch = stub(
+    api.shoppingList,
+    "updateItem",
+    () => Promise.resolve(null),
+  );
 
   const hook = useShoppingList(
     TEST_LIST_ID,
@@ -194,8 +210,8 @@ Deno.test("pendingCount — returns to 0 after uncheckItem completes", async () 
 
 Deno.test("pendingCount — is > 0 while an API call is in flight", async () => {
   let resolveCall!: () => void;
-  const slowPatch = new Promise<void>((resolve) => {
-    resolveCall = resolve;
+  const slowPatch = new Promise<null>((resolve) => {
+    resolveCall = () => resolve(null);
   });
   using _patch = stub(api.shoppingList, "updateItem", () => slowPatch);
 
@@ -309,7 +325,11 @@ Deno.test("addToList — returns null when API call fails", async () => {
 });
 
 Deno.test("checkItem — pendingCount returns to 0 after completion", async () => {
-  using _patch = stub(api.shoppingList, "updateItem", () => Promise.resolve());
+  using _patch = stub(
+    api.shoppingList,
+    "updateItem",
+    () => Promise.resolve(null),
+  );
 
   const hook = useShoppingList(
     TEST_LIST_ID,
@@ -485,4 +505,85 @@ Deno.test("clearCheckedItems — returns true (no-op) when there is nothing to c
   const ok = await hook.clearCheckedItems();
 
   assertEquals(ok, true);
+});
+
+Deno.test("saveAmount — retains previous amount on failure and applies confirmed response on retry", async () => {
+  const initial = {
+    ...makeListItem("sl-1", "item-1"),
+    quantity: 1,
+    unit: "kg" as const,
+  };
+  let succeed = false;
+  using _save = stub(
+    api.shoppingList,
+    "updateItem",
+    (_listId, _id, amount) =>
+      Promise.resolve(succeed ? { ...initial, ...amount } : null),
+  );
+  const hook = useShoppingList(TEST_LIST_ID, [], [initial]);
+  assertEquals(
+    await hook.saveAmount("sl-1", { quantity: 0.5, unit: "kg" }),
+    false,
+  );
+  assertEquals(hook.list.value[0], initial);
+  assertEquals(hook.pendingCount.value, 0);
+  succeed = true;
+  assertEquals(
+    await hook.saveAmount("sl-1", { quantity: 500, unit: "g" }),
+    true,
+  );
+  assertEquals(hook.list.value[0].quantity, 500);
+  assertEquals(hook.list.value[0].unit, "g");
+  assertEquals(hook.pendingCount.value, 0);
+});
+
+Deno.test("saveAmount — waits for an in-flight patch and a queued patch before saving amount", async () => {
+  using time = new FakeTime();
+  let finishOld!: () => void;
+  const initial = makeListItem("sl-1", "item-1");
+  const oldRequest = new Promise<ShoppingListItemInterface>((resolve) =>
+    finishOld = () => resolve({ ...initial, quantity: 2 })
+  );
+  const calls: string[] = [];
+  using _patch = stub(api.shoppingList, "updateItem", (_listId, _id, patch) => {
+    if (patch.unit) {
+      calls.push("amount");
+      return Promise.resolve({ ...initial, ...patch, note: "Large pack" });
+    }
+    calls.push(patch.note ? "note" : "quantity");
+    return patch.note ? Promise.resolve({ ...initial, ...patch }) : oldRequest;
+  });
+  const hook = useShoppingList(TEST_LIST_ID, [], [initial]);
+  hook.updateListItem("sl-1", { quantity: 2 });
+  await time.tickAsync(500);
+  hook.updateListItem("sl-1", { note: "Large pack" });
+  const saved = hook.saveAmount("sl-1", { quantity: 0.5, unit: "kg" });
+  await Promise.resolve();
+  assertEquals(calls, ["quantity"]);
+  assertEquals(hook.list.value[0].quantity, 2);
+  assertEquals(hook.pendingCount.value, 1);
+  finishOld();
+  assertEquals(await saved, true);
+  assertEquals(calls, ["quantity", "note", "amount"]);
+  assertEquals(hook.list.value[0].quantity, 0.5);
+  assertEquals(hook.list.value[0].note, "Large pack");
+  await time.tickAsync(500);
+  assertEquals(calls, ["quantity", "note", "amount"]);
+});
+
+Deno.test("debounced edits — rejected writes do not report Saved", async () => {
+  using time = new FakeTime();
+  using _patch = stub(
+    api.shoppingList,
+    "updateItem",
+    () => Promise.resolve(null),
+  );
+  const hook = useShoppingList(TEST_LIST_ID, [], [
+    makeListItem("sl-1", "item-1"),
+  ]);
+  hook.updateListItem("sl-1", { note: "Large pack" });
+  await time.tickAsync(500);
+  await hook.flushListItem("sl-1");
+  assertEquals(hook.lastSaved.value, 0);
+  assertEquals(hook.savingIds.value.size, 0);
 });

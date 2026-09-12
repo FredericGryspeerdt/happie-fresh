@@ -1,6 +1,7 @@
 import { useSignal } from "@preact/signals";
 import { useEffect, useMemo, useRef } from "preact/hooks";
 import type {
+  CategoryInterface,
   DishInterface,
   DishTagGroupInterface,
   ItemInterface,
@@ -19,11 +20,13 @@ import { IconButton } from "@/components/md3/IconButton.tsx";
 import { Pressable } from "@/components/md3/Pressable.tsx";
 import { Sheet } from "@/components/md3/Sheet.tsx";
 import { Snackbar } from "@/components/md3/Snackbar.tsx";
-import { ShoppingListPickerSheet } from "@/components/menu/ShoppingListPickerSheet.tsx";
-import { IngredientPreviewSheet } from "@/components/menu/IngredientPreviewSheet.tsx";
+import { ShoppingListPickerDialog } from "@/components/menu/ShoppingListPickerDialog.tsx";
+import { IngredientPreviewDialog } from "@/components/menu/IngredientPreviewDialog.tsx";
+import { ChooseShoppingDishesDialog } from "@/components/menu/ChooseShoppingDishesDialog.tsx";
 import { navigateTo } from "@/utils/loading.ts";
 
 interface Props {
+  initialCategories?: CategoryInterface[];
   initialMenu: WeeklyMenuInterface;
   initialDishes: DishInterface[];
   initialTagGroups: DishTagGroupInterface[];
@@ -37,7 +40,13 @@ interface Snack {
 }
 
 export default function WeeklyMenu(
-  { initialMenu, initialDishes, initialTagGroups, initialItems }: Props,
+  {
+    initialMenu,
+    initialDishes,
+    initialTagGroups,
+    initialItems,
+    initialCategories = [],
+  }: Props,
 ) {
   const {
     menu,
@@ -103,7 +112,7 @@ export default function WeeklyMenu(
   // lost (patterns doc §1/§3).
   const onConfirmShopping = () => {
     void shopping.confirm().then((out) => {
-      if (!out) return showSnack("Couldn't add to the list — try again");
+      if (!out) return; // The review shows the recoverable error beside Retry.
       if (out.count === 0) {
         return showSnack("Everything was already on the list");
       }
@@ -139,7 +148,10 @@ export default function WeeklyMenu(
     null;
 
   return (
-    <PullToRefresh onRefresh={refresh}>
+    <PullToRefresh
+      onRefresh={refresh}
+      disabled={shopping.step.value !== "idle"}
+    >
       <div class="pb-[calc(96px+env(safe-area-inset-bottom))]">
         {/* header */}
         <div class="flex items-center justify-between px-4 pt-4">
@@ -276,7 +288,19 @@ export default function WeeklyMenu(
         </div>
       </Sheet>
 
-      <ShoppingListPickerSheet
+      <ChooseShoppingDishesDialog
+        open={shopping.step.value === "dishes"}
+        dishes={shopping.plannedDishes.value}
+        selected={shopping.selectedDishes.value}
+        busy={shopping.loading.value}
+        onToggle={shopping.toggleDish}
+        onContinue={() =>
+          void shopping.review().then((ok) => {
+            if (!ok) showSnack("Couldn't load ingredients — try again");
+          })}
+        onClose={shopping.cancel}
+      />
+      <ShoppingListPickerDialog
         open={shopping.step.value === "pick"}
         lists={shopping.lists.value}
         markedListId={shopping.chosenList.value?.id ??
@@ -285,7 +309,10 @@ export default function WeeklyMenu(
           ? "Current list"
           : "Used last time"}
         busy={shopping.loading.value}
-        onPick={(l) => void shopping.chooseList(l)}
+        onPick={(l) =>
+          void shopping.chooseList(l).then((ok) => {
+            if (!ok) showSnack("Couldn't load ingredients — try again");
+          })}
         onCreate={(name) =>
           shopping.createList(name).then((ok) => {
             if (!ok) showSnack("Couldn't create the list — try again");
@@ -296,16 +323,26 @@ export default function WeeklyMenu(
           })}
         onClose={shopping.cancel}
       />
-      <IngredientPreviewSheet
+      <IngredientPreviewDialog
         open={shopping.step.value === "preview"}
         listName={shopping.chosenList.value?.name ?? ""}
-        canChangeList={shopping.lists.value.length > 1}
+        dishCount={shopping.selectedDishes.value.size}
+        categories={initialCategories}
+        items={initialItems}
+        amounts={shopping.reviewAmounts.value}
+        onAmount={shopping.setAmount}
+        onBack={shopping.back}
+        canChangeList
         onChangeList={shopping.changeList}
         rows={shopping.rows.value}
         isSelected={shopping.isSelected}
         emptyDishes={shopping.emptyDishes.value}
         selectedCount={shopping.selectedCount.value}
         adding={shopping.adding.value}
+        draftLocked={shopping.draftLocked.value}
+        retrying={shopping.retrying.value}
+        message={shopping.submissionMessage.value ?? shopping.amountError.value}
+        invalidAmount={!!shopping.amountError.value}
         onToggle={shopping.toggle}
         onConfirm={onConfirmShopping}
         onOpenDish={(d) => navigateTo(`/menu/${d.id}`)}

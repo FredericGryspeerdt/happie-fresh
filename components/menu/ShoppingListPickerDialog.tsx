@@ -1,6 +1,5 @@
 import { useSignal } from "@preact/signals";
 import type { ShoppingListInterface } from "@/models/index.ts";
-import { Sheet } from "@/components/md3/Sheet.tsx";
 import { Dialog } from "@/components/md3/Dialog.tsx";
 import { ListItem } from "@/components/md3/ListItem.tsx";
 import { Icon } from "@/components/md3/Icon.tsx";
@@ -20,10 +19,10 @@ interface Props {
 
 const DEFAULT_NAME = "Groceries";
 
-// "Which list?" — a keyboard-less picker on a Sheet; typing a new list's name
+// "Which list?" — a picker in a Dialog; typing a new list's name
 // happens in a centered Dialog (patterns doc §9). With no lists at all the
 // Dialog opens directly.
-export function ShoppingListPickerSheet(
+export function ShoppingListPickerDialog(
   { open, lists, markedListId, markedLabel, busy, onPick, onCreate, onClose }:
     Props,
 ) {
@@ -32,7 +31,7 @@ export function ShoppingListPickerSheet(
   // there's at least one, a new list is a deliberate addition and shouldn't
   // nudge the name toward a duplicate-sounding default. useSignal's initial
   // value is read only on mount, which is fine here: `noLists` can't flip
-  // while this sheet instance is alive.
+  // while this dialog instance is alive.
   const defaultName = noLists ? DEFAULT_NAME : "";
   const creating = useSignal(false);
   const name = useSignal(defaultName);
@@ -53,16 +52,16 @@ export function ShoppingListPickerSheet(
   return (
     <>
       {
-        /* Not rendered at all with no lists — a closed Sheet still puts its
+        /* Not rendered at all with no lists — a closed Dialog still puts its
           title in the DOM, and there is nothing to pick from. */
       }
       {!noLists && (
-        // Hide the Sheet while creating a new list to avoid Escape firing both
-        // the Sheet and Dialog handlers, and to prevent stacking issues (z-[200]).
-        <Sheet
+        // Hide the picker while creating a new list to avoid Escape firing both
+        // the picker and create-dialog handlers, and to prevent stacking issues (z-[200]).
+        <Dialog
           open={open && !creating.value}
           onClose={onClose}
-          title="Which list?"
+          headline="Which list?"
         >
           <div class="-mx-6">
             {lists.map((l) => {
@@ -75,7 +74,7 @@ export function ShoppingListPickerSheet(
                   trailing={marked
                     ? <Icon name="check" size={20} />
                     : undefined}
-                  onClick={() => onPick(l)}
+                  onClick={busy ? undefined : () => onPick(l)}
                 />
               );
             })}
@@ -83,13 +82,14 @@ export function ShoppingListPickerSheet(
           <div class="pt-2">
             <Button
               variant="text"
+              disabled={busy}
               icon="plus"
               onClick={() => (creating.value = true)}
             >
               New list
             </Button>
           </div>
-        </Sheet>
+        </Dialog>
       )}
 
       <Dialog

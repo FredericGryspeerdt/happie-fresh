@@ -1,5 +1,8 @@
-import { assertEquals } from "jsr:@std/assert@^1.0.19";
-import { ShoppingListItemRepo } from "@/database/shopping-list-item.repo.ts";
+import { assertEquals, assertRejects } from "jsr:@std/assert@^1.0.19";
+import {
+  ShoppingAmountConflict,
+  ShoppingListItemRepo,
+} from "@/database/shopping-list-item.repo.ts";
 import { getKv } from "@/database/db.ts";
 
 // Isolated in-memory KV for this test process. getKv() reads KV_PATH lazily on
@@ -216,5 +219,340 @@ Deno.test({
     ]);
     assertEquals(res.added[0].note, undefined);
     assertEquals((await ShoppingListItemRepo.getAll("L8"))[0].note, undefined);
+  },
+});
+
+Deno.test({
+  name: "bulkAdd — stores requested fractional amounts and units",
+  sanitizeResources: false,
+  async fn() {
+    const result = await ShoppingListItemRepo.bulkAdd("amount-new", [
+      { itemId: "meat", quantity: 0.5, unit: "kg" },
+    ]);
+    assertEquals(result.added[0].quantity, 0.5);
+    assertEquals(result.added[0].unit, "kg");
+    assertEquals(await ShoppingListItemRepo.getAll("amount-new"), result.added);
+  },
+});
+
+Deno.test({
+  name:
+    "bulkAdd — replaces bought amounts, preserves written notes and pending amounts",
+  sanitizeResources: false,
+  async fn() {
+    const bought = await ShoppingListItemRepo.add("amount-restore", "meat");
+    const pending = await ShoppingListItemRepo.add("amount-restore", "milk");
+    await ShoppingListItemRepo.update("amount-restore", bought.id, {
+      checked: true,
+      quantity: 2,
+      unit: "kg",
+      note: "Lean",
+    });
+    await ShoppingListItemRepo.update("amount-restore", pending.id, {
+      quantity: 3,
+      unit: "L",
+    });
+    const result = await ShoppingListItemRepo.bulkAdd("amount-restore", [
+      { itemId: "meat", quantity: 500, unit: "g", note: "Lasagne" },
+      { itemId: "milk", quantity: 0.5, unit: "L" },
+    ]);
+    assertEquals(result.restored[0].quantity, 500);
+    assertEquals(result.restored[0].unit, "g");
+    assertEquals(result.restored[0].note, "Lean");
+    const all = await ShoppingListItemRepo.getAll("amount-restore");
+    assertEquals(all.find((i) => i.id === pending.id)?.quantity, 3);
+  },
+});
+
+Deno.test({
+  name: "update — concurrent amount and note edits preserve both changes",
+  sanitizeResources: false,
+  async fn() {
+    const entry = await ShoppingListItemRepo.add("amount-concurrent", "meat");
+    await Promise.all([
+      ShoppingListItemRepo.update("amount-concurrent", entry.id, {
+        quantity: 0.5,
+        unit: "kg",
+      }),
+      ShoppingListItemRepo.update("amount-concurrent", entry.id, {
+        note: "Lean",
+      }),
+    ]);
+    const saved = (await ShoppingListItemRepo.getAll("amount-concurrent"))[0];
+    assertEquals(saved.quantity, 0.5);
+    assertEquals(saved.unit, "kg");
+    assertEquals(saved.note, "Lean");
+  },
+});
+
+Deno.test({
+  name: "bulkAdd — restoring while a note is edited preserves the edit",
+  sanitizeResources: false,
+  async fn() {
+    const entry = await ShoppingListItemRepo.add("restore-concurrent", "meat");
+    await ShoppingListItemRepo.update("restore-concurrent", entry.id, {
+      checked: true,
+    });
+    await Promise.all([
+      ShoppingListItemRepo.bulkAdd("restore-concurrent", [{
+        itemId: "meat",
+        quantity: 0.5,
+        unit: "kg",
+        note: "Lasagne",
+      }]),
+      ShoppingListItemRepo.update("restore-concurrent", entry.id, {
+        note: "Lean",
+      }),
+    ]);
+    const saved = (await ShoppingListItemRepo.getAll("restore-concurrent"))[0];
+    assertEquals(saved.checked, false);
+    assertEquals(saved.quantity, 0.5);
+    assertEquals(saved.unit, "kg");
+    assertEquals(saved.note, "Lean");
+  },
+});
+
+Deno.test({
+  name:
+    "bulkAdd — additional amounts accumulate once per request across concurrent retries",
+  sanitizeResources: false,
+  async fn() {
+    const listId = "additive-retries";
+    const carrot = await ShoppingListItemRepo.add(listId, "carrot");
+    const inputs = [{ itemId: "carrot", quantity: 3 }];
+    const options = { requestId: "same-request", addToExisting: true as const };
+    const [a, b] = await Promise.all([
+      ShoppingListItemRepo.bulkAdd(listId, inputs, options),
+      ShoppingListItemRepo.bulkAdd(listId, inputs, options),
+    ]);
+    assertEquals(a, b);
+    assertEquals(a.updated?.[0].quantity, 4);
+    await ShoppingListItemRepo.bulkAdd(listId, inputs, {
+      ...options,
+      requestId: "next-request",
+    });
+    assertEquals(
+      (await ShoppingListItemRepo.getAll(listId)).find((i) =>
+        i.id === carrot.id
+      )?.quantity,
+      7,
+    );
+    assertEquals(
+      await ShoppingListItemRepo.bulkAdd(listId, inputs, options),
+      a,
+    );
+  },
+});
+
+Deno.test({
+  name:
+    "bulkAdd — incompatible or overflowing totals reject the whole request; corrected requests can retry",
+  sanitizeResources: false,
+  async fn() {
+    const listId = "additive-invalid";
+    const entry = await ShoppingListItemRepo.add(listId, "carrot");
+    const options = { requestId: "correction", addToExisting: true as const };
+    await assertRejects(
+      () =>
+        ShoppingListItemRepo.bulkAdd(listId, [{ itemId: "rice" }, {
+          itemId: "carrot",
+          quantity: 1,
+          unit: "kg",
+        }], options),
+      ShoppingAmountConflict,
+    );
+    assertEquals(await ShoppingListItemRepo.getAll(listId), [entry]);
+    await assertRejects(() =>
+      ShoppingListItemRepo.bulkAdd(listId, [{
+        itemId: "carrot",
+        quantity: 99999,
+      }], options), ShoppingAmountConflict);
+    await ShoppingListItemRepo.bulkAdd(listId, [{
+      itemId: "carrot",
+      quantity: 3,
+    }], options);
+    await assertRejects(() =>
+      ShoppingListItemRepo.bulkAdd(
+        listId,
+        [{ itemId: "carrot", quantity: 2 }],
+        options,
+      ), ShoppingAmountConflict);
+    assertEquals((await ShoppingListItemRepo.getAll(listId))[0].quantity, 4);
+  },
+});
+Deno.test({
+  name:
+    "bulkAdd — concurrent distinct requests combine converted amounts and restore bought amounts",
+  sanitizeResources: false,
+  async fn() {
+    const listId = "additive-units";
+    const meat = await ShoppingListItemRepo.add(listId, "meat");
+    const rice = await ShoppingListItemRepo.add(listId, "rice");
+    await ShoppingListItemRepo.update(listId, meat.id, {
+      quantity: 1,
+      unit: "kg",
+      note: "Lean",
+    });
+    await ShoppingListItemRepo.update(listId, rice.id, {
+      quantity: 9,
+      unit: "kg",
+      checked: true,
+    });
+    await Promise.all(
+      ["a", "b"].map((requestId) =>
+        ShoppingListItemRepo.bulkAdd(listId, [{
+          itemId: "meat",
+          quantity: 250,
+          unit: "g",
+        }], { requestId, addToExisting: true })
+      ),
+    );
+    const restored = await ShoppingListItemRepo.bulkAdd(listId, [{
+      itemId: "rice",
+    }], { requestId: "restore", addToExisting: true });
+    const all = await ShoppingListItemRepo.getAll(listId);
+    assertEquals(
+      all.find((i) => i.id === meat.id)?.quantity,
+      1.5,
+    );
+    assertEquals(all.find((i) => i.id === meat.id)?.unit, "kg");
+    assertEquals(all.find((i) => i.id === meat.id)?.note, "Lean");
+    assertEquals(restored.restored[0].quantity, 1);
+    assertEquals(restored.restored[0].unit, "pieces");
+  },
+});
+
+Deno.test({
+  name: "bulkAdd — 500 existing items update atomically within KV check limits",
+  sanitizeResources: false,
+  async fn() {
+    const listId = "large-additive";
+    const inputs = Array.from(
+      { length: 500 },
+      (_, i) => ({ itemId: `item-${i}`, note: "A dish" }),
+    );
+    await ShoppingListItemRepo.bulkAdd(listId, inputs);
+    const result = await ShoppingListItemRepo.bulkAdd(listId, inputs, {
+      requestId: "large",
+      addToExisting: true,
+    });
+    assertEquals(result.updated?.length, 500);
+    assertEquals(
+      (await ShoppingListItemRepo.getAll(listId)).every((i) =>
+        i.quantity === 2
+      ),
+      true,
+    );
+    assertEquals(
+      await ShoppingListItemRepo.bulkAdd(listId, inputs, {
+        requestId: "large",
+        addToExisting: true,
+      }),
+      result,
+    );
+  },
+});
+
+Deno.test({
+  name:
+    "bulkAdd — concurrent ordinary writes preserve notes and unrelated entries",
+  sanitizeResources: false,
+  async fn() {
+    const listId = "additive-ordinary";
+    const carrot = await ShoppingListItemRepo.add(listId, "carrot");
+    await Promise.all([
+      ShoppingListItemRepo.bulkAdd(
+        listId,
+        [{ itemId: "carrot", quantity: 3 }],
+        { requestId: "ordinary", addToExisting: true },
+      ),
+      ShoppingListItemRepo.update(listId, carrot.id, { note: "Organic" }),
+      ShoppingListItemRepo.add(listId, "rice"),
+    ]);
+    const all = await ShoppingListItemRepo.getAll(listId);
+    assertEquals(all.find((i) => i.id === carrot.id)?.quantity, 4);
+    assertEquals(all.find((i) => i.id === carrot.id)?.note, "Organic");
+    assertEquals(all.some((i) => i.itemId === "rice"), true);
+  },
+});
+Deno.test({
+  name:
+    "bulkAdd — concurrent removal never resurrects the stale existing amount",
+  sanitizeResources: false,
+  async fn() {
+    const listId = "additive-delete";
+    const carrot = await ShoppingListItemRepo.add(listId, "carrot");
+    await ShoppingListItemRepo.update(listId, carrot.id, { quantity: 20 });
+    await Promise.all([
+      ShoppingListItemRepo.bulkAdd(
+        listId,
+        [{ itemId: "carrot", quantity: 3 }],
+        { requestId: "remove", addToExisting: true },
+      ),
+      ShoppingListItemRepo.delete(listId, carrot.id),
+    ]);
+    const all = await ShoppingListItemRepo.getAll(listId);
+    // Delete after add leaves nothing; add after delete creates only the new 3.
+    assertEquals(
+      all.every((i) => i.quantity === 3 && i.id !== carrot.id),
+      true,
+    );
+  },
+});
+Deno.test({
+  name:
+    "bulkAdd — concurrent clear-bought retains the newly requested quantity",
+  sanitizeResources: false,
+  async fn() {
+    const listId = "additive-clear";
+    const carrot = await ShoppingListItemRepo.add(listId, "carrot");
+    await ShoppingListItemRepo.update(listId, carrot.id, {
+      checked: true,
+      quantity: 20,
+    });
+    await Promise.all([
+      ShoppingListItemRepo.bulkAdd(
+        listId,
+        [{ itemId: "carrot", quantity: 3 }],
+        { requestId: "clear", addToExisting: true },
+      ),
+      ShoppingListItemRepo.clearChecked(listId),
+    ]);
+    const all = await ShoppingListItemRepo.getAll(listId);
+    assertEquals(all.length, 1);
+    assertEquals(all[0].quantity, 3);
+    assertEquals(all[0].checked, false);
+  },
+});
+Deno.test({
+  name: "deleteAll — removes request receipts only for the deleted list",
+  sanitizeResources: false,
+  async fn() {
+    const options = { requestId: "cleanup", addToExisting: true as const };
+    await ShoppingListItemRepo.bulkAdd("receipt-deleted", [{
+      itemId: "carrot",
+    }], options);
+    const kept = await ShoppingListItemRepo.bulkAdd("receipt-kept", [{
+      itemId: "carrot",
+    }], options);
+    await ShoppingListItemRepo.deleteAll("receipt-deleted");
+    const kv = await getKv();
+    let count = 0;
+    for await (
+      const _ of kv.list({
+        prefix: ["shopping_bulk_receipts", "receipt-deleted"],
+      })
+    ) {
+      count++;
+    }
+    assertEquals(count, 0);
+    assertEquals(
+      await ShoppingListItemRepo.bulkAdd(
+        "receipt-kept",
+        [{ itemId: "carrot" }],
+        options,
+      ),
+      kept,
+    );
   },
 });

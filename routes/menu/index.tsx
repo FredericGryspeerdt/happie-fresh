@@ -1,5 +1,6 @@
 import { page } from "fresh";
 import {
+  CategoryRepo,
   DishRepo,
   DishTagGroupRepo,
   ItemRepo,
@@ -13,13 +14,14 @@ export const handler = define.handlers({
   async GET(ctx) {
     const householdId = ctx.state.householdId!;
     await DishTagGroupRepo.ensureDefaults(householdId);
-    const [menu, dishes, tagGroups, items] = await Promise.all([
+    const [menu, dishes, tagGroups, items, categories] = await Promise.all([
       WeeklyMenuRepo.get(householdId),
       DishRepo.getAll(householdId),
       DishTagGroupRepo.getAll(householdId),
       ItemRepo.readAll(householdId),
+      CategoryRepo.getAll(householdId),
     ]);
-    return page({ menu, dishes, tagGroups, items });
+    return page({ menu, dishes, tagGroups, items, categories });
   },
 });
 
@@ -32,6 +34,7 @@ export default define.page<typeof handler>(function MenuPage({ data }) {
         initialDishes={data.dishes}
         initialTagGroups={data.tagGroups}
         initialItems={data.items}
+        initialCategories={data.categories}
       />
     </main>
   );
