@@ -98,3 +98,81 @@ final result: passed
 No actionable P0/P1/P2 findings remain. Real-device soft-keyboard and
 screen-reader testing remain outside this desktop-browser check; the short
 viewport check does not substitute for them.
+
+---
+
+# Dish ingredient picker — design QA
+
+**Final result: passed for browser layout and primary interactions.**
+
+**Preview:** http://127.0.0.1:5176/menu/new
+
+**Source visual:**
+`/Users/frederic.gryspeerdt/.codex/generated_images/01a096f5-541b-74b2-9969-2599526e34cf/exec-05d1dbcd-d00b-4a5b-91d2-7569407e6ee5.png`
+
+**Evidence directory:**
+`/Users/frederic.gryspeerdt/.codex/visualizations/2026/09/12/01a096f5-541b-74b2-9969-2599526e34cf/ingredients-qa/`
+
+- `mobile.png`: 390 × 844, Tomato pasta draft, Tomato and Pasta selected, query
+  Basi, Basil match and subordinate create action.
+- `desktop.png`: 1280 × 900, same state in the centered shared dialog.
+- `compact.png`: 390 × 520, saved dish with three selected ingredients, query
+  Basi and Already added feedback.
+
+**Comparison:** The source raster is 853 × 1844, approximately 2.19 pixels per
+logical CSS pixel. The mobile capture is 390 × 844 at 1×. Source and rendered
+capture were opened together in one comparison input, comparing corresponding
+logical positions and the app-owned area. Full captures keep labels and controls
+readable, so separate focused crops were unnecessary. The reference includes an
+illustrative keyboard; desktop browser resizing does not reproduce a device
+keyboard.
+
+**Fidelity and consistency:** The selected summary, removable chips, search,
+matching result and lower-emphasis create action follow the chosen direction.
+The existing FullScreenDialog supplies the 56px header, centered desktop panel,
+24px body padding and shared title style. These intentionally differ from the
+illustration's heavier heading and subtitle alignment. Existing MD3 typography,
+warm surfaces, primary colors, icons, focus outline and 44px chip targets remain
+consistent with other Happie flows. No outstanding P0–P2 layout findings were
+observed in these states. No implementation changes were needed during QA.
+
+**Interaction evidence:**
+
+- Opening focuses ingredient search.
+- Selecting an existing ingredient keeps the picker open, clears the search,
+  restores search focus, increments the count and shows Already added.
+- Creating Pasta and Basil adds each to the local catalogue and current draft,
+  then clears and refocuses search.
+- Removing Basil changes the draft immediately while preserving other choices.
+- Searching `TOMATO` retains the selected match and suppresses duplicate
+  creation despite case and surrounding spaces.
+- Done and Close preserve the draft; reopening clears search and retains
+  choices.
+- Escape closes the picker and returns focus to Add ingredient.
+- Creating Tomato pasta persisted two ingredients. Reopening it, adding Basil,
+  saving and reopening again persisted all three.
+- Desktop and reduced-height mobile layouts keep the relevant controls visible.
+- Browser error log was empty after the completed flow.
+
+**Preview recovery:** The old server on port 5173 rendered the page but its
+controls did not respond, even after reload. DOM inspection showed unresolved
+`fresh-island::` module imports. A fresh Vite server on port 5176 restored
+interactive behavior using the existing signed-in session. The old server was
+left untouched; no source fix was inferred from that stale server state.
+
+**Local test data:** Added Pasta and Basil catalogue items and saved a Tomato
+pasta dish with Tomato, Pasta and Basil. No production data was changed.
+
+**Remaining test gaps:** Physical iOS/Android keyboard continuity, especially
+during asynchronous creation, and forced network-error behavior were not
+interactively tested. The compact viewport check is layout evidence only.
+
+**Validation:** `deno task check` passed (format, lint and typecheck);
+`deno task test` passed with 568 tests and zero failures; `git diff --check`
+passed. The production build passed earlier in this implementation; QA required
+no source changes.
+
+**PR preparation:** Reapplied only the ingredient-picker changes onto latest
+main (`792a153`) in an isolated checkout. Format, lint, typecheck, all 653 tests
+and the production build passed there. Browser captures above were taken before
+this integration; the updated shared dialog was not rechecked interactively.
