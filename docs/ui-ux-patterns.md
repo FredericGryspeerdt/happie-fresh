@@ -338,6 +338,14 @@ like the same product.
 - **`FullScreenDialog`** is for multi-field create/edit flows on mobile; on
   larger screens it renders as a centered dialog.
 
+`FullScreenDialog` can take a `footer` outside its scrolling body for persistent
+selection summaries and completion actions. The menu dish picker derives its
+summary from the whole plan, independently of search; “View all” temporarily
+shows planned dishes and preserves the query for “Back to results”. Selection
+saves immediately, so its completion button says “Back to this week”. Disable
+an ancestor `PullToRefresh` while this picker is open so it cannot intercept
+scrolling inside the dialog. See `components/menu/DishPicker.tsx`.
+
 Both dialogs share `useModal` (`components/md3/useModal.ts`): while open they
 lock background scrolling, trap `Tab` focus inside the surface, focus the first
 control on open, and restore focus to the trigger on close. `Sheet` does not
@@ -691,6 +699,73 @@ that isn't there.
 
 ---
 
+## 19. Bulk writes go through a guided review and one server-side endpoint
+
+**Rule:** When one tap would write many records (e.g. "Add ingredients to a shopping list"
+on the weekly menu), show a guided `FullScreenDialog` first — every row ticked by
+default, including editable additions to existing entries — and send the confirmed
+set as **one** request whose handler applies the dedup/merge rules and commits
+atomically. Never loop single-record POSTs from the client.
+
+Keep weekly planning and shopping as distinct entry points: outlined **Add
+dishes** opens the planning checklist; the filled bottom **Add ingredients to a
+shopping list** action starts **Shop for dishes**, using the current weekly plan.
+The planning picker returns to the week before shopping begins. Its persistent
+summary only describes the plan; shopping selections belong to the guided review.
+
+**Why:** A blind bulk add is noisy (pantry staples) and hard to undo; per-row
+requests leave half-written state on flaky mobile connections and race when two
+members tap at once. The preview *is* the undo, and the server is the only
+place the "already there" decision can be made safely.
+
+**How:** Pure row-builder (`collectIngredients`) → flow hook holds
+`step`/dish-selection/ingredient-selection/amount signals → presentational dialog renders rows with `RoundCheck`
++ `ListItem` and a `Button loading` confirm labelled with the count → `api`
+call to a `/bulk` route → repo method builds one `kv.atomic()`.
+
+**See:** `utils/menu-ingredients.ts`, `hooks/useMenuShopping.ts`,
+`components/menu/IngredientPreviewDialog.tsx`,
+`routes/api/shopping/lists/[id]/items/bulk.ts`,
+`database/shopping-list-item.repo.ts` (`bulkAdd`).
+
+---
+
+### Menu shopping details
+
+Choose dishes first, then review category-grouped ingredients. A separate
+`components/shopping/ShoppingAmountDialog.tsx` edits a local amount/unit draft; only final confirmation
+writes shopping entries. Amounts are shopping choices, not recipe totals.
+Changing the destination opens the list picker above the retained review, like
+the amount editor. Cancelling returns to that review; choosing a list refreshes
+its existing amounts and totals. The initial list choice opens on its own.
+Back and destination changes preserve selections and amount overrides. Failed
+list-entry reads preserve the previous state rather than showing an empty list.
+Already-on-list entries stay in their category with an editable additional amount
+and a preview of the combined total. Unticking leaves the existing entry unchanged.
+Bought entries retain their previous amount unless explicitly edited.
+
+`utils/shopping-amount.ts` owns compatible-unit arithmetic for both preview and
+server writes. Only g/kg and ml/L convert; pieces and packs remain separate.
+The menu sends `addToExisting` with a stable request ID. The repo adds against
+the latest stored amount and records the result atomically; repeating the same
+request returns that result without adding again. Ordinary bulk callers retain
+their existing skip behavior.
+
+An uncertain submission keeps the draft locked with an inline retry action,
+reusing the exact payload and request ID. This draft survives closing/reopening
+the dialog in the current page, but is not persisted across page reloads.
+A definite rejection unlocks the draft and refreshes list amounts for correction.
+
+The full-screen dialog uses a bounded grid row and a shrinkable surface, so its
+body scrolls independently while the footer remains visible. Disable the page
+pull-to-refresh gesture while the guided flow is open.
+
+`useModal` keeps a stack: only the top modal handles Escape/Tab, and background
+scrolling remains locked until the last modal closes. Closed dialogs are inert.
+For the amount editor, focus the dialog heading on open; users tap the decimal
+field to open their keyboard. This deliberate extra-tap interaction avoids an
+unreliable asynchronous keyboard request (§12).
+
 ## Review checklist for user-facing changes
 
 Before merging anything the user sees, tick these (section refs in parens):
@@ -717,6 +792,8 @@ Before merging anything the user sees, tick these (section refs in parens):
       flows? (§9)
 - [ ] Works mobile-first: safe areas respected, primary actions reachable, touch
       targets generous, gestures supported? (§10)
+- [ ] A single tap that writes many records goes through a guided review and one
+      bulk endpoint, never a client-side loop of single writes? (§19)
 
 ## Extending this document
 
@@ -730,6 +807,21 @@ Candidate topics still to document as they solidify: form validation & inline
 errors, confirmation/destructive-action flow, empty & loading states for whole
 screens, drag-to-reorder, and offline behavior.
 
+
+### Shopping implementation ownership
+
+- `models/shopping-list/shopping-list-item.interface.ts` owns `SHOPPING_UNITS`;
+  the type, validator, and dialog options derive from that list.
+- `utils/shopping-list-entries.ts` owns legacy duplicate resolution, used by
+  ingredient collection, preview amounts, and atomic bulk writes.
+- `api.shoppingList.updateItem` is the single PATCH method and returns the saved
+  entry or `null`. Both debounced edits and explicit amount saves use it.
+- `useMenuShopping` owns the local draft. `useShoppingList.saveAmount` owns the
+  persisted save, including waiting for older queued writes. These are different
+  operations and intentionally do not share a controller.
+- `getItems` retains the existing empty-array fallback for older callers but
+  delegates to `getItemsOrNull`; review uses the nullable result to distinguish
+  failure from an empty shopping list.
 
 ## Bulk shopping moves
 

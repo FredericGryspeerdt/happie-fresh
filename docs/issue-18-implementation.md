@@ -17,10 +17,13 @@ remain selectable in a separate In cart group. No copy or merging.
       run focused tests, full tests, and deno task check.
 
 Use one atomic transaction for up to 40 entries (source and destination checks
-plus list and receipt checks remain below the 100-check limit). Reject oversized
+plus list, revision, and receipt checks remain below the 100-check limit). Reject oversized
 payloads before writing. Server receipts make retrying a move/undo idempotent
 for ten minutes; the UI offers Undo for ten seconds. Undo never overwrites newer
 edits or deletes a new list. Context7 is unavailable in this session; verified
 KV APIs against https://docs.deno.com/deploy/kv/transactions/ instead.
 
 Keep unrelated dish-editor changes and the existing design QA report intact.
+
+Moves and Undo increment both list revisions so concurrent menu additions retry
+their snapshots. Selection rows retain the quantity-and-unit display.

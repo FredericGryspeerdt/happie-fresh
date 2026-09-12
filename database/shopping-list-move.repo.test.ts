@@ -21,6 +21,7 @@ async function setup() {
   const b = await ShoppingListItemRepo.add(source.id, "bread");
   await ShoppingListItemRepo.update(source.id, a.id, {
     quantity: 3,
+    unit: "L",
     note: "big pack",
     checked: true,
   });
@@ -52,6 +53,7 @@ Deno.test({
       ...a,
       listId: destination.id,
       quantity: 3,
+      unit: "L",
       note: "big pack",
       checked: true,
     });
@@ -239,12 +241,10 @@ Deno.test({
   sanitizeResources: false,
   async fn() {
     const { householdId, source, destination, a, b } = await setup();
-    const entries = await Promise.all(
-      Array.from(
-        { length: 38 },
-        (_, i) => ShoppingListItemRepo.add(source.id, `item-${i}`),
-      ),
-    );
+    const entries = [];
+    for (let i = 0; i < 38; i++) {
+      entries.push(await ShoppingListItemRepo.add(source.id, `item-${i}`));
+    }
     const input = {
       requestId: crypto.randomUUID(),
       itemIds: [a.id, b.id, ...entries.map((e) => e.id)],
@@ -260,5 +260,73 @@ Deno.test({
         .ok,
     );
     assertEquals((await ShoppingListItemRepo.getAll(source.id)).length, 40);
+  },
+});
+
+Deno.test({
+  name: "menu additions retry their snapshot after a move or undo",
+  sanitizeResources: false,
+  async fn() {
+    const { getKv } = await import("./db.ts");
+    const kv = await getKv();
+    for (const undo of [false, true]) {
+      const { householdId, source, destination, a } = await setup();
+      const requestId = crypto.randomUUID();
+      const move = () =>
+        ShoppingListMoveRepo.move(householdId, "member", source.id, {
+          requestId,
+          itemIds: [a.id],
+          destinationListId: destination.id,
+        });
+      if (undo) assert((await move()).ok);
+      const from = undo ? destination.id : source.id;
+      const original = kv.list.bind(kv);
+      let release!: () => void;
+      let read!: () => void;
+      const gate = new Promise<void>((r) => release = r);
+      const ready = new Promise<void>((r) => read = r);
+      // Pause after bulkAdd has read all entries, before it commits its snapshot.
+      kv.list = <T>(
+        selector: Deno.KvListSelector,
+        options?: Deno.KvListOptions,
+      ) => {
+        const iterator = original<T>(selector, options);
+        const next = iterator.next.bind(iterator);
+        iterator.next = async () => {
+          const result = await next();
+          if (result.done) {
+            read();
+            await gate;
+          }
+          return result;
+        };
+        return iterator;
+      };
+      const adding = ShoppingListItemRepo.bulkAdd(from, [{
+        itemId: "milk",
+        quantity: 1,
+        unit: "L",
+      }]);
+      await ready;
+      kv.list = original;
+      try {
+        assert(
+          (await (undo
+            ? ShoppingListMoveRepo.undo(householdId, source.id, requestId)
+            : move())).ok,
+        );
+      } finally {
+        release();
+      }
+      const added = await adding;
+      assertEquals(added.added.length, 1);
+      assert(added.added[0].id !== a.id);
+      assertEquals(
+        (await ShoppingListItemRepo.getAll(from)).some((entry) =>
+          entry.id === a.id
+        ),
+        false,
+      );
+    }
   },
 });

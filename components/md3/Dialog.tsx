@@ -1,6 +1,6 @@
 // components/md3/Dialog.tsx
 import type { ComponentChildren } from "preact";
-import { useRef } from "preact/hooks";
+import { useEffect, useRef, useState } from "preact/hooks";
 import { Icon, type IconName } from "./Icon.tsx";
 import { Scrim } from "./Scrim.tsx";
 import { cn } from "./tokens.ts";
@@ -8,6 +8,7 @@ import { useModal } from "./useModal.ts";
 
 interface DialogProps {
   open: boolean;
+  focusSurface?: boolean;
   onClose: () => void;
   headline?: string;
   icon?: IconName;
@@ -20,14 +21,46 @@ interface DialogProps {
 /** MD3 basic dialog: centered, so short typed input stays clear of the soft
  *  keyboard. Keyboard-less confirmations stay on `Sheet` (patterns doc §9). */
 export function Dialog(
-  { open, onClose, headline, icon, actions, children, class: cls }: DialogProps,
+  {
+    open,
+    onClose,
+    headline,
+    icon,
+    actions,
+    children,
+    focusSurface = false,
+    class: cls,
+  }: DialogProps,
 ) {
   const surface = useRef<HTMLDivElement>(null);
-  useModal(open, onClose, surface);
+  useModal(open, onClose, surface, focusSurface);
+  const [viewport, setViewport] = useState<
+    { height: number; top: number } | null
+  >(null);
+  useEffect(() => {
+    if (!open || !globalThis.visualViewport) return;
+    const view = globalThis.visualViewport;
+    const resize = () =>
+      setViewport({ height: view.height, top: view.offsetTop });
+    resize();
+    view.addEventListener("resize", resize);
+    view.addEventListener("scroll", resize);
+    return () => {
+      view.removeEventListener("resize", resize);
+      view.removeEventListener("scroll", resize);
+    };
+  }, [open]);
   return (
     <div
+      aria-hidden={!open}
+      inert={!open}
       class="fixed inset-0 z-[200] grid place-items-center p-6"
-      style={{ pointerEvents: open ? "auto" : "none" }}
+      style={{
+        pointerEvents: open ? "auto" : "none",
+        ...(viewport
+          ? { height: viewport.height, top: viewport.top, bottom: "auto" }
+          : {}),
+      }}
     >
       <Scrim open={open} onClick={onClose} />
       <div

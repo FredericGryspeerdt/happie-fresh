@@ -93,6 +93,10 @@ export class ShoppingListMoveRepo {
       createdBy: memberId,
       createdAt: new Date().toISOString(),
     };
+    const revisions = await kv.getMany<[number, number]>([
+      ["shopping_list_items_rev", sourceId],
+      ["shopping_list_items_rev", destination.value?.id ?? target.id],
+    ]);
     const entries = await Promise.all(
       input.itemIds.map((id) =>
         kv.get<ShoppingListItemInterface>(itemKey(sourceId, id))
@@ -112,7 +116,10 @@ export class ShoppingListMoveRepo {
         "These items contain too much text to move together. Select fewer items.",
       );
     }
-    let atomic = kv.atomic().check(source, destination, receipt);
+    let atomic = kv.atomic().check(source, destination, receipt, ...revisions);
+    for (const revision of revisions) {
+      atomic = atomic.set(revision.key, (revision.value ?? 0) + 1);
+    }
     if (!destination.value) atomic = atomic.set(destination.key, target);
     for (const entry of entries) {
       const key = itemKey(destinationId, entry.value!.id);
@@ -189,6 +196,10 @@ export class ShoppingListMoveRepo {
     if (!source.value || !destination.value) {
       return fail("A list was removed, so this move cannot be undone.");
     }
+    const revisions = await kv.getMany<[number, number]>([
+      ["shopping_list_items_rev", sourceId],
+      ["shopping_list_items_rev", record.result.destination.id],
+    ]);
     const entries = await Promise.all(
       record.input.itemIds.map((id) =>
         kv.get<ShoppingListItemInterface>(
@@ -203,7 +214,10 @@ export class ShoppingListMoveRepo {
         "These items changed after the move. Move them back from their new list instead.",
       );
     }
-    let atomic = kv.atomic().check(source, destination, receipt);
+    let atomic = kv.atomic().check(source, destination, receipt, ...revisions);
+    for (const revision of revisions) {
+      atomic = atomic.set(revision.key, (revision.value ?? 0) + 1);
+    }
     for (const entry of entries) {
       const key = itemKey(sourceId, entry.value!.id);
       atomic = atomic.check(entry, { key, versionstamp: null }).delete(

@@ -7,19 +7,6 @@ knowledge workers.
 
 ## Language
 
-### Shopping
-
-**Shopping list**: A named collection of things the household intends to buy.
-The household can keep several shopping lists. _Avoid_: backlog
-
-**Shopping list entry**: One occurrence of a catalogue item on a shopping list,
-with its own quantity, note, and in-cart state. Two entries for the same item
-can coexist without being combined. _Avoid_: copy (when referring to a moved
-entry)
-
-**Move**: Transfer selected shopping list entries to another shopping list,
-keeping their identity and details. _Avoid_: merge, copy
-
 ### Household
 
 **Household**: The group of people who live together and share everything in
@@ -85,3 +72,43 @@ it never had to happen at all. Unlike being done, this is not a state a to-do
 can be in — the to-do is simply gone, leaving no trace. Never conflate the two;
 "we did it" and "we dropped it" are opposite outcomes. _Avoid_: cancelled,
 dropped, dismissed, abandoned, archived
+
+### Shopping
+
+**Catalogue**: Everything a household knows it might ever buy — the shared
+memory of products, each filed under a category. A shopping list is built by
+picking from the catalogue, not by typing free text. _Avoid_: inventory,
+products, master list
+
+**Item**: One thing in the catalogue — "milk", "pasta", "toilet paper". An item
+is the product itself, not the fact of needing it; the same item can be on
+several shopping lists at once. _Avoid_: product, article, grocery
+
+**Shopping list**: A named set of items the household intends to buy, checked
+off while shopping. A household may keep several (the weekly shop, the DIY
+store). The "list" the to-do glossary avoids is a container for to-dos; a
+shopping list is a different, legitimate concept. _Avoid_: cart, basket, grocery
+list
+
+**Shopping list entry**: One occurrence of a catalogue item on a shopping list,
+with its own quantity, unit, note, and in-cart state. Two entries for the same
+item can coexist without being combined. _Avoid_: copy (when referring to a
+moved entry)
+
+**Move**: Transfer selected shopping list entries to another shopping list,
+keeping their identity and details. _Avoid_: merge, copy
+
+### Meals
+
+**Dish**: Something the household cooks and eats — "lasagne", "pancakes". A dish
+lives in the household's dish catalogue and knows which ingredients it calls
+for, but not how much of each. _Avoid_: recipe, meal, food
+
+**Ingredient**: A catalogue item that a dish calls for. Being an ingredient is a
+relationship, not a kind of item: "pasta" is an item, and it is an ingredient
+_of_ lasagne. _Avoid_: component, grocery, product
+
+**Weekly menu**: The dishes a household plans to eat this week, each optionally
+pinned to a weekday. A household has exactly one; it is a plan, not a record —
+it does not remember whether anyone has shopped for it. _Avoid_: meal plan,
+planner, schedule

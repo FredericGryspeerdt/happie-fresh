@@ -2,6 +2,7 @@ import { computed, signal } from "@preact/signals";
 import {
   CategoryInterface,
   ItemInterface,
+  ShoppingAmount,
   ShoppingListItemInterface,
 } from "@/models/index.ts";
 import { createDebouncedMergeScheduler } from "@/utils/debounce-update.ts";
@@ -84,7 +85,9 @@ export function useShoppingList(
   });
 
   /** Immediately flush the pending debounced write for a list item (e.g. on editor close). */
-  const flushListItem = (id: string) => patchScheduler.flush(id);
+  const flushListItem = async (id: string): Promise<void> => {
+    await patchScheduler.flush(id);
+  };
 
   /** Drain both timers and in-flight writes; retry previously failed patches.
    * Callers disable editing while awaiting this barrier. */
@@ -110,6 +113,29 @@ export function useShoppingList(
     );
     markSaving(id);
     patchScheduler.schedule(id, patch);
+  };
+
+  /** Explicit dialog save: commit the amount only after the server confirms. */
+  const saveAmount = async (
+    id: string,
+    amount: ShoppingAmount,
+  ): Promise<boolean> => {
+    startPending();
+    try {
+      if (!await prepareMove([id])) return false;
+      markSaving(id);
+      const saved = await api.shoppingList.updateItem(listId, id, amount);
+      if (!saved) return false;
+      list.value = list.value.map((li) => li.id === id ? saved : li);
+      checkedItems.value = checkedItems.value.map((li) =>
+        li.id === id ? saved : li
+      );
+      lastSaved.value++;
+      return true;
+    } finally {
+      clearSaving(id);
+      endPending();
+    }
   };
 
   const _addToList = async (itemId: string): Promise<string | null> => {
@@ -328,6 +354,7 @@ export function useShoppingList(
     exitingItems,
     pendingCount,
     updateListItem,
+    saveAmount,
     addToList,
     addToCatalog,
     removeListItem,

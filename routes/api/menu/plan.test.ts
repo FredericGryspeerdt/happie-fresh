@@ -1,7 +1,7 @@
 import { assertEquals } from "jsr:@std/assert@^1.0.19";
 import { type Context } from "fresh";
 import { handler } from "@/routes/api/menu/plan.ts";
-import { DishRepo } from "@/database/index.ts";
+import { DishRepo, ShoppingListRepo } from "@/database/index.ts";
 import { getKv } from "@/database/db.ts";
 import type { StateInterface } from "@/utils/index.ts";
 
@@ -192,5 +192,64 @@ Deno.test({
     await handler.POST(ctx(req("POST", { dishId: await seedDish() })));
     const other = await handler.GET(ctx(req("GET"), "h2"));
     assertEquals((await other.json()).entries, []);
+  },
+});
+
+async function clearLists() {
+  const kv = await getKv();
+  for await (const e of kv.list({ prefix: ["shopping_lists"] })) {
+    await kv.delete(e.key);
+  }
+}
+async function seedList(householdId = "h1") {
+  return await ShoppingListRepo.create({
+    householdId,
+    name: "Groceries",
+    createdBy: "m1",
+    createdAt: new Date().toISOString(),
+  });
+}
+
+Deno.test({
+  name: "PATCH { shoppingListId } remembers the household's list",
+  sanitizeResources: false,
+  async fn() {
+    await clearMenus();
+    await clearLists();
+    const list = await seedList();
+    const res = await handler.PATCH(
+      ctx(req("PATCH", { shoppingListId: list.id })),
+    );
+    assertEquals(res.status, 200);
+    assertEquals((await res.json()).shoppingListId, list.id);
+    assertEquals(
+      (await (await handler.GET(ctx(req("GET")))).json()).shoppingListId,
+      list.id,
+    );
+  },
+});
+
+Deno.test({
+  name: "PATCH { shoppingListId } is 400 for an unknown or foreign list",
+  sanitizeResources: false,
+  async fn() {
+    await clearMenus();
+    await clearLists();
+    const foreign = await seedList("h2");
+    assertEquals(
+      (await handler.PATCH(ctx(req("PATCH", { shoppingListId: "nope" }))))
+        .status,
+      400,
+    );
+    assertEquals(
+      (await handler.PATCH(
+        ctx(req("PATCH", { shoppingListId: foreign.id })),
+      )).status,
+      400,
+    );
+    assertEquals(
+      (await (await handler.GET(ctx(req("GET")))).json()).shoppingListId,
+      undefined,
+    );
   },
 });

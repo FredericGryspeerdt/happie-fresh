@@ -5,6 +5,7 @@ import { For } from "@preact/signals/utils";
 import {
   CategoryInterface,
   ItemInterface,
+  type ShoppingAmount,
   ShoppingListInterface,
   ShoppingListItemInterface,
 } from "@/models/index.ts";
@@ -16,6 +17,8 @@ import { Spinner } from "@/components/md3/Spinner.tsx";
 import { CategoryPickerList } from "@/components/md3/CategoryPickerList.tsx";
 import { Card } from "@/components/md3/Card.tsx";
 import { Stepper } from "@/components/md3/Stepper.tsx";
+import { ShoppingAmountDialog } from "@/components/shopping/ShoppingAmountDialog.tsx";
+import { formatShoppingAmount } from "@/utils/shopping-amount.ts";
 import { Button } from "@/components/md3/Button.tsx";
 import { ListItem } from "@/components/md3/ListItem.tsx";
 import { Icon } from "@/components/md3/Icon.tsx";
@@ -55,6 +58,7 @@ export default function Items(
   // re-render would recreate all signals from SSR props, discarding local state.
   const {
     updateListItem,
+    saveAmount,
     removeListItem,
     checkItem,
     uncheckItem,
@@ -184,6 +188,50 @@ export default function Items(
   // item-editor: searchable category picker mode (replaces the sheet body
   // while open)
   const editCatPicking = useSignal(false);
+  const amountEditing = useSignal<
+    {
+      id: string;
+      name: string;
+      amount: ShoppingAmount;
+    } | null
+  >(null);
+
+  const amountSaving = useSignal(false);
+
+  const quantityControl = (
+    li: ShoppingListItemInterface,
+    forceDialog = false,
+  ) => {
+    const quantity = li.quantity ?? 1;
+    if (
+      !forceDialog && (!li.unit || li.unit === "pieces") &&
+      Number.isInteger(quantity)
+    ) {
+      return (
+        <Stepper
+          value={quantity}
+          onChange={(value) => updateListItem(li.id!, { quantity: value })}
+        />
+      );
+    }
+    const label = formatShoppingAmount(quantity, li.unit);
+    return (
+      <Pressable
+        aria-label={`Edit amount for ${getItemName(li.itemId)}: ${label}`}
+        class="inline-flex min-h-12 shrink-0 items-center gap-2 rounded-full bg-secondary-container px-3 text-on-secondary-container md-label-large"
+        onClick={() => {
+          amountEditing.value = {
+            id: li.id!,
+            name: getItemName(li.itemId),
+            amount: { quantity, unit: li.unit ?? "pieces" },
+          };
+        }}
+      >
+        {label}
+        <Icon name="edit" size={18} />
+      </Pressable>
+    );
+  };
 
   // ── item-editor: honest "Saved" indicator ───────────────────────────────
   // Driven directly by `lastSaved` (bumped only when a debounced list-item write
@@ -225,7 +273,7 @@ export default function Items(
     <PullToRefresh
       onRefresh={refresh}
       disabled={addOpen.value || mgmtOpen.value || editingId.value !== null ||
-        selecting.value || moveBusy.value}
+        selecting.value || moveBusy.value || amountEditing.value !== null}
       class="flex flex-col gap-4 pb-24"
     >
       {/* Mode toggle (Plan / Shop) — list options live in the top app bar */}
@@ -330,11 +378,7 @@ export default function Items(
                         </Pressable>
 
                         {/* Inline quantity stepper */}
-                        <Stepper
-                          value={li.quantity ?? 1}
-                          onChange={(v) =>
-                            updateListItem(li.id!, { quantity: v })}
-                        />
+                        {quantityControl(li)}
                       </div>
 
                       {/* 1px divider between rows, not after last */}
@@ -444,9 +488,14 @@ export default function Items(
                               </div>
                             )}
                           </div>
-                          {(li.quantity ?? 1) > 1 && (
+                          {(li.unit || (li.quantity ?? 1) !== 1) && (
                             <span class="md-label-large bg-secondary-container text-on-secondary-container rounded-full px-2.5 py-0.5 shrink-0">
-                              ×{li.quantity}
+                              {li.unit
+                                ? formatShoppingAmount(
+                                  li.quantity ?? 1,
+                                  li.unit,
+                                )
+                                : `×${li.quantity}`}
                             </span>
                           )}
                         </Pressable>
@@ -650,143 +699,168 @@ export default function Items(
       )}
 
       {/* ══════════════════════ Item-editor sheet ══════════════════════ */}
-      <Sheet
-        open={editingId.value !== null}
-        onClose={() => {
-          const id = editingId.value;
-          if (id) flushListItem(id);
-          editingId.value = null;
-          editCatPicking.value = false;
-        }}
-        title={editCatPicking.value
-          ? "Choose category"
-          : (editingId.value ? getItemName(editingListItem()?.itemId) : "")}
-      >
-        {(() => {
-          const li = editingListItem();
-          if (!li) return null;
+      {!amountEditing.value && (
+        <Sheet
+          open={editingId.value !== null}
+          onClose={() => {
+            const id = editingId.value;
+            if (id) flushListItem(id);
+            editingId.value = null;
+            editCatPicking.value = false;
+          }}
+          title={editCatPicking.value
+            ? "Choose category"
+            : (editingId.value ? getItemName(editingListItem()?.itemId) : "")}
+        >
+          {(() => {
+            const li = editingListItem();
+            if (!li) return null;
 
-          // Find category currently on the catalog item
-          const catalogItem = items.value.find((i) => i.id === li.itemId);
-          const currentCategoryId = catalogItem?.categoryId ?? "";
-          const currentCatLabel =
-            categories.value.find((c) => c.id === currentCategoryId)?.label ??
+            // Find category currently on the catalog item
+            const catalogItem = items.value.find((i) => i.id === li.itemId);
+            const currentCategoryId = catalogItem?.categoryId ?? "";
+            const currentCatLabel = categories.value.find((c) =>
+              c.id === currentCategoryId
+            )?.label ??
               "Uncategorized";
 
-          // Searchable category picker replaces the editor body while open
-          if (editCatPicking.value) {
-            return (
-              <CategoryPickerList
-                categories={categories.value}
-                selectedId={currentCategoryId}
-                onSelect={(id) => {
-                  handleCategoryChange(id);
-                  editCatPicking.value = false;
-                }}
-              />
-            );
-          }
-
-          return (
-            <div class="flex flex-col gap-1.5 pb-1">
-              {
-                /* Saved pill — reserves row height; CSS-fades in/out, keyed by
-                  savedTick so it replays on each flush */
-              }
-              <div class="h-6 flex justify-end items-center px-1">
-                {savingIds.value.has(li.id!)
-                  ? (
-                    <span class="inline-flex items-center gap-1.5 md-label-medium text-on-surface-variant">
-                      <Spinner size={12} /> Saving…
-                    </span>
-                  )
-                  : showSaved && (
-                    <span
-                      key={savedTick}
-                      class="md-saved-flash inline-flex items-center gap-1 md-label-medium text-on-tertiary-container bg-tertiary-container rounded-full px-2.5 py-0.5 pointer-events-none"
-                    >
-                      <Icon name="check" size={14} /> Saved
-                    </span>
-                  )}
-              </div>
-
-              {/* Quantity */}
-              <div class="flex items-center justify-between px-1 py-1.5">
-                <span class="md-body-large text-on-surface">Quantity</span>
-                <Stepper
-                  value={li.quantity ?? 1}
-                  onChange={(v) => updateListItem(li.id!, { quantity: v })}
-                />
-              </div>
-              <div class="h-px bg-surface-chigh mx-1" />
-
-              {/* Category — opens the searchable picker */}
-              <div class="px-1 py-1.5">
-                <div class="md-body-large text-on-surface mb-2">Category</div>
-                <Pressable
-                  onClick={() => {
-                    editCatPicking.value = true;
+            // Searchable category picker replaces the editor body while open
+            if (editCatPicking.value) {
+              return (
+                <CategoryPickerList
+                  categories={categories.value}
+                  selectedId={currentCategoryId}
+                  onSelect={(id) => {
+                    handleCategoryChange(id);
+                    editCatPicking.value = false;
                   }}
-                  class="flex items-center justify-between gap-2 w-full bg-surface-chigh rounded-[var(--md-shape-md)] px-4 py-3"
-                >
-                  <span class="md-body-large text-on-surface">
-                    {currentCatLabel}
-                  </span>
-                  <Icon
-                    name="chevron"
-                    size={18}
-                    class="text-on-surface-variant"
-                  />
-                </Pressable>
-              </div>
-              <div class="h-px bg-surface-chigh mx-1" />
-
-              {/* Note */}
-              <div class="px-1 py-1.5">
-                <div class="md-body-large text-on-surface mb-2">Note</div>
-                <textarea
-                  value={li.note ?? ""}
-                  onInput={(e) =>
-                    updateListItem(li.id!, {
-                      note: (e.target as HTMLTextAreaElement).value,
-                    })}
-                  rows={2}
-                  placeholder="e.g. the red ones, big pack, any brand…"
-                  class="w-full md-body-large text-on-surface bg-surface-chigh border-0 rounded-[var(--md-shape-lg)] py-3 px-4 outline-none resize-none"
                 />
+              );
+            }
+
+            return (
+              <div class="flex flex-col gap-1.5 pb-1">
+                {
+                  /* Saved pill — reserves row height; CSS-fades in/out, keyed by
+                  savedTick so it replays on each flush */
+                }
+                <div class="h-6 flex justify-end items-center px-1">
+                  {savingIds.value.has(li.id!)
+                    ? (
+                      <span class="inline-flex items-center gap-1.5 md-label-medium text-on-surface-variant">
+                        <Spinner size={12} /> Saving…
+                      </span>
+                    )
+                    : showSaved && (
+                      <span
+                        key={savedTick}
+                        class="md-saved-flash inline-flex items-center gap-1 md-label-medium text-on-tertiary-container bg-tertiary-container rounded-full px-2.5 py-0.5 pointer-events-none"
+                      >
+                        <Icon name="check" size={14} /> Saved
+                      </span>
+                    )}
+                </div>
+
+                {/* Quantity */}
+                <div class="flex items-center justify-between px-1 py-1.5">
+                  <span class="md-body-large text-on-surface">Quantity</span>
+                  {quantityControl(li, true)}
+                </div>
+                <div class="h-px bg-surface-chigh mx-1" />
+
+                {/* Category — opens the searchable picker */}
+                <div class="px-1 py-1.5">
+                  <div class="md-body-large text-on-surface mb-2">Category</div>
+                  <Pressable
+                    onClick={() => {
+                      editCatPicking.value = true;
+                    }}
+                    class="flex items-center justify-between gap-2 w-full bg-surface-chigh rounded-[var(--md-shape-md)] px-4 py-3"
+                  >
+                    <span class="md-body-large text-on-surface">
+                      {currentCatLabel}
+                    </span>
+                    <Icon
+                      name="chevron"
+                      size={18}
+                      class="text-on-surface-variant"
+                    />
+                  </Pressable>
+                </div>
+                <div class="h-px bg-surface-chigh mx-1" />
+
+                {/* Note */}
+                <div class="px-1 py-1.5">
+                  <div class="md-body-large text-on-surface mb-2">Note</div>
+                  <textarea
+                    value={li.note ?? ""}
+                    onInput={(e) =>
+                      updateListItem(li.id!, {
+                        note: (e.target as HTMLTextAreaElement).value,
+                      })}
+                    rows={2}
+                    placeholder="e.g. the red ones, big pack, any brand…"
+                    class="w-full md-body-large text-on-surface bg-surface-chigh border-0 rounded-[var(--md-shape-lg)] py-3 px-4 outline-none resize-none"
+                  />
+                </div>
+
+                {/* Done button */}
+                <Button
+                  variant="filled"
+                  full
+                  onClick={() => {
+                    const id = editingId.value;
+                    if (id) flushListItem(id);
+                    editingId.value = null;
+                  }}
+                  class="mt-2.5"
+                >
+                  Done
+                </Button>
+
+                {/* Remove from list */}
+                <Button
+                  variant="error"
+                  full
+                  onClick={async () => {
+                    const id = li.id!;
+                    editingId.value = null;
+                    await removeListItem(id);
+                  }}
+                  class="mt-2"
+                >
+                  Remove from list
+                </Button>
               </div>
+            );
+          })()}
+        </Sheet>
+      )}
 
-              {/* Done button */}
-              <Button
-                variant="filled"
-                full
-                onClick={() => {
-                  const id = editingId.value;
-                  if (id) flushListItem(id);
-                  editingId.value = null;
-                }}
-                class="mt-2.5"
-              >
-                Done
-              </Button>
-
-              {/* Remove from list */}
-              <Button
-                variant="error"
-                full
-                onClick={async () => {
-                  const id = li.id!;
-                  editingId.value = null;
-                  await removeListItem(id);
-                }}
-                class="mt-2"
-              >
-                Remove from list
-              </Button>
-            </div>
-          );
-        })()}
-      </Sheet>
+      {amountEditing.value && (
+        <ShoppingAmountDialog
+          name={amountEditing.value.name}
+          amount={amountEditing.value.amount}
+          busy={amountSaving.value}
+          onClose={() => {
+            if (!amountSaving.value) amountEditing.value = null;
+          }}
+          onSave={async (amount) => {
+            if (amountSaving.value || !amountEditing.value) return;
+            const id = amountEditing.value.id;
+            amountSaving.value = true;
+            try {
+              if (await saveAmount(id, amount)) {
+                amountEditing.value = null;
+              } else {
+                showSnack("Couldn't save the amount — try again");
+              }
+            } finally {
+              amountSaving.value = false;
+            }
+          }}
+        />
+      )}
 
       {/* FAB — opens the full-screen add page (Plan mode only) */}
       {mode.value === "plan" && !selecting.value && (

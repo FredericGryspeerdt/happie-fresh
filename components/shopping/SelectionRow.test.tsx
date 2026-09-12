@@ -10,6 +10,7 @@ Deno.test("selection row exposes a checkbox, note and plain quantity without edi
         listId: "l",
         itemId: "milk",
         quantity: 3,
+        unit: "L",
         note: "big pack",
         checked: true,
       }}
@@ -21,6 +22,6 @@ Deno.test("selection row exposes a checkbox, note and plain quantity without edi
   assertStringIncludes(html, "checked");
   assertStringIncludes(html, "Milk");
   assertStringIncludes(html, "big pack");
-  assertStringIncludes(html, "Quantity: 3");
+  assertStringIncludes(html, "Quantity: 3 L");
   assertEquals(html.includes("Increase quantity"), false);
 });

@@ -1,5 +1,7 @@
 import type { ShoppingListItemInterface } from "@/models/index.ts";
 
+import { formatShoppingAmount } from "@/utils/shopping-amount.ts";
+
 export function SelectionRow(
   { item, name, selected, disabled, exiting, onToggle }: {
     item: ShoppingListItemInterface;
@@ -34,9 +36,11 @@ export function SelectionRow(
       </span>
       <span
         class="md-body-large text-on-surface"
-        aria-label={`Quantity: ${item.quantity}`}
+        aria-label={`Quantity: ${
+          formatShoppingAmount(item.quantity, item.unit)
+        }`}
       >
-        {item.quantity}
+        {formatShoppingAmount(item.quantity, item.unit)}
       </span>
     </label>
   );
