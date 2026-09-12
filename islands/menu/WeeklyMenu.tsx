@@ -1,13 +1,16 @@
 import { useSignal } from "@preact/signals";
 import { useEffect, useMemo, useRef } from "preact/hooks";
 import type {
+  CategoryInterface,
   DishInterface,
   DishTagGroupInterface,
+  ItemInterface,
   Weekday,
   WeeklyMenuInterface,
 } from "@/models/index.ts";
 import { WEEKDAY_ORDER } from "@/models/index.ts";
 import { useWeeklyMenu } from "@/hooks/useWeeklyMenu.ts";
+import { useMenuShopping } from "@/hooks/useMenuShopping.ts";
 import { PullToRefresh } from "@/components/md3/PullToRefresh.tsx";
 import { Card } from "@/components/md3/Card.tsx";
 import { Chip } from "@/components/md3/Chip.tsx";
@@ -17,12 +20,17 @@ import { IconButton } from "@/components/md3/IconButton.tsx";
 import { Pressable } from "@/components/md3/Pressable.tsx";
 import { Sheet } from "@/components/md3/Sheet.tsx";
 import { Snackbar } from "@/components/md3/Snackbar.tsx";
+import { ShoppingListPickerDialog } from "@/components/menu/ShoppingListPickerDialog.tsx";
+import { IngredientPreviewDialog } from "@/components/menu/IngredientPreviewDialog.tsx";
+import { ChooseShoppingDishesDialog } from "@/components/menu/ChooseShoppingDishesDialog.tsx";
 import { navigateTo } from "@/utils/loading.ts";
 
 interface Props {
+  initialCategories?: CategoryInterface[];
   initialMenu: WeeklyMenuInterface;
   initialDishes: DishInterface[];
   initialTagGroups: DishTagGroupInterface[];
+  initialItems: ItemInterface[];
 }
 
 interface Snack {
@@ -32,7 +40,13 @@ interface Snack {
 }
 
 export default function WeeklyMenu(
-  { initialMenu, initialDishes, initialTagGroups }: Props,
+  {
+    initialMenu,
+    initialDishes,
+    initialTagGroups,
+    initialItems,
+    initialCategories = [],
+  }: Props,
 ) {
   const {
     menu,
@@ -43,6 +57,15 @@ export default function WeeklyMenu(
     restoreEntries,
     refresh,
   } = useMemo(() => useWeeklyMenu(initialMenu), []);
+
+  // False positive: react-rules-of-hooks flags this call when the useMemo
+  // result is kept as one object instead of destructured (see useWeeklyMenu
+  // above, which lints clean only because it destructures). Naming the
+  // initializer keeps the ignore comment attached to a stable, short line
+  // that deno fmt won't rewrap.
+  // deno-lint-ignore react-rules-of-hooks
+  const initShopping = () => useMenuShopping(menu, initialDishes, initialItems);
+  const shopping = useMemo(initShopping, []);
 
   const dishById = useMemo(() => {
     const m = new Map<string, DishInterface>();
@@ -85,6 +108,28 @@ export default function WeeklyMenu(
     );
   };
 
+  // Pessimistic bulk write; the preview stays open on failure so nothing is
+  // lost (patterns doc §1/§3).
+  const onConfirmShopping = () => {
+    void shopping.confirm().then((out) => {
+      if (!out) return; // The review shows the recoverable error beside Retry.
+      if (out.count === 0) {
+        return showSnack("Everything was already on the list");
+      }
+      showSnack(
+        `Added ${out.count} to ${out.list.name}`,
+        "Open list",
+        () => navigateTo(`/shopping/${out.list.id}`),
+      );
+    }).catch(() => showSnack("Couldn't add to the list — try again"));
+  };
+
+  const onStartShopping = () => {
+    void shopping.start().then((ok) => {
+      if (!ok) showSnack("Couldn't load your lists — try again");
+    }).catch(() => showSnack("Couldn't load your lists — try again"));
+  };
+
   const tagsFor = (dish?: DishInterface) =>
     dish
       ? dish.tagValueIds
@@ -103,7 +148,10 @@ export default function WeeklyMenu(
     null;
 
   return (
-    <PullToRefresh onRefresh={refresh}>
+    <PullToRefresh
+      onRefresh={refresh}
+      disabled={shopping.step.value !== "idle"}
+    >
       <div class="pb-[calc(96px+env(safe-area-inset-bottom))]">
         {/* header */}
         <div class="flex items-center justify-between px-4 pt-4">
@@ -126,6 +174,20 @@ export default function WeeklyMenu(
             </Pressable>
           )}
         </div>
+
+        {entries.length > 0 && (
+          <div class="px-4 pt-3">
+            <Button
+              full
+              icon="cart"
+              loading={shopping.loading.value &&
+                shopping.step.value === "idle"}
+              onClick={onStartShopping}
+            >
+              Add to shopping list
+            </Button>
+          </div>
+        )}
 
         {entries.length === 0
           ? (
@@ -225,6 +287,69 @@ export default function WeeklyMenu(
           ))}
         </div>
       </Sheet>
+
+      <ChooseShoppingDishesDialog
+        open={shopping.step.value === "dishes"}
+        dishes={shopping.plannedDishes.value}
+        selected={shopping.selectedDishes.value}
+        busy={shopping.loading.value}
+        onToggle={shopping.toggleDish}
+        onContinue={() =>
+          void shopping.review().then((ok) => {
+            if (!ok) showSnack("Couldn't load ingredients — try again");
+          })}
+        onClose={shopping.cancel}
+      />
+      <IngredientPreviewDialog
+        open={shopping.reviewOpen.value}
+        listName={shopping.chosenList.value?.name ?? ""}
+        dishCount={shopping.selectedDishes.value.size}
+        categories={initialCategories}
+        items={initialItems}
+        amounts={shopping.reviewAmounts.value}
+        onAmount={shopping.setAmount}
+        onBack={shopping.back}
+        canChangeList
+        onChangeList={shopping.changeList}
+        rows={shopping.rows.value}
+        isSelected={shopping.isSelected}
+        emptyDishes={shopping.emptyDishes.value}
+        selectedCount={shopping.selectedCount.value}
+        adding={shopping.adding.value}
+        draftLocked={shopping.draftLocked.value}
+        retrying={shopping.retrying.value}
+        message={shopping.submissionMessage.value ?? shopping.amountError.value}
+        invalidAmount={!!shopping.amountError.value}
+        onToggle={shopping.toggle}
+        onConfirm={onConfirmShopping}
+        onOpenDish={(d) => navigateTo(`/menu/${d.id}`)}
+        onClose={shopping.cancel}
+      />
+
+      {/* Later in the DOM so the picker overlays the retained review. */}
+      <ShoppingListPickerDialog
+        open={shopping.step.value === "pick"}
+        lists={shopping.lists.value}
+        markedListId={shopping.chosenList.value?.id ??
+          shopping.rememberedListId.value}
+        markedLabel={shopping.chosenList.value
+          ? "Current list"
+          : "Used last time"}
+        busy={shopping.loading.value}
+        onPick={(l) =>
+          void shopping.chooseList(l).then((ok) => {
+            if (!ok) showSnack("Couldn't load ingredients — try again");
+          })}
+        onCreate={(name) =>
+          shopping.createList(name).then((ok) => {
+            if (!ok) showSnack("Couldn't create the list — try again");
+            return ok;
+          }).catch(() => {
+            showSnack("Couldn't create the list — try again");
+            return false;
+          })}
+        onClose={shopping.cancel}
+      />
 
       <Snackbar data={snack.value} />
     </PullToRefresh>

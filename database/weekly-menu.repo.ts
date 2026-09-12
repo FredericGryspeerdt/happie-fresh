@@ -96,4 +96,19 @@ export class WeeklyMenuRepo {
         current.entries.length === 0 ? null : { ...current, entries: [] },
     );
   }
+
+  // Remember which shopping list this week's ingredients go to. A household-
+  // wide preference: the next person to open the picker sees it preselected.
+  static async setShoppingList(
+    householdId: string,
+    shoppingListId: string,
+  ): Promise<WeeklyMenuInterface> {
+    return await this.mutate(
+      householdId,
+      (current) =>
+        current.shoppingListId === shoppingListId
+          ? null
+          : { ...current, shoppingListId },
+    );
+  }
 }

@@ -144,3 +144,39 @@ Deno.test({
     );
   },
 });
+
+Deno.test({
+  name: "setShoppingList — remembers the list and keeps entries",
+  sanitizeResources: false,
+  async fn() {
+    await clearMenus();
+    await WeeklyMenuRepo.addDish("h1", "d1");
+    const m = await WeeklyMenuRepo.setShoppingList("h1", "list-a");
+    assertEquals(m.shoppingListId, "list-a");
+    assertEquals(m.entries.map((e) => e.dishId), ["d1"]);
+    assertEquals((await WeeklyMenuRepo.get("h1")).shoppingListId, "list-a");
+  },
+});
+
+Deno.test({
+  name: "setShoppingList — same list again does not persist anything",
+  sanitizeResources: false,
+  async fn() {
+    await clearMenus();
+    await WeeklyMenuRepo.setShoppingList("h1", "list-a");
+    const before = await storedVersionstamp("h1");
+    await WeeklyMenuRepo.setShoppingList("h1", "list-a");
+    assertEquals(await storedVersionstamp("h1"), before);
+  },
+});
+
+Deno.test({
+  name: "setShoppingList — works on a household with no menu yet",
+  sanitizeResources: false,
+  async fn() {
+    await clearMenus();
+    const m = await WeeklyMenuRepo.setShoppingList("fresh-h", "list-b");
+    assertEquals(m.entries, []);
+    assertEquals(m.shoppingListId, "list-b");
+  },
+});

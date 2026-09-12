@@ -1,4 +1,7 @@
 import {
+  BulkAddItemInput,
+  BulkAddOptions,
+  BulkAddResult,
   CategoryInterface,
   CreateDishDto,
   DishInterface,
@@ -107,6 +110,14 @@ export const api = {
       if (!res.ok) return [];
       return res.json();
     },
+    // Like getAll, but distinguishes "no lists" from "request failed" — the
+    // menu's list picker must never tell a household it has no lists because
+    // the network blipped.
+    getAllOrNull: async (): Promise<ShoppingListInterface[] | null> => {
+      const res = await fetch("/api/shopping/lists");
+      if (!res.ok) return null;
+      return res.json();
+    },
     create: async (name: string): Promise<ShoppingListInterface | null> => {
       const res = await fetch("/api/shopping/lists", {
         method: "POST",
@@ -133,13 +144,20 @@ export const api = {
     },
   },
   shoppingList: {
-    getItems: async (
+    getItemsOrNull: async (
       listId: string,
-    ): Promise<ShoppingListItemInterface[]> => {
-      const res = await fetch(`/api/shopping/lists/${listId}/items`);
-      if (!res.ok) return [];
-      return res.json();
+    ): Promise<ShoppingListItemInterface[] | null> => {
+      try {
+        const res = await fetch(`/api/shopping/lists/${listId}/items`);
+        return res.ok ? await res.json() : null;
+      } catch {
+        return null;
+      }
     },
+    // Compatibility for collection callers that intentionally treat failure
+    // as empty. Review flows use the nullable method to preserve their draft.
+    getItems: async (listId: string): Promise<ShoppingListItemInterface[]> =>
+      await api.shoppingList.getItemsOrNull(listId) ?? [],
     addItem: async (
       listId: string,
       itemId: string,
@@ -156,12 +174,17 @@ export const api = {
       listId: string,
       id: string,
       patch: Partial<ShoppingListItemInterface>,
-    ): Promise<void> => {
-      await fetch(`/api/shopping/lists/${listId}/items`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, ...patch }),
-      });
+    ): Promise<ShoppingListItemInterface | null> => {
+      try {
+        const res = await fetch(`/api/shopping/lists/${listId}/items`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...patch, id }),
+        });
+        return res.ok ? await res.json() : null;
+      } catch {
+        return null;
+      }
     },
     removeItem: async (listId: string, id: string): Promise<void> => {
       await fetch(`/api/shopping/lists/${listId}/items`, {
@@ -177,6 +200,31 @@ export const api = {
       if (!res.ok) return null;
       const data = await res.json();
       return data.cleared as number;
+    },
+    bulkAdd: async (
+      listId: string,
+      items: BulkAddItemInput[],
+      options?: BulkAddOptions,
+    ): Promise<BulkAddResult | { error: string } | null> => {
+      try {
+        const res = await fetch(`/api/shopping/lists/${listId}/items/bulk`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ items, ...options }),
+        });
+        if (res.ok) return await res.json();
+        if ([400, 403, 404, 409].includes(res.status)) {
+          const body = await res.json().catch(() => null);
+          return {
+            error: typeof body?.error === "string"
+              ? body.error
+              : "Couldn't add these amounts. Review the list and try again.",
+          };
+        }
+        return null; // Outcome is uncertain; retry exactly the same operation.
+      } catch {
+        return null;
+      }
     },
   },
   dishes: {
@@ -385,6 +433,17 @@ export const api = {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ clear: true }),
+      });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    setShoppingList: async (
+      shoppingListId: string,
+    ): Promise<WeeklyMenuInterface | null> => {
+      const res = await fetch("/api/menu/plan", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ shoppingListId }),
       });
       if (!res.ok) return null;
       return res.json();

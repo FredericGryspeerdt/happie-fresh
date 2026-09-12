@@ -20,6 +20,8 @@ const SEED_PREFIXES: Deno.KvKey[] = [
   ["dish_tag_groups"],
   ["shopping_lists"],
   ["shopping_list_items"],
+  ["shopping_list_items_rev"],
+  ["shopping_bulk_receipts"],
   ["sessions"],
   ["members"],
 ];

@@ -1,4 +1,8 @@
-import { assertStringIncludes } from "jsr:@std/assert@^1.0.19";
+import {
+  assertMatch,
+  assertNotMatch,
+  assertStringIncludes,
+} from "jsr:@std/assert@^1.0.19";
 import { render } from "npm:preact-render-to-string@^6.6.3";
 import { h } from "preact";
 import WeeklyMenu from "./WeeklyMenu.tsx";
@@ -26,6 +30,7 @@ Deno.test("WeeklyMenu — empty state prompts adding dishes", () => {
     initialMenu: { householdId: "h1", entries: [] },
     initialDishes: dishes,
     initialTagGroups: tagGroups,
+    initialItems: [],
   }));
   assertStringIncludes(html, "This week");
   assertStringIncludes(html, "No dishes yet");
@@ -40,9 +45,39 @@ Deno.test("WeeklyMenu — renders an entry with its dish name, tag, and day chip
     },
     initialDishes: dishes,
     initialTagGroups: tagGroups,
+    initialItems: [],
   }));
   assertStringIncludes(html, "Pasta Bolognese");
   assertStringIncludes(html, "Meat"); // resolved tag label
   assertStringIncludes(html, "Any"); // unpinned day chip
   assertStringIncludes(html, "1 dish planned");
+});
+
+Deno.test("WeeklyMenu — offers 'Add to shopping list' when the week has dishes", () => {
+  const html = render(h(WeeklyMenu, {
+    initialMenu: {
+      householdId: "h1",
+      entries: [{ id: "e1", dishId: "d1", day: null }],
+    },
+    initialDishes: dishes,
+    initialTagGroups: tagGroups,
+    initialItems: [],
+  }));
+  assertMatch(
+    html,
+    /<button[^>]*>(?:[^<]|<(?!\/button>))*Add to shopping list/,
+  );
+});
+
+Deno.test("WeeklyMenu — no shopping action on an empty week", () => {
+  const html = render(h(WeeklyMenu, {
+    initialMenu: { householdId: "h1", entries: [] },
+    initialDishes: dishes,
+    initialTagGroups: tagGroups,
+    initialItems: [],
+  }));
+  assertNotMatch(
+    html,
+    /<button[^>]*>(?:[^<]|<(?!\/button>))*Add to shopping list/,
+  );
 });
