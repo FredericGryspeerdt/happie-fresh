@@ -27,7 +27,7 @@ export function Snackbar({ data }: SnackbarProps) {
             boxShadow: "0 4px 12px rgba(0,0,0,.3)",
           }}
         >
-          <span class="md-body-medium flex-1">{data.msg}</span>
+          <span role="status" class="md-body-medium flex-1">{data.msg}</span>
           {data.action && (
             <button
               type="button"

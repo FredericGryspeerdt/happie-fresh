@@ -36,8 +36,9 @@ export const handler = define.handlers({
     if (forbidden) return forbidden;
     const list = await authorizeList(ctx, ctx.params.id);
     if (!list) return new Response("Not found", { status: 404 });
-    await ShoppingListItemRepo.deleteAll(list.id);
+    // Close the list to atomic moves before enumerating children for cleanup.
     await ShoppingListRepo.delete(ctx.state.householdId!, list.id);
+    await ShoppingListItemRepo.deleteAll(list.id);
     return new Response(null, { status: 204 });
   },
 });

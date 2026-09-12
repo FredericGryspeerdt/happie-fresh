@@ -1,3 +1,8 @@
+import type {
+  MoveItemsInput,
+  MoveItemsResult,
+  UndoMoveResult,
+} from "@/models/shopping-list/move.ts";
 import {
   BulkAddItemInput,
   BulkAddOptions,
@@ -186,6 +191,36 @@ export const api = {
           body: JSON.stringify({ ...patch, id }),
         });
         return res.ok ? await res.json() : null;
+      } catch {
+        return null;
+      }
+    },
+    moveItems: async (
+      listId: string,
+      input: MoveItemsInput,
+    ): Promise<MoveItemsResult | null> => {
+      try {
+        const res = await fetch(`/api/shopping/lists/${listId}/move-items`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(input),
+        });
+        return await res.json();
+      } catch {
+        return null;
+      }
+    },
+    undoMove: async (
+      listId: string,
+      requestId: string,
+    ): Promise<UndoMoveResult | null> => {
+      try {
+        const res = await fetch(`/api/shopping/lists/${listId}/move-items`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ undoRequestId: requestId }),
+        });
+        return await res.json();
       } catch {
         return null;
       }

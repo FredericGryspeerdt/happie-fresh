@@ -77,7 +77,7 @@ export class ShoppingListItemRepo {
       const current = await kv.get<ShoppingListItemInterface>(key);
       if (!current.value) return { atomic, result: null };
       const next = mergeDefinedPatch(current.value, patch);
-      return { atomic: atomic.set(key, next), result: next };
+      return { atomic: atomic.check(current).set(key, next), result: next };
     });
   }
 

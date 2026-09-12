@@ -60,7 +60,7 @@ Deno.test("checkItem — moves item from list to checkedItems", async () => {
   using _patch = stub(
     api.shoppingList,
     "updateItem",
-    () => Promise.resolve(null),
+    () => Promise.resolve(makeListItem("sl-1", "item-1")),
   );
 
   const hook = useShoppingList(
@@ -84,7 +84,7 @@ Deno.test("checkItem — item is in exitingItems during the 300ms animation", as
   using _patch = stub(
     api.shoppingList,
     "updateItem",
-    () => Promise.resolve(null),
+    () => Promise.resolve(makeListItem("sl-1", "item-1")),
   );
 
   const hook = useShoppingList(
@@ -111,7 +111,7 @@ Deno.test("checkItem — calls api.shoppingList.updateItem with checked: true", 
     "updateItem",
     (listId, id, patch) => {
       calls.push([listId, id, patch]);
-      return Promise.resolve(null);
+      return Promise.resolve({ ...makeListItem(id, "item-1"), ...patch });
     },
   );
 
@@ -138,7 +138,7 @@ Deno.test("uncheckItem — moves item from checkedItems back to list", async () 
   using _patch = stub(
     api.shoppingList,
     "updateItem",
-    () => Promise.resolve(null),
+    () => Promise.resolve(makeListItem("sl-1", "item-1")),
   );
 
   const hook = useShoppingList(
@@ -165,7 +165,7 @@ Deno.test("uncheckItem — calls api.shoppingList.updateItem with checked: false
     "updateItem",
     (listId, id, patch) => {
       calls.push([listId, id, patch]);
-      return Promise.resolve(null);
+      return Promise.resolve({ ...makeListItem(id, "item-1"), ...patch });
     },
   );
 
@@ -194,7 +194,7 @@ Deno.test("pendingCount — returns to 0 after uncheckItem completes", async () 
   using _patch = stub(
     api.shoppingList,
     "updateItem",
-    () => Promise.resolve(null),
+    () => Promise.resolve(makeListItem("sl-1", "item-1")),
   );
 
   const hook = useShoppingList(
@@ -213,7 +213,11 @@ Deno.test("pendingCount — is > 0 while an API call is in flight", async () => 
   const slowPatch = new Promise<null>((resolve) => {
     resolveCall = () => resolve(null);
   });
-  using _patch = stub(api.shoppingList, "updateItem", () => slowPatch);
+  using _patch = stub(
+    api.shoppingList,
+    "updateItem",
+    () => slowPatch.then(() => makeListItem("sl-1", "item-1")),
+  );
 
   const hook = useShoppingList(
     TEST_LIST_ID,
@@ -328,7 +332,7 @@ Deno.test("checkItem — pendingCount returns to 0 after completion", async () =
   using _patch = stub(
     api.shoppingList,
     "updateItem",
-    () => Promise.resolve(null),
+    () => Promise.resolve(makeListItem("sl-1", "item-1")),
   );
 
   const hook = useShoppingList(
@@ -505,6 +509,77 @@ Deno.test("clearCheckedItems — returns true (no-op) when there is nothing to c
   const ok = await hook.clearCheckedItems();
 
   assertEquals(ok, true);
+});
+
+Deno.test("prepareMove waits for saved quantities and reports failures before entries can move", async () => {
+  const hook = useShoppingList(TEST_LIST_ID, [makeItem("item-1", "Milk")], [
+    makeListItem("sl-1", "item-1"),
+  ]);
+  let release!: () => void;
+  const gate = new Promise<void>((r) => release = r);
+  let allowSave = false;
+  using _patch = stub(api.shoppingList, "updateItem", async () => {
+    await gate;
+    return allowSave ? makeListItem("sl-1", "item-1") : null;
+  });
+  hook.updateListItem("sl-1", { quantity: 5 });
+  let settled = false;
+  const waiting = hook.prepareMove(["sl-1"]).then((result) => {
+    settled = true;
+    return result;
+  });
+  await Promise.resolve();
+  assertEquals(settled, false);
+  release();
+  assertEquals(await waiting, false);
+  assertEquals(hook.list.value[0].quantity, 5);
+  allowSave = true;
+  assertEquals(await hook.prepareMove(["sl-1"]), true);
+});
+
+Deno.test("prepareMove preserves newer pending edits when retrying a failed save", async () => {
+  const hook = useShoppingList(TEST_LIST_ID, [], [
+    makeListItem("sl-1", "item-1"),
+  ]);
+  const quantities: (number | undefined)[] = [];
+  let fail = true;
+  using _patch = stub(api.shoppingList, "updateItem", (_list, _id, patch) => {
+    quantities.push(patch.quantity);
+    return Promise.resolve(
+      fail ? null : { ...makeListItem("sl-1", "item-1"), ...patch },
+    );
+  });
+  hook.updateListItem("sl-1", { quantity: 2 });
+  await hook.flushListItem("sl-1");
+  fail = false;
+  hook.updateListItem("sl-1", { quantity: 3 });
+  assertEquals(await hook.prepareMove(["sl-1"]), true);
+  assertEquals(quantities, [2, 3]);
+});
+Deno.test("prepareMove waits for checked-state writes too", async () => {
+  const hook = useShoppingList(TEST_LIST_ID, [], [
+    makeListItem("sl-1", "item-1", true),
+  ]);
+  let release!: () => void;
+  const gate = new Promise<void>((r) => release = r);
+  using _patch = stub(api.shoppingList, "updateItem", async () => {
+    await gate;
+    return makeListItem("sl-1", "item-1", false);
+  });
+  const uncheck = hook.uncheckItem("sl-1");
+  let settled = false;
+  const ready = hook.prepareMove(["sl-1"]).then((result) => {
+    settled = true;
+    return result;
+  });
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  try {
+    assertEquals(settled, false);
+  } finally {
+    release();
+  }
+  await uncheck;
+  assertEquals(await ready, true);
 });
 
 Deno.test("saveAmount — retains previous amount on failure and applies confirmed response on retry", async () => {

@@ -21,16 +21,18 @@ export const handler = define.handlers({
       title: list.name,
       backUrl: "/shopping",
     };
-    const [items, shoppingList, categories] = await Promise.all([
+    const [items, shoppingList, categories, lists] = await Promise.all([
       ItemRepo.readAll(householdId),
       ShoppingListItemRepo.getAll(listId),
       CategoryRepo.getAll(householdId),
+      ShoppingListRepo.getAll(householdId),
     ]);
     return page({
       list,
       items,
       shoppingList,
       categories,
+      otherLists: lists.filter((l) => l.id !== listId),
       canDelete: ctx.state.actingMember?.isManager === true,
     });
   },
@@ -46,6 +48,7 @@ export default define.page<typeof handler>(function ListDetail({ data }) {
         shoppingList={data.shoppingList}
         categories={data.categories}
         canDelete={data.canDelete}
+        otherLists={data.otherLists}
       />
     </main>
   );

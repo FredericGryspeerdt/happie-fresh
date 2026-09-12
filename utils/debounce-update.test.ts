@@ -93,3 +93,30 @@ Deno.test("cancel(id) prevents a pending flush", async () => {
   await wait(80);
   assertEquals(flushed.length, 0);
 });
+
+Deno.test("flush waits for an in-flight write and serializes a newer patch behind it", async () => {
+  const writes: number[] = [];
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => release = resolve);
+  const scheduler = createDebouncedMergeScheduler<Patch>({
+    flush: async (_id, patch) => {
+      if (patch.x === 1) await gate;
+      writes.push(patch.x!);
+    },
+  });
+  scheduler.schedule("a", { x: 1 });
+  const first = scheduler.flush("a");
+  scheduler.schedule("a", { x: 2 });
+  let finished = false;
+  const drained = Promise.resolve(scheduler.flush("a")).then(() =>
+    finished = true
+  );
+  await Promise.resolve();
+  assertEquals(writes, []);
+  assertEquals(finished, false);
+  release();
+  await first;
+  await drained;
+  assertEquals(writes, [1, 2]);
+  assertEquals(finished, true);
+});

@@ -90,6 +90,14 @@ store). The "list" the to-do glossary avoids is a container for to-dos; a
 shopping list is a different, legitimate concept. _Avoid_: cart, basket, grocery
 list
 
+**Shopping list entry**: One occurrence of a catalogue item on a shopping list,
+with its own quantity, unit, note, and in-cart state. Two entries for the same
+item can coexist without being combined. _Avoid_: copy (when referring to a
+moved entry)
+
+**Move**: Transfer selected shopping list entries to another shopping list,
+keeping their identity and details. _Avoid_: merge, copy
+
 ### Meals
 
 **Dish**: Something the household cooks and eats — "lasagne", "pancakes". A dish
