@@ -7,6 +7,19 @@ knowledge workers.
 
 ## Language
 
+### Shopping
+
+**Shopping list**: A named collection of things the household intends to buy.
+The household can keep several shopping lists. _Avoid_: backlog
+
+**Shopping list entry**: One occurrence of a catalogue item on a shopping list,
+with its own quantity, note, and in-cart state. Two entries for the same item
+can coexist without being combined. _Avoid_: copy (when referring to a moved
+entry)
+
+**Move**: Transfer selected shopping list entries to another shopping list,
+keeping their identity and details. _Avoid_: merge, copy
+
 ### Household
 
 **Household**: The group of people who live together and share everything in

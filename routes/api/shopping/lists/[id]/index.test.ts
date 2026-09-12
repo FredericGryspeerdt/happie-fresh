@@ -83,3 +83,34 @@ Deno.test({
     assertEquals(res.status, 204);
   },
 });
+
+Deno.test({
+  name: "DELETE closes the destination to moves before cleaning up entries",
+  sanitizeResources: false,
+  async fn() {
+    const { stub } = await import("jsr:@std/testing@^1.0.18/mock");
+    const { ShoppingListItemRepo } = await import(
+      "@/database/shopping-list-item.repo.ts"
+    );
+    const { ShoppingListMoveRepo } = await import(
+      "@/database/shopping-list-move.repo.ts"
+    );
+    const source = await seed();
+    const destination = await seed();
+    const entry = await ShoppingListItemRepo.add(source.id, "milk");
+    const original = ShoppingListItemRepo.deleteAll.bind(ShoppingListItemRepo);
+    let moved = true;
+    using _cleanup = stub(ShoppingListItemRepo, "deleteAll", async (id) => {
+      await original(id);
+      const result = await ShoppingListMoveRepo.move("h1", "m-mgr", source.id, {
+        requestId: crypto.randomUUID(),
+        itemIds: [entry.id],
+        destinationListId: destination.id,
+      });
+      moved = result.ok;
+    });
+    await handler.DELETE(ctx(del(), destination.id, AUTH_MANAGER));
+    assertEquals(moved, false);
+    assertEquals((await ShoppingListItemRepo.getAll(source.id)).length, 1);
+  },
+});

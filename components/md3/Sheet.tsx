@@ -12,9 +12,12 @@ interface SheetProps {
    *  Default "auto" sizes to content (capped at maxHeight) — unchanged. */
   size?: "auto" | "large";
   children: ComponentChildren;
+  /** Optional responsive panel width for focused flows. */
+  class?: string;
 }
 export function Sheet(
-  { open, onClose, title, size = "auto", children }: SheetProps,
+  { open, onClose, title, size = "auto", children, class: panelClass = "" }:
+    SheetProps,
 ) {
   const sheetRef = useRef<HTMLDivElement>(null);
   const dragStartY = useRef(0);
@@ -86,7 +89,8 @@ export function Sheet(
         ref={sheetRef}
         role="dialog"
         aria-modal="true"
-        class="relative bg-surface-clow px-6 pb-8 flex flex-col"
+        aria-label={title}
+        class={`relative bg-surface-clow px-6 pb-8 flex flex-col ${panelClass}`}
         style={{
           borderRadius: "var(--md-shape-xl) var(--md-shape-xl) 0 0",
           maxHeight: "84%",

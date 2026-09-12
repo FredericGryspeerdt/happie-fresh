@@ -1,9 +1,11 @@
+import { MoveItems } from "@/components/shopping/MoveItems.tsx";
 import { useEffect, useMemo, useRef } from "preact/hooks";
 import { useComputed, useSignal } from "@preact/signals";
 import { For } from "@preact/signals/utils";
 import {
   CategoryInterface,
   ItemInterface,
+  ShoppingListInterface,
   ShoppingListItemInterface,
 } from "@/models/index.ts";
 import { useShoppingList, useWakeLock } from "@/hooks/index.ts";
@@ -34,6 +36,7 @@ interface ItemsProps {
   shoppingList: ShoppingListItemInterface[];
   categories: CategoryInterface[];
   canDelete: boolean;
+  otherLists?: ShoppingListInterface[];
 }
 
 export default function Items(
@@ -44,6 +47,7 @@ export default function Items(
     shoppingList,
     categories: initialCategories,
     canDelete,
+    otherLists = [],
   }: ItemsProps,
 ) {
   // useMemo with [] ensures useShoppingList is called only once.
@@ -65,6 +69,9 @@ export default function Items(
     savingIds,
     flushListItem,
     clearCheckedItems,
+    prepareMove,
+    pendingCount,
+    saveError,
   } = useMemo(
     () => useShoppingList(listId, catalog, shoppingList, initialCategories),
     [], // intentionally empty — signals are initialized once from SSR data
@@ -78,6 +85,8 @@ export default function Items(
   const { held: screenAwake } = useWakeLock(hasOpenItems);
 
   // ── mode toggle ──────────────────────────────────────────────────────────
+  const selecting = useSignal(false);
+  const moveBusy = useSignal(false);
   const mode = useSignal<"plan" | "shop">("plan");
 
   // ── add-items overlay ────────────────────────────────────────────────────
@@ -140,6 +149,10 @@ export default function Items(
     }, 3000);
   };
 
+  useEffect(() => {
+    if (saveError.value) showSnack("Couldn't save your changes — try again");
+  }, [saveError.value]);
+
   useEffect(() => () => {
     if (snackTimer.current) clearTimeout(snackTimer.current);
   }, []);
@@ -148,10 +161,15 @@ export default function Items(
   // The top app bar is rendered by the shell (AppChrome), a separate island;
   // we hand it a trailing action via a shared module-scope signal.
   useEffect(() => {
+    if (selecting.value) {
+      appBarAction.value = null;
+      return;
+    }
     appBarAction.value = {
       icon: "dots",
       label: "List options",
       onClick: () => {
+        if (moveBusy.value || selecting.value) return;
         renameValue.value = listName;
         mgmtOpen.value = true;
       },
@@ -159,7 +177,7 @@ export default function Items(
     return () => {
       appBarAction.value = null;
     };
-  }, []);
+  }, [selecting.value]);
 
   // ── sheet signals ────────────────────────────────────────────────────────
   const editingId = useSignal<string | null>(null);
@@ -206,23 +224,74 @@ export default function Items(
   return (
     <PullToRefresh
       onRefresh={refresh}
-      disabled={addOpen.value || mgmtOpen.value || editingId.value !== null}
+      disabled={addOpen.value || mgmtOpen.value || editingId.value !== null ||
+        selecting.value || moveBusy.value}
       class="flex flex-col gap-4 pb-24"
     >
       {/* Mode toggle (Plan / Shop) — list options live in the top app bar */}
-      <Segmented
-        options={[
-          ["plan", "edit", "Plan"],
-          ["shop", "cart", "Shop"],
-        ]}
-        value={mode.value}
-        onChange={(m) => {
-          mode.value = m as "plan" | "shop";
+      <fieldset
+        disabled={selecting.value || moveBusy.value}
+        aria-label="Shopping mode"
+      >
+        <Segmented
+          options={[
+            ["plan", "edit", "Plan"],
+            ["shop", "cart", "Shop"],
+          ]}
+          value={mode.value}
+          onChange={(m) => {
+            if (moveBusy.value || selecting.value) return;
+            mode.value = m as "plan" | "shop";
+          }}
+        />
+      </fieldset>
+
+      {mode.value === "plan" && !selecting.value &&
+        (list.value.length + checkedItems.value.length > 0) && (
+        <div class="flex justify-end -my-2">
+          <Button
+            variant="text"
+            disabled={moveBusy.value || pendingCount.value > 0 ||
+              pendingItemIds.value.size > 0}
+            onClick={() => selecting.value = true}
+          >
+            Select items
+          </Button>
+        </div>
+      )}
+      <MoveItems
+        active={selecting}
+        busy={moveBusy}
+        listId={listId}
+        listName={listName}
+        groups={groupedList.value}
+        checked={checkedItems.value}
+        otherLists={otherLists}
+        getName={getItemName}
+        prepareMove={prepareMove}
+        onMoved={(ids) => {
+          const moved = new Set(ids);
+          list.value = list.value.filter((e) => !moved.has(e.id));
+          checkedItems.value = checkedItems.value.filter((e) =>
+            !moved.has(e.id)
+          );
+        }}
+        onRestored={(entries) => {
+          const present = new Set(
+            [...list.value, ...checkedItems.value].map((e) => e.id),
+          );
+          list.value = [
+            ...list.value,
+            ...entries.filter((e) => !e.checked && !present.has(e.id)),
+          ];
+          checkedItems.value = [
+            ...checkedItems.value,
+            ...entries.filter((e) => e.checked && !present.has(e.id)),
+          ];
         }}
       />
-
       {/* ── Plan mode ── */}
-      {mode.value === "plan" && (
+      {mode.value === "plan" && !selecting.value && (
         <div class="flex flex-col gap-4">
           {/* Grouped list */}
           <For each={groupedList}>
@@ -460,7 +529,7 @@ export default function Items(
           navigator to the keyboard accessory bar; unmounting the sheet leaves the
           overlay's search box as the only field. */
       }
-      {!addOpen.value && (
+      {!addOpen.value && !selecting.value && (
         <Sheet
           open={mgmtOpen.value}
           onClose={() => {
@@ -469,6 +538,20 @@ export default function Items(
           title="List options"
         >
           <div class="flex flex-col gap-1 pb-1">
+            <Button
+              variant="text"
+              full
+              disabled={list.value.length + checkedItems.value.length === 0 ||
+                moveBusy.value || pendingCount.value > 0 ||
+                pendingItemIds.value.size > 0}
+              onClick={() => {
+                mgmtOpen.value = false;
+                mode.value = "plan";
+                selecting.value = true;
+              }}
+            >
+              Select items to move
+            </Button>
             {/* Rename */}
             <div class="px-1 py-2">
               <div class="md-body-large text-on-surface mb-2">Rename list</div>
@@ -706,7 +789,7 @@ export default function Items(
       </Sheet>
 
       {/* FAB — opens the full-screen add page (Plan mode only) */}
-      {mode.value === "plan" && (
+      {mode.value === "plan" && !selecting.value && (
         <div
           class="fixed right-4 z-30"
           style={{ bottom: "calc(96px + env(safe-area-inset-bottom))" }}

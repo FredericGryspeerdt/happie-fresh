@@ -1,3 +1,8 @@
+import type {
+  MoveItemsInput,
+  MoveItemsResult,
+  UndoMoveResult,
+} from "@/models/shopping-list/move.ts";
 import {
   CategoryInterface,
   CreateDishDto,
@@ -156,12 +161,47 @@ export const api = {
       listId: string,
       id: string,
       patch: Partial<ShoppingListItemInterface>,
-    ): Promise<void> => {
-      await fetch(`/api/shopping/lists/${listId}/items`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, ...patch }),
-      });
+    ): Promise<ShoppingListItemInterface | null> => {
+      try {
+        const res = await fetch(`/api/shopping/lists/${listId}/items`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id, ...patch }),
+        });
+        return res.ok ? await res.json() : null;
+      } catch {
+        return null;
+      }
+    },
+    moveItems: async (
+      listId: string,
+      input: MoveItemsInput,
+    ): Promise<MoveItemsResult | null> => {
+      try {
+        const res = await fetch(`/api/shopping/lists/${listId}/move-items`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(input),
+        });
+        return await res.json();
+      } catch {
+        return null;
+      }
+    },
+    undoMove: async (
+      listId: string,
+      requestId: string,
+    ): Promise<UndoMoveResult | null> => {
+      try {
+        const res = await fetch(`/api/shopping/lists/${listId}/move-items`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ undoRequestId: requestId }),
+        });
+        return await res.json();
+      } catch {
+        return null;
+      }
     },
     removeItem: async (listId: string, id: string): Promise<void> => {
       await fetch(`/api/shopping/lists/${listId}/items`, {

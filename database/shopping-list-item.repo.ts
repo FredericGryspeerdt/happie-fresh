@@ -37,11 +37,15 @@ export class ShoppingListItemRepo {
   ): Promise<ShoppingListItemInterface | null> {
     const kv = await getKv();
     const key = ["shopping_list_items", listId, id];
-    const current = await kv.get<ShoppingListItemInterface>(key);
-    if (!current.value) return null;
-    const next = mergeDefinedPatch(current.value, patch);
-    await kv.set(key, next);
-    return next;
+    // A stale PATCH must never recreate an entry removed by a move/delete.
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const current = await kv.get<ShoppingListItemInterface>(key);
+      if (!current.value) return null;
+      const next = mergeDefinedPatch(current.value, patch);
+      const result = await kv.atomic().check(current).set(key, next).commit();
+      if (result.ok) return next;
+    }
+    return null;
   }
 
   static async delete(listId: string, id: string): Promise<void> {

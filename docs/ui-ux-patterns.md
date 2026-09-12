@@ -729,3 +729,27 @@ in the same change.
 Candidate topics still to document as they solidify: form validation & inline
 errors, confirmation/destructive-action flow, empty & loading states for whole
 screens, drag-to-reorder, and offline behavior.
+
+
+## Bulk shopping moves
+
+**Rule:** Enter explicit selection mode before moving shopping list entries.
+Rows become whole-row checkbox targets with read-only quantities; in-cart
+entries remain separately selectable. A keyboard-less destination `Sheet`
+leads to a sibling short-input `Dialog` for a new list. Focus follows the
+keyboard-primer pattern; never nest that Dialog inside a transformed Sheet.
+
+**Why:** Selection must not accidentally change quantities or check off items.
+Move confirmation stays on the source list and offers Undo for ten seconds.
+A newly created destination stays after Undo; matching catalogue items remain
+separate entries (ADR 0008).
+
+**How:** Wait for pending and in-flight entry saves before moving. Use one
+atomic operation (up to 40 entries), show loading, and keep selection on failure.
+This bulk operation waits for server confirmation because its destination may
+be created in the same transaction. Animate rows out after success. Undo checks
+that entries have not changed since the move and reports conflicts instead of
+overwriting newer household changes. Receipts make move/undo retries idempotent.
+
+**See:** `components/shopping/MoveItems.tsx`, `hooks/useShoppingList.ts`,
+`database/shopping-list-move.repo.ts`, `utils/debounce-update.ts`.
