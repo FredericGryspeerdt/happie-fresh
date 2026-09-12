@@ -334,6 +334,7 @@ Deno.test("cancel — first-time picker returns to idle", async () => {
     await hook.start();
     await hook.review();
     assertEquals(hook.step.value, "pick");
+    assertEquals(hook.reviewOpen.value, false);
     hook.cancel();
     assertEquals(hook.step.value, "idle");
   } finally {
@@ -362,11 +363,24 @@ Deno.test("changeList — opens the picker keeping the chosen list; cancel retur
     await hook.start();
     await hook.review();
     assertEquals(hook.step.value, "preview");
+    hook.setAmount("mince", { quantity: 0.5, unit: "kg" });
+    hook.toggle("pasta");
+    const rows = hook.rows.value;
     hook.changeList();
     assertEquals(hook.step.value, "pick");
+    assertEquals(hook.reviewOpen.value, true);
     assertEquals(hook.chosenList.value?.id, "A");
     hook.cancel();
     assertEquals(hook.step.value, "preview");
+    assertEquals(hook.reviewOpen.value, true);
+    assertEquals(hook.rows.value, rows);
+    assertEquals(hook.reviewAmounts.value.mince, { quantity: 0.5, unit: "kg" });
+    assertEquals(
+      hook.isSelected(rows.find((r) => r.itemId === "pasta")!),
+      false,
+    );
+    hook.cancel();
+    assertEquals(hook.reviewOpen.value, false);
   } finally {
     getAllOrNull.restore();
     getItems.restore();

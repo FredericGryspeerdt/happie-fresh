@@ -300,31 +300,8 @@ export default function WeeklyMenu(
           })}
         onClose={shopping.cancel}
       />
-      <ShoppingListPickerDialog
-        open={shopping.step.value === "pick"}
-        lists={shopping.lists.value}
-        markedListId={shopping.chosenList.value?.id ??
-          shopping.rememberedListId.value}
-        markedLabel={shopping.chosenList.value
-          ? "Current list"
-          : "Used last time"}
-        busy={shopping.loading.value}
-        onPick={(l) =>
-          void shopping.chooseList(l).then((ok) => {
-            if (!ok) showSnack("Couldn't load ingredients — try again");
-          })}
-        onCreate={(name) =>
-          shopping.createList(name).then((ok) => {
-            if (!ok) showSnack("Couldn't create the list — try again");
-            return ok;
-          }).catch(() => {
-            showSnack("Couldn't create the list — try again");
-            return false;
-          })}
-        onClose={shopping.cancel}
-      />
       <IngredientPreviewDialog
-        open={shopping.step.value === "preview"}
+        open={shopping.reviewOpen.value}
         listName={shopping.chosenList.value?.name ?? ""}
         dishCount={shopping.selectedDishes.value.size}
         categories={initialCategories}
@@ -346,6 +323,31 @@ export default function WeeklyMenu(
         onToggle={shopping.toggle}
         onConfirm={onConfirmShopping}
         onOpenDish={(d) => navigateTo(`/menu/${d.id}`)}
+        onClose={shopping.cancel}
+      />
+
+      {/* Later in the DOM so the picker overlays the retained review. */}
+      <ShoppingListPickerDialog
+        open={shopping.step.value === "pick"}
+        lists={shopping.lists.value}
+        markedListId={shopping.chosenList.value?.id ??
+          shopping.rememberedListId.value}
+        markedLabel={shopping.chosenList.value
+          ? "Current list"
+          : "Used last time"}
+        busy={shopping.loading.value}
+        onPick={(l) =>
+          void shopping.chooseList(l).then((ok) => {
+            if (!ok) showSnack("Couldn't load ingredients — try again");
+          })}
+        onCreate={(name) =>
+          shopping.createList(name).then((ok) => {
+            if (!ok) showSnack("Couldn't create the list — try again");
+            return ok;
+          }).catch(() => {
+            showSnack("Couldn't create the list — try again");
+            return false;
+          })}
         onClose={shopping.cancel}
       />
 

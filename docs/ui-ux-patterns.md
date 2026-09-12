@@ -721,6 +721,9 @@ call to a `/bulk` route → repo method builds one `kv.atomic()`.
 Choose dishes first, then review category-grouped ingredients. A separate
 `components/shopping/ShoppingAmountDialog.tsx` edits a local amount/unit draft; only final confirmation
 writes shopping entries. Amounts are shopping choices, not recipe totals.
+Changing the destination opens the list picker above the retained review, like
+the amount editor. Cancelling returns to that review; choosing a list refreshes
+its existing amounts and totals. The initial list choice opens on its own.
 Back and destination changes preserve selections and amount overrides. Failed
 list-entry reads preserve the previous state rather than showing an empty list.
 Already-on-list entries stay in their category with an editable additional amount

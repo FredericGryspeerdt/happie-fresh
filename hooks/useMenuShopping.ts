@@ -277,6 +277,12 @@ export function useMenuShopping(
 
   return {
     step,
+    // A destination change is an overlay on the existing review. The initial
+    // list choice has no review to display yet.
+    reviewOpen: computed(() =>
+      step.value === "preview" ||
+      (step.value === "pick" && chosenList.value !== null)
+    ),
     draftLocked,
     submissionMessage,
     amountError,
