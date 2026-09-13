@@ -48,12 +48,19 @@ export default function MoreSheet({ open, onClose }: MoreSheetProps) {
     e.preventDefault();
     // Bounded wait: an unreachable push service must not strand anyone on this
     // sheet. unsubscribeThisDevice never throws, and its DELETE is `keepalive`,
-    // so if the budget expires we navigate and the request still lands.
-    await Promise.race([
-      unsubscribeThisDevice(),
-      new Promise((resolve) => setTimeout(resolve, UNSUBSCRIBE_BUDGET_MS)),
-    ]);
-    navigateTo("/logout");
+    // so a DELETE already sent can continue after navigation.
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      await Promise.race([
+        unsubscribeThisDevice(),
+        new Promise((resolve) => {
+          timer = setTimeout(resolve, UNSUBSCRIBE_BUDGET_MS);
+        }),
+      ]);
+    } finally {
+      clearTimeout(timer);
+      navigateTo("/logout");
+    }
   };
   return (
     <>

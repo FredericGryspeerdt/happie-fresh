@@ -5,6 +5,7 @@ export type PushState =
   | "unsupported"
   | "needs-install"
   | "default"
+  | "disabled"
   | "denied"
   | "granted";
 
@@ -12,6 +13,29 @@ const SW_PATH = "/push-sw.js";
 
 /** Per-tab marker so syncIfGranted re-registers once, not on every navigation. */
 const SYNCED_KEY = "happie:push-synced";
+// Browser subscriptions are shared across tabs; logout invalidates every marker.
+const RESET_KEY = "happie:push-reset";
+
+// Explicit reminder opt-out survives navigation; logout only removes the endpoint.
+const DISABLED_KEY = "happie:push-disabled";
+let generation = 0;
+let pendingSync: Promise<void> | undefined;
+
+function remindersDisabled(): boolean {
+  try {
+    return localStorage.getItem(DISABLED_KEY) === "1";
+  } catch {
+    // Without readable preferences, require an explicit tap to enable.
+    return true;
+  }
+}
+
+function setRemindersDisabled(disabled: boolean): void {
+  try {
+    if (disabled) localStorage.setItem(DISABLED_KEY, "1");
+    else localStorage.removeItem(DISABLED_KEY);
+  } catch { /* explicit actions still work without storage */ }
+}
 
 // The marker is an optimisation and must never gate correctness: sessionStorage
 // throws outright in some privacy modes, and a device that fails to unsubscribe
@@ -20,17 +44,21 @@ const SYNCED_KEY = "happie:push-synced";
 // and "unknown" always degrades to doing the work.
 function hasSyncMarker(): boolean {
   try {
-    return sessionStorage.getItem(SYNCED_KEY) !== null;
+    return sessionStorage.getItem(SYNCED_KEY) ===
+      (localStorage.getItem(RESET_KEY) ?? "1");
   } catch {
     return false;
   }
 }
 function setSyncMarker(): void {
   try {
-    sessionStorage.setItem(SYNCED_KEY, "1");
+    sessionStorage.setItem(SYNCED_KEY, localStorage.getItem(RESET_KEY) ?? "1");
   } catch { /* storage unavailable — we simply re-register next time */ }
 }
 function clearSyncMarker(): void {
+  try {
+    localStorage.setItem(RESET_KEY, crypto.randomUUID());
+  } catch { /* unavailable preferences already disable automatic recovery */ }
   try {
     sessionStorage.removeItem(SYNCED_KEY);
   } catch { /* storage unavailable — nothing was cached anyway */ }
@@ -48,41 +76,40 @@ function urlBase64ToUint8Array(base64: string): Uint8Array<ArrayBuffer> {
 }
 
 /**
- * Removes this device's subscription: server-side first, then locally.
- *
- * Module-level rather than part of the hook because logout needs it without the
- * hook's signals, and **it must never throw** — a member who cannot reach the
- * push service still has to be able to log out. Every failure path returns
- * false instead.
- *
- * The DELETE is `keepalive` so that a caller which gives up waiting can navigate
- * away while the request still completes; without it, logging out on a slow
- * connection would leave the device subscribed.
- *
- * Returns true only if a subscription was actually removed.
+ * Revoke this browser endpoint and remove its household registration independently.
+ * Never throws: logout must proceed even when either push service is unreachable.
+ * The caller bounds its wait; keepalive lets the DELETE continue after navigation.
  */
 export async function unsubscribeThisDevice(): Promise<boolean> {
+  generation++;
+  clearSyncMarker();
+  const syncing = pendingSync;
   try {
-    // Cleared unconditionally and first: leaving it set would make
-    // syncIfGranted skip re-registering after a log out / log back in within
-    // the same tab, which is exactly the case this whole path exists for.
-    clearSyncMarker();
-
     if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) {
       return false;
     }
     const reg = await navigator.serviceWorker.getRegistration(SW_PATH);
     const sub = await reg?.pushManager.getSubscription();
-    if (!sub) return false;
-
-    await fetch("/api/push/subscriptions", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ endpoint: sub.endpoint }),
-      keepalive: true,
-    });
-    await sub.unsubscribe();
-    return true;
+    if (!sub) return true;
+    const endpoint = sub.endpoint;
+    const results = await Promise.allSettled([
+      // Capture the endpoint first; revoking locally does not lose the server key.
+      sub.unsubscribe(),
+      (async () => {
+        // A POST already in flight must settle before its corresponding DELETE.
+        await syncing;
+        const res = await fetch("/api/push/subscriptions", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ endpoint }),
+          keepalive: true,
+        });
+        return res.ok || res.status === 404;
+      })(),
+    ]);
+    return results.every((result) =>
+      result.status === "fulfilled" && result.value
+    );
   } catch (err) {
     console.error("[push] unsubscribe failed", err);
     return false;
@@ -110,7 +137,9 @@ export function usePushNotifications() {
       return "unsupported";
     }
     if (Notification.permission === "denied") return "denied";
-    if (Notification.permission === "granted") return "granted";
+    if (Notification.permission === "granted") {
+      return remindersDisabled() ? "disabled" : "granted";
+    }
     if (iosNeedsInstall()) return "needs-install";
     return "default";
   };
@@ -142,28 +171,40 @@ export function usePushNotifications() {
     return res.ok;
   };
 
-  const subscribe = async (): Promise<boolean> => {
+  const subscribe = async (started = generation): Promise<boolean> => {
     const keyRes = await fetch("/api/push/vapid-key");
-    if (!keyRes.ok) return false;
+    if (!keyRes.ok || started !== generation) return false;
     const { publicKey } = await keyRes.json();
 
     const reg = await register();
+    if (started !== generation) return false;
     const existing = await reg.pushManager.getSubscription();
+    if (started !== generation) return false;
     const sub = existing ?? await reg.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: urlBase64ToUint8Array(publicKey),
     });
+    if (started !== generation) {
+      await sub.unsubscribe();
+      return false;
+    }
     return await postSubscription(sub);
   };
 
   const enable = async (): Promise<boolean> => {
+    const started = generation;
     busy.value = true;
     try {
       // Called synchronously inside the tap handler — see the note above.
       const permission = await Notification.requestPermission();
       state.value = detect();
       if (permission !== "granted") return false;
-      return await subscribe();
+      const ok = await subscribe(started);
+      if (ok) {
+        setRemindersDisabled(false);
+        state.value = "granted";
+      }
+      return ok;
     } catch (err) {
       console.error("[push] enable failed", err);
       return false;
@@ -175,11 +216,10 @@ export function usePushNotifications() {
   const disable = async (): Promise<boolean> => {
     busy.value = true;
     try {
-      // Shares the logout path's implementation so there is one way to remove a
-      // device, not two that can drift apart. "Nothing to remove" is success
-      // here: the member asked for reminders off, and they are off.
-      await unsubscribeThisDevice();
-      return true;
+      setRemindersDisabled(true);
+      const ok = await unsubscribeThisDevice();
+      if (ok) state.value = "disabled";
+      return ok;
     } finally {
       busy.value = false;
     }
@@ -195,14 +235,22 @@ export function usePushNotifications() {
    * repeat harmless, but re-POSTing on every navigation is pure waste.
    */
   const syncIfGranted = async (): Promise<void> => {
-    if (detect() !== "granted") return;
-    if (hasSyncMarker()) return;
+    if (detect() !== "granted" || remindersDisabled() || hasSyncMarker()) {
+      return;
+    }
+    if (pendingSync) return await pendingSync;
+    const started = generation;
+    pendingSync = (async () => {
+      try {
+        if (await subscribe(started) && started === generation) setSyncMarker();
+      } catch (err) {
+        console.error("[push] sync failed", err);
+      }
+    })();
     try {
-      await subscribe();
-      setSyncMarker();
-    } catch (err) {
-      // Never let re-registration break rendering the shell it runs from.
-      console.error("[push] sync failed", err);
+      await pendingSync;
+    } finally {
+      pendingSync = undefined;
     }
   };
 

@@ -854,3 +854,16 @@ overwriting newer household changes. Receipts make move/undo retries idempotent.
 
 **See:** `components/shopping/MoveItems.tsx`, `hooks/useShoppingList.ts`,
 `database/shopping-list-move.repo.ts`, `utils/debounce-update.ts`.
+
+### Push logout and recovery
+
+Explicit logout revokes only this browser's push endpoint before navigating,
+with a bounded wait so push failures cannot block logout. Session expiry does
+not unsubscribe. AppChrome silently repairs granted subscriptions on mount;
+only successful registration is cached for the tab. Logout invalidates pending
+recovery and clears that cache. Explicit “Turn off on this device” is a separate
+persistent preference: automatic recovery respects it until the member taps
+“Turn on reminders”. If preference storage is unavailable, automatic recovery
+is skipped and explicit actions remain available. Server deletion and local
+revocation are attempted independently, so a failed DELETE does not skip local
+cleanup. Actual push delivery and recovery on iOS still require device testing.
