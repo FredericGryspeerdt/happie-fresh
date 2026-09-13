@@ -30,7 +30,7 @@ import { Snackbar } from "@/components/md3/Snackbar.tsx";
 import Fab from "@/islands/shell/Fab.tsx";
 import AddItems from "@/islands/add-items.tsx";
 import { PullToRefresh } from "@/components/md3/PullToRefresh.tsx";
-import { navigateTo, reloadPage } from "@/utils/loading.ts";
+import { beginBusy, endBusy, navigateTo, reloadPage } from "@/utils/loading.ts";
 
 interface ItemsProps {
   listId: string;
@@ -688,8 +688,18 @@ export default function Items(
                   }
                   onClick={async () => {
                     mgmtOpen.value = false;
-                    await api.shoppingLists.delete(listId);
-                    navigateTo("/shopping");
+                    beginBusy();
+                    try {
+                      if (await api.shoppingLists.delete(listId)) {
+                        navigateTo("/shopping");
+                      } else {
+                        showSnack(
+                          "Couldn't delete this shopping list — try again",
+                        );
+                      }
+                    } finally {
+                      endBusy();
+                    }
                   }}
                 />
               </>
@@ -825,7 +835,9 @@ export default function Items(
                   onClick={async () => {
                     const id = li.id!;
                     editingId.value = null;
-                    await removeListItem(id);
+                    if (!(await removeListItem(id))) {
+                      showSnack("Couldn't remove that item — try again");
+                    }
                   }}
                   class="mt-2"
                 >

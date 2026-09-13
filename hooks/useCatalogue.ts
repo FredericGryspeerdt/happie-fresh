@@ -1,3 +1,4 @@
+import { restoreRemoved } from "@/utils/restore-removed.ts";
 import { computed, signal } from "@preact/signals";
 import type { CategoryInterface, ItemInterface } from "@/models/index.ts";
 import { api } from "@/services/api.ts";
@@ -95,11 +96,14 @@ export function useCatalogue(
     }
   };
 
-  const removeItem = async (id: string): Promise<void> => {
+  const removeItem = async (id: string): Promise<boolean> => {
+    const snapshot = items.value;
     items.value = items.value.filter((i) => i.id !== id);
     startPending();
     try {
-      await api.items.delete(id);
+      const ok = await api.items.delete(id);
+      if (!ok) items.value = restoreRemoved(items.value, snapshot, id);
+      return ok;
     } finally {
       endPending();
     }
@@ -137,11 +141,16 @@ export function useCatalogue(
     }
   };
 
-  const deleteCategory = async (id: string): Promise<void> => {
+  const deleteCategory = async (id: string): Promise<boolean> => {
+    const snapshot = categories.value;
     categories.value = categories.value.filter((c) => c.id !== id);
     startPending();
     try {
-      await api.categories.delete(id);
+      const ok = await api.categories.delete(id);
+      if (!ok) {
+        categories.value = restoreRemoved(categories.value, snapshot, id);
+      }
+      return ok;
     } finally {
       endPending();
     }

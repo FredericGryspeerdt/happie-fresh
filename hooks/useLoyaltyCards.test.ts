@@ -64,7 +64,7 @@ Deno.test("addCard — on failure, returns null and does not add", async () => {
 });
 
 Deno.test("removeCard — optimistically removes and calls the API", async () => {
-  const del = stub(api.cards, "delete", () => Promise.resolve());
+  const del = stub(api.cards, "delete", () => Promise.resolve(true));
   const hook = useLoyaltyCards([card("1", "Aldi"), card("2", "Lidl")]);
   try {
     await hook.removeCard("1");

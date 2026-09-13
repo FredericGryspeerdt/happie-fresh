@@ -40,18 +40,18 @@ export default function DishEditor(
   const primerRef = useRef<HTMLInputElement>(null);
   const pickerTrigger = useRef<HTMLElement | null>(null);
   const handoff = useSignal(false);
-  const ingredientError = useSignal<{ msg: string } | null>(null);
+  const snack = useSignal<{ msg: string } | null>(null);
   useEffect(() => {
-    if (!ingredientError.value) return;
-    const timer = setTimeout(() => (ingredientError.value = null), 5000);
+    if (!snack.value) return;
+    const timer = setTimeout(() => (snack.value = null), 5000);
     return () => clearTimeout(timer);
-  }, [ingredientError.value]);
+  }, [snack.value]);
 
   const openPicker = (event: Event) => {
     pickerTrigger.current = event.currentTarget as HTMLElement;
     ingredientQuery.value = "";
     ingredientStatus.value = "";
-    ingredientError.value = null;
+    snack.value = null;
     handoff.value = false;
     primerRef.current?.focus();
     pickerOpen.value = true;
@@ -72,6 +72,7 @@ export default function DishEditor(
   const newValueFor = useSignal<string | null>(null);
   const newValueLabel = useSignal("");
   const saving = useSignal(false);
+  const deleting = useSignal(false);
 
   const itemById = (id: string) => localItems.value.find((i) => i.id === id);
 
@@ -107,7 +108,7 @@ export default function DishEditor(
       return;
     }
     creatingIngredient.value = true;
-    ingredientError.value = null;
+    snack.value = null;
     // Keep the keyboard attached to the search field across the async create.
     inputRef.current?.focus();
     try {
@@ -116,13 +117,13 @@ export default function DishEditor(
         localItems.value = [...localItems.value, created];
         addIngredient(created.id);
       } else {
-        ingredientError.value = { msg: "Couldn't add ingredient — try again" };
-        ingredientStatus.value = ingredientError.value.msg;
+        snack.value = { msg: "Couldn't add ingredient — try again" };
+        ingredientStatus.value = snack.value.msg;
       }
     } catch {
       // The current API can still throw on transport/JSON failures.
-      ingredientError.value = { msg: "Couldn't add ingredient — try again" };
-      ingredientStatus.value = ingredientError.value.msg;
+      snack.value = { msg: "Couldn't add ingredient — try again" };
+      ingredientStatus.value = snack.value.msg;
     } finally {
       creatingIngredient.value = false;
     }
@@ -159,9 +160,17 @@ export default function DishEditor(
     }
   };
   const remove = async () => {
-    if (!dish) return;
-    await api.dishes.delete(dish.id);
-    navigateTo("/menu");
+    if (!dish || deleting.value || saving.value) return;
+    deleting.value = true;
+    try {
+      if (await api.dishes.delete(dish.id)) {
+        navigateTo("/menu");
+      } else {
+        snack.value = { msg: "Couldn't delete this dish — try again" };
+      }
+    } finally {
+      deleting.value = false;
+    }
   };
 
   return (
@@ -273,14 +282,20 @@ export default function DishEditor(
       <div class="flex flex-col gap-3 pt-2">
         <Button
           variant="filled"
-          disabled={!name.value.trim() || saving.value}
+          disabled={!name.value.trim() || saving.value || deleting.value}
           loading={saving.value}
           onClick={save}
         >
           {dish ? "Save changes" : "Create dish"}
         </Button>
         {dish && canDelete && (
-          <Button variant="error" icon="trash" onClick={remove}>
+          <Button
+            variant="error"
+            icon="trash"
+            onClick={remove}
+            loading={deleting.value}
+            disabled={saving.value}
+          >
             Delete dish
           </Button>
         )}
@@ -332,7 +347,7 @@ export default function DishEditor(
           </>
         )}
       </FullScreenDialog>
-      <Snackbar data={ingredientError.value} />
+      <Snackbar data={snack.value} />
     </div>
   );
 }

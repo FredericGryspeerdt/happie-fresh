@@ -62,7 +62,7 @@ Deno.test("clearFilters — removes all selected tag values", () => {
 });
 
 Deno.test("removeDish — optimistically removes and calls the API", async () => {
-  const del = stub(api.dishes, "delete", () => Promise.resolve());
+  const del = stub(api.dishes, "delete", () => Promise.resolve(true));
   const hook = useDishes([dish("1", "A"), dish("2", "B")], []);
   try {
     await hook.removeDish("1");

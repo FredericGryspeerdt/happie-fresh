@@ -1,3 +1,4 @@
+import { restoreRemoved } from "@/utils/restore-removed.ts";
 import { computed, signal } from "@preact/signals";
 import type { DishInterface, DishTagGroupInterface } from "@/models/index.ts";
 import { api } from "@/services/api.ts";
@@ -63,11 +64,14 @@ export function useDishes(
     selectedTagValueIds.value = new Set();
   };
 
-  const removeDish = async (id: string): Promise<void> => {
+  const removeDish = async (id: string): Promise<boolean> => {
+    const snapshot = dishes.value;
     dishes.value = dishes.value.filter((d) => d.id !== id);
     startPending();
     try {
-      await api.dishes.delete(id);
+      const ok = await api.dishes.delete(id);
+      if (!ok) dishes.value = restoreRemoved(dishes.value, snapshot, id);
+      return ok;
     } finally {
       endPending();
     }

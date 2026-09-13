@@ -1,3 +1,4 @@
+import { restoreRemoved } from "@/utils/restore-removed.ts";
 import { computed, signal } from "@preact/signals";
 import {
   CategoryInterface,
@@ -30,6 +31,7 @@ export function useShoppingList(
     return map;
   });
   const exitingItems = signal<string[]>([]);
+  const removingIds = new Set<string>();
   const categories = signal<CategoryInterface[]>(initialCategories);
   const selectedCategoryId = signal<string>("");
   const pendingCount = signal<number>(0);
@@ -108,6 +110,7 @@ export function useShoppingList(
     id: string,
     patch: Partial<ShoppingListItemInterface>,
   ) => {
+    if (removingIds.has(id)) return;
     list.value = list.value.map((li) =>
       li.id === id ? { ...li, ...patch } : li
     );
@@ -120,9 +123,10 @@ export function useShoppingList(
     id: string,
     amount: ShoppingAmount,
   ): Promise<boolean> => {
+    if (removingIds.has(id)) return false;
     startPending();
     try {
-      if (!await prepareMove([id])) return false;
+      if (!await prepareMove([id]) || removingIds.has(id)) return false;
       markSaving(id);
       const saved = await api.shoppingList.updateItem(listId, id, amount);
       if (!saved) return false;
@@ -176,28 +180,45 @@ export function useShoppingList(
     }
   };
 
-  const removeListItem = async (id: string) => {
+  const removeListItem = async (id: string): Promise<boolean> => {
+    if (removingIds.has(id)) return false;
+    removingIds.add(id);
     exitingItems.value = [...exitingItems.value, id];
-    await new Promise((resolve) => setTimeout(resolve, 300));
-
-    patchScheduler.cancel(id);
-    clearSaving(id);
-    list.value = list.value.filter((li) => li.id !== id);
-    checkedItems.value = checkedItems.value.filter((li) => li.id !== id);
-    exitingItems.value = exitingItems.value.filter((itemId) => itemId !== id);
-
     startPending();
     try {
-      await api.shoppingList.removeItem(listId, id);
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      // Drain pending edits and block new ones until removal settles.
+      await patchScheduler.flush(id);
+      clearSaving(id);
+      const openSnapshot = list.value;
+      const checkedSnapshot = checkedItems.value;
+      list.value = list.value.filter((li) => li.id !== id);
+      checkedItems.value = checkedItems.value.filter((li) => li.id !== id);
+      const ok = await api.shoppingList.removeItem(listId, id);
+      if (!ok) {
+        list.value = restoreRemoved(list.value, openSnapshot, id);
+        checkedItems.value = restoreRemoved(
+          checkedItems.value,
+          checkedSnapshot,
+          id,
+        );
+      } else {
+        failedPatches.delete(id);
+      }
+      return ok;
     } finally {
+      removingIds.delete(id);
+      exitingItems.value = exitingItems.value.filter((itemId) => itemId !== id);
       endPending();
     }
   };
 
   const checkItem = async (id: string) => {
+    if (removingIds.has(id)) return;
     exitingItems.value = [...exitingItems.value, id];
     await new Promise((resolve) => setTimeout(resolve, 300));
 
+    if (removingIds.has(id)) return;
     const item = list.value.find((li) => li.id === id);
     if (!item) {
       exitingItems.value = exitingItems.value.filter((i) => i !== id);
@@ -226,6 +247,7 @@ export function useShoppingList(
   };
 
   const uncheckItem = async (id: string) => {
+    if (removingIds.has(id)) return;
     startPending();
     try {
       const item = checkedItems.value.find((li) => li.id === id);
