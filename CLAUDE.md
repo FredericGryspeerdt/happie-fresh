@@ -43,6 +43,14 @@ debounced writes, cross-island signals, the MD3 component library, mobile/PWA
 details) so new features stay consistent. Keep it updated when you introduce a
 new pattern.
 
+## Functional Inventory
+
+[`docs/functional-inventory.md`](docs/functional-inventory.md) lists what a
+household member can do in each module and the domain rules that hold
+throughout, independent of how the interface presents them. Read it to learn
+what already exists before proposing a feature, and update it when a module
+gains or loses a capability.
+
 ## Build & Development Commands
 
 - `deno task dev` — Start dev server (Vite + HMR, requires `--unstable-kv`)
