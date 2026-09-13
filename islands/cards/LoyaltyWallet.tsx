@@ -121,10 +121,10 @@ export default function LoyaltyWallet({ initialCards, canDelete }: Props) {
     sheetOpen.value = false;
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     present.value = null;
-    removeCard(id);
-    toast("Card removed.");
+    const ok = await removeCard(id);
+    toast(ok ? "Card removed." : "Couldn't remove that card — try again.");
   };
 
   const list = sorted.value;

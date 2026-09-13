@@ -28,6 +28,19 @@ import {
 } from "@/models/index.ts";
 import { CreateItemDto } from "@/models/item/item.interface.ts";
 
+/** DELETE failures are values so optimistic callers can restore their rows. */
+async function deleteResource(
+  url: string,
+  init?: RequestInit,
+): Promise<boolean> {
+  try {
+    const res = await fetch(url, { ...init, method: "DELETE" });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 export const api = {
   items: {
     create: async (item: CreateItemDto): Promise<ItemInterface | null> => {
@@ -57,9 +70,8 @@ export const api = {
       if (!res.ok) return null;
       return res.json();
     },
-    delete: async (id: string): Promise<void> => {
-      await fetch("/api/shopping/catalogue", {
-        method: "DELETE",
+    delete: async (id: string): Promise<boolean> => {
+      return await deleteResource("/api/shopping/catalogue", {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id }),
       });
@@ -101,9 +113,8 @@ export const api = {
         body: JSON.stringify(updates),
       });
     },
-    delete: async (id: string): Promise<void> => {
-      await fetch("/api/shopping/categories", {
-        method: "DELETE",
+    delete: async (id: string): Promise<boolean> => {
+      return await deleteResource("/api/shopping/categories", {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id }),
       });
@@ -148,8 +159,8 @@ export const api = {
       if (!res.ok) return null;
       return res.json();
     },
-    delete: async (id: string): Promise<void> => {
-      await fetch(`/api/shopping/lists/${id}`, { method: "DELETE" });
+    delete: async (id: string): Promise<boolean> => {
+      return await deleteResource(`/api/shopping/lists/${id}`);
     },
   },
   shoppingList: {
@@ -225,9 +236,8 @@ export const api = {
         return null;
       }
     },
-    removeItem: async (listId: string, id: string): Promise<void> => {
-      await fetch(`/api/shopping/lists/${listId}/items`, {
-        method: "DELETE",
+    removeItem: async (listId: string, id: string): Promise<boolean> => {
+      return await deleteResource(`/api/shopping/lists/${listId}/items`, {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id }),
       });
@@ -293,9 +303,8 @@ export const api = {
       if (!res.ok) return null;
       return res.json();
     },
-    delete: async (id: string): Promise<void> => {
-      await fetch("/api/menu/dishes", {
-        method: "DELETE",
+    delete: async (id: string): Promise<boolean> => {
+      return await deleteResource("/api/menu/dishes", {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id }),
       });
@@ -330,9 +339,8 @@ export const api = {
       if (!res.ok) return null;
       return res.json();
     },
-    delete: async (id: string): Promise<void> => {
-      await fetch("/api/cards", {
-        method: "DELETE",
+    delete: async (id: string): Promise<boolean> => {
+      return await deleteResource("/api/cards", {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id }),
       });
@@ -366,8 +374,7 @@ export const api = {
       return res.json();
     },
     delete: async (id: string): Promise<boolean> => {
-      const res = await fetch(`/api/todos/${id}`, { method: "DELETE" });
-      return res.ok;
+      return await deleteResource(`/api/todos/${id}`);
     },
   },
   dishTagGroups: {
@@ -417,8 +424,7 @@ export const api = {
       return res.json();
     },
     remove: async (id: string): Promise<boolean> => {
-      const res = await fetch(`/api/members/${id}`, { method: "DELETE" });
-      return res.ok;
+      return await deleteResource(`/api/members/${id}`);
     },
     claim: async (id: string): Promise<boolean> => {
       const res = await fetch("/api/members/acting", {

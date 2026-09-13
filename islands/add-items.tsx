@@ -144,9 +144,12 @@ export default function AddItems(
   };
 
   const handleRemove = async (liId: string) => {
-    addedThisVisit.value = addedThisVisit.value.filter((id) => id !== liId);
     if (editingId.value === liId) editingId.value = null;
-    await removeListItem(liId);
+    if (await removeListItem(liId)) {
+      addedThisVisit.value = addedThisVisit.value.filter((id) => id !== liId);
+    } else {
+      showSnack("Couldn't remove that item — try again");
+    }
   };
 
   const closeEditor = () => {

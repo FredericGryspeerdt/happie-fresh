@@ -69,7 +69,8 @@ create, ~line 91), `updateListItem` (optimistic, ~line 80), `removeListItem`
 
 **Rule:** All network access goes through `services/api.ts`. It **never
 throws**: methods that return data resolve to `null` (single entity) or `[]`
-(collections) on a non-OK response; fire-and-forget mutations return `void`.
+(collections) on a non-OK response; legacy non-delete mutations may still return `void`. Delete methods return
+`boolean`, including `false` for transport failures.
 Callers branch on the `null`/`[]` result — they do not wrap calls in
 `try/catch` for transport errors.
 
@@ -121,10 +122,12 @@ helpful person ("Couldn't refresh — try again"), not a system log.
 **Going forward vs. today:** This is the **target** convention. The add/create
 flow (`addToList`/`addToCatalog`), `clearCheckedItems`, and pull-to-refresh
 already follow it — a failure rolls back (where applicable) and shows a
-snackbar. The remaining gap is the fire-and-forget optimistic writes
-(`updateListItem`, `removeListItem`, `checkItem`), whose `api` methods return
-`void` and so can't yet report failure; making those visible needs the `api`
-layer to surface success first. Until then, **don't add new silent `void`
+snackbar. Delete failures now restore the removed row and show a snackbar; whole-list
+and dish editors navigate only after confirmed deletion. Restoration preserves
+unrelated edits, additions, and removals made while the request was pending.
+Shopping-entry removal drains pending edits first so failed deletion does not
+discard an unsaved quantity or note. Other legacy non-delete writes still need
+consistent failure feedback (issue #52). Until then, **don't add new silent `void`
 mutations** — give a new write a checkable result (`null`/boolean) and surface
 failure at the call site.
 
@@ -240,7 +243,7 @@ removal keeps the leaving row on screen for the animation.
 const removeListItem = async (id) => {
   exitingItems.value = [...exitingItems.value, id];       // 1. mark exiting (CSS animates)
   await new Promise((r) => setTimeout(r, 300));           // 2. wait for the transition
-  patchScheduler.cancel(id);                              // 3. cancel any pending write
+  await patchScheduler.flush(id);                         // 3. drain pending writes; block new edits
   list.value = list.value.filter((li) => li.id !== id);   // 4. remove from state
   exitingItems.value = exitingItems.value.filter((x) => x !== id);
   startPending();
@@ -259,12 +262,13 @@ const removeListItem = async (id) => {
 **Rule:** For rapid successive edits to the same entity (quantity steppers, note
 typing), don't fire a request per change. Use **`createDebouncedMergeScheduler`**:
 it coalesces patches per id, flushes after a quiet delay (500 ms), flushes
-immediately when the editor closes, and can be **cancelled** so a late write
-can't resurrect a deleted item.
+immediately when the editor closes, and drains before deleting an entry. Block
+new edits during deletion so no later PATCH targets the removed entry.
 
 **Why:** Fewer requests, and the last write wins with merged fields. Explicit
-`flush` on close makes edits feel saved the moment the user is done; `cancel` on
-delete prevents a race where a queued PATCH revives a removed row.
+`flush` on close makes edits feel saved the moment the user is done. Draining
+before DELETE preserves quantity/note edits if removal fails; blocking new edits
+during removal prevents late writes after successful deletion.
 
 **How:**
 
@@ -275,12 +279,12 @@ const patchScheduler = createDebouncedMergeScheduler({
 });
 patchScheduler.schedule(id, patch); // on each edit (merges with pending)
 patchScheduler.flush(id);           // on editor close (save now)
-patchScheduler.cancel(id);          // on delete (drop the pending write)
+await patchScheduler.flush(id);     // before delete, while new edits are blocked
 ```
 
 **See:** `utils/debounce-update.ts` (the scheduler),
 `hooks/useShoppingList.ts` (`patchScheduler`, `updateListItem`, `flushListItem`,
-and the `cancel` calls in `removeListItem`/`checkItem`).
+and the drain in `removeListItem` before DELETE).
 
 ---
 
@@ -791,7 +795,7 @@ Before merging anything the user sees, tick these (section refs in parens):
 - [ ] Collections filtered with `useSearchBox` (trim, empty-means-all,
       focus-after-clear)? (§5)
 - [ ] Items animate out on remove (§6); rapid successive edits are debounced and
-      cancel-on-delete? (§7)
+      drain-before-delete while new edits are blocked? (§7)
 - [ ] Cross-island state uses a module-scope signal, and components use
       `useSignal` (never a bare `signal()` in a body)? (§8)
 - [ ] UI is composed from MD3 components + tokens, not hand-rolled or

@@ -6,6 +6,7 @@ import { PullToRefresh } from "@/components/md3/PullToRefresh.tsx";
 import { Segmented } from "@/components/md3/Segmented.tsx";
 import { Chip } from "@/components/md3/Chip.tsx";
 import { ListItem } from "@/components/md3/ListItem.tsx";
+import { Snackbar } from "@/components/md3/Snackbar.tsx";
 import { Sheet } from "@/components/md3/Sheet.tsx";
 import { Button } from "@/components/md3/Button.tsx";
 import { IconButton } from "@/components/md3/IconButton.tsx";
@@ -33,6 +34,12 @@ interface CatalogueProps {
 export default function Catalogue(
   { initialItems, initialCategories, canDelete }: CatalogueProps,
 ) {
+  const snack = useSignal<{ msg: string } | null>(null);
+  useEffect(() => {
+    if (!snack.value) return;
+    const timer = setTimeout(() => (snack.value = null), 3000);
+    return () => clearTimeout(timer);
+  }, [snack.value]);
   // useMemo with [] ensures useCatalogue is called only once — its signals
   // are initialized from SSR props and must not be recreated on re-render.
   const {
@@ -274,9 +281,12 @@ export default function Catalogue(
           if (editing.value) moveItem(editing.value.id, categoryId);
           editing.value = null;
         }}
-        onRemove={() => {
-          if (editing.value) removeItem(editing.value.id);
+        onRemove={async () => {
+          const id = editing.value?.id;
           editing.value = null;
+          if (id && !(await removeItem(id))) {
+            snack.value = { msg: "Couldn't remove that item — try again" };
+          }
         }}
       />
 
@@ -325,14 +335,19 @@ export default function Catalogue(
           if (menuCat.value) renameCategory(menuCat.value.id, label);
           menuCat.value = null;
         }}
-        onDelete={() => {
-          if (menuCat.value) {
-            if (selected.value === menuCat.value.id) selected.value = UNCAT;
-            deleteCategory(menuCat.value.id);
-          }
+        onDelete={async () => {
+          const id = menuCat.value?.id;
           menuCat.value = null;
+          if (!id) return;
+          if (await deleteCategory(id)) {
+            if (selected.value === id) selected.value = UNCAT;
+          } else {
+            snack.value = { msg: "Couldn't delete that category — try again" };
+          }
         }}
       />
+
+      <Snackbar data={snack.value} />
 
       {/* Context FAB — add an item or a new category (prototype md3-app.jsx) */}
       {!anySheetOpen && (

@@ -121,7 +121,7 @@ Deno.test("removeItem — optimistic remove, calls delete", async () => {
   const calls: string[] = [];
   using _d = stub(api.items, "delete", (id) => {
     calls.push(id);
-    return Promise.resolve();
+    return Promise.resolve(true);
   });
   const hook = useCatalogue([item("i1", "Butter")], []);
   await hook.removeItem("i1");
@@ -142,7 +142,7 @@ Deno.test("createCategory — creates via API and appends", async () => {
 });
 
 Deno.test("deleteCategory — removes category; its items become uncategorized", async () => {
-  using _d = stub(api.categories, "delete", () => Promise.resolve());
+  using _d = stub(api.categories, "delete", () => Promise.resolve(true));
   const hook = useCatalogue([item("i1", "Milk", "d")], [cat("d", "Dairy")]);
   await hook.deleteCategory("d");
   assertEquals(hook.categories.value.length, 0);

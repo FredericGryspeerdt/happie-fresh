@@ -1,3 +1,4 @@
+import { restoreRemoved } from "@/utils/restore-removed.ts";
 import { computed, signal } from "@preact/signals";
 import type { LoyaltyCardInput, LoyaltyCardInterface } from "@/models/index.ts";
 import { api } from "@/services/api.ts";
@@ -64,11 +65,14 @@ export function useLoyaltyCards(initialCards: LoyaltyCardInterface[]) {
     }
   };
 
-  const removeCard = async (id: string): Promise<void> => {
+  const removeCard = async (id: string): Promise<boolean> => {
+    const snapshot = cards.value;
     cards.value = cards.value.filter((c) => c.id !== id);
     startPending();
     try {
-      await api.cards.delete(id);
+      const ok = await api.cards.delete(id);
+      if (!ok) cards.value = restoreRemoved(cards.value, snapshot, id);
+      return ok;
     } finally {
       endPending();
     }
