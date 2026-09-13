@@ -89,7 +89,7 @@ export default function NotificationSetting({ onOpen }: Props) {
               </div>
             )}
 
-            {state.value === "default" && (
+            {(state.value === "default" || state.value === "disabled") && (
               <>
                 <div class="md-body-medium text-on-surface-variant">
                   Get a nudge on this device when a to-do is due.
@@ -133,8 +133,10 @@ export default function NotificationSetting({ onOpen }: Props) {
                   full
                   loading={busy.value}
                   onClick={async () => {
-                    await disable();
-                    message.value = "Reminders are off for this device.";
+                    const ok = await disable();
+                    message.value = ok
+                      ? "Reminders are off for this device."
+                      : "Couldn't turn off reminders. Try again?";
                   }}
                 >
                   Turn off on this device

@@ -30,7 +30,8 @@ A user can:
 
 - Sign in with a username and password. Wrong or missing credentials show an error.
 - Stay signed in. A session stays valid for 30 days of inactivity, at most 90 days, and renews on use.
-- Sign out.
+- Sign out, stopping reminders on this device. Signing back in silently restores
+  previously granted reminders unless they were explicitly turned off.
 - Choose **which member they are** on this device from the household's members. If the household has one member, that member is chosen automatically. If several and none is chosen, the app asks on first use.
 - Change the acting member at any time.
 - If the chosen member was removed from the household, the app asks again.

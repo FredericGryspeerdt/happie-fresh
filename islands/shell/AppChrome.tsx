@@ -1,4 +1,6 @@
 import { useSignal } from "@preact/signals";
+import { useEffect, useMemo } from "preact/hooks";
+import { usePushNotifications } from "./usePushNotifications.ts";
 import TopAppBar from "./TopAppBar.tsx";
 import NavigationBar from "./NavigationBar.tsx";
 import MoreSheet from "./MoreSheet.tsx";
@@ -23,6 +25,20 @@ export default function AppChrome(
     AppChromeProps,
 ) {
   const moreOpen = useSignal(false);
+  const { syncIfGranted } = useMemo(() => usePushNotifications(), []);
+
+  // Re-register this device when permission is already granted but the server
+  // has no subscription — after site data was cleared, or after a log out
+  // removed it (issue #68). Silent: permission is granted, so nothing prompts.
+  //
+  // Lives here because AppChrome is the one island present on every
+  // authenticated page (`_app.tsx` renders it only when state.userId is set),
+  // so logging back in re-registers without the member doing anything.
+  //
+  // Above the early return below, since hooks cannot be called conditionally.
+  useEffect(() => {
+    syncIfGranted();
+  }, []);
 
   // Full-screen routes (e.g. the add-items search) own the whole viewport:
   // no top bar and no bottom navigation.
