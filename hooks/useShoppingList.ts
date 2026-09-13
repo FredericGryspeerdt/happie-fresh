@@ -2,6 +2,7 @@ import { computed, signal } from "@preact/signals";
 import {
   CategoryInterface,
   ItemInterface,
+  ShoppingAmount,
   ShoppingListItemInterface,
 } from "@/models/index.ts";
 import { createDebouncedMergeScheduler } from "@/utils/debounce-update.ts";
@@ -60,14 +61,23 @@ export function useShoppingList(
     savingIds.value = next;
   };
 
+  const failedPatches = new Map<string, Partial<ShoppingListItemInterface>>();
+  const saveError = signal(0);
   const patchScheduler = createDebouncedMergeScheduler<
     ShoppingListItemInterface
   >({
     delayMs: 500,
     flush: async (id, patch) => {
       try {
-        await api.shoppingList.updateItem(listId, id, patch);
-        lastSaved.value = lastSaved.value + 1;
+        const combined = { ...failedPatches.get(id), ...patch };
+        const saved = await api.shoppingList.updateItem(listId, id, combined);
+        if (saved === null) {
+          failedPatches.set(id, combined);
+          saveError.value++;
+        } else {
+          failedPatches.delete(id);
+          lastSaved.value++;
+        }
       } finally {
         clearSaving(id);
       }
@@ -75,7 +85,24 @@ export function useShoppingList(
   });
 
   /** Immediately flush the pending debounced write for a list item (e.g. on editor close). */
-  const flushListItem = (id: string) => patchScheduler.flush(id);
+  const flushListItem = async (id: string): Promise<void> => {
+    await patchScheduler.flush(id);
+  };
+
+  /** Drain both timers and in-flight writes; retry previously failed patches.
+   * Callers disable editing while awaiting this barrier. */
+  const prepareMove = async (ids: string[]): Promise<boolean> => {
+    const retryIds = ids.filter((id) => failedPatches.has(id));
+    // A queued newer patch must run before retrying old failures. Its flush
+    // merges old failed fields underneath the newer values.
+    await Promise.all(ids.map((id) => patchScheduler.flush(id)));
+    for (const id of retryIds) {
+      const failed = failedPatches.get(id);
+      if (failed) patchScheduler.schedule(id, failed);
+    }
+    await Promise.all(retryIds.map((id) => patchScheduler.flush(id)));
+    return ids.every((id) => !failedPatches.has(id));
+  };
 
   const updateListItem = (
     id: string,
@@ -86,6 +113,29 @@ export function useShoppingList(
     );
     markSaving(id);
     patchScheduler.schedule(id, patch);
+  };
+
+  /** Explicit dialog save: commit the amount only after the server confirms. */
+  const saveAmount = async (
+    id: string,
+    amount: ShoppingAmount,
+  ): Promise<boolean> => {
+    startPending();
+    try {
+      if (!await prepareMove([id])) return false;
+      markSaving(id);
+      const saved = await api.shoppingList.updateItem(listId, id, amount);
+      if (!saved) return false;
+      list.value = list.value.map((li) => li.id === id ? saved : li);
+      checkedItems.value = checkedItems.value.map((li) =>
+        li.id === id ? saved : li
+      );
+      lastSaved.value++;
+      return true;
+    } finally {
+      clearSaving(id);
+      endPending();
+    }
   };
 
   const _addToList = async (itemId: string): Promise<string | null> => {
@@ -153,8 +203,6 @@ export function useShoppingList(
       exitingItems.value = exitingItems.value.filter((i) => i !== id);
       return;
     }
-    patchScheduler.cancel(id);
-    clearSaving(id);
     list.value = list.value.filter((li) => li.id !== id);
     exitingItems.value = exitingItems.value.filter((i) => i !== id);
     const checked = { ...item, checked: true };
@@ -162,7 +210,16 @@ export function useShoppingList(
 
     startPending();
     try {
-      await api.shoppingList.updateItem(listId, id, { checked: true });
+      markSaving(id);
+      patchScheduler.schedule(id, { checked: true });
+      await patchScheduler.flush(id);
+      if (failedPatches.has(id)) {
+        checkedItems.value = checkedItems.value.filter((li) => li.id !== id);
+        list.value = [...list.value, item];
+        // Keep failed quantity/note edits, but not the rolled-back toggle.
+        const { checked: _checked, ...rest } = failedPatches.get(id)!;
+        failedPatches.set(id, rest);
+      }
     } finally {
       endPending();
     }
@@ -176,7 +233,15 @@ export function useShoppingList(
       checkedItems.value = checkedItems.value.filter((li) => li.id !== id);
       const active = { ...item, checked: false };
       list.value = [...list.value, active];
-      await api.shoppingList.updateItem(listId, id, { checked: false });
+      markSaving(id);
+      patchScheduler.schedule(id, { checked: false });
+      await patchScheduler.flush(id);
+      if (failedPatches.has(id)) {
+        list.value = list.value.filter((li) => li.id !== id);
+        checkedItems.value = [...checkedItems.value, item];
+        const { checked: _checked, ...rest } = failedPatches.get(id)!;
+        failedPatches.set(id, rest);
+      }
     } finally {
       endPending();
     }
@@ -289,6 +354,7 @@ export function useShoppingList(
     exitingItems,
     pendingCount,
     updateListItem,
+    saveAmount,
     addToList,
     addToCatalog,
     removeListItem,
@@ -303,6 +369,8 @@ export function useShoppingList(
     lastSaved,
     savingIds,
     flushListItem,
+    prepareMove,
+    saveError,
     clearCheckedItems,
   };
 }

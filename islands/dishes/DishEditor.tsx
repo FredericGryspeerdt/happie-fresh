@@ -1,4 +1,7 @@
 import { useSignal } from "@preact/signals";
+import { useEffect, useRef } from "preact/hooks";
+import { useSearchInput } from "@/hooks/useSearchInput.ts";
+import { IngredientPicker } from "@/components/dishes/IngredientPicker.tsx";
 import type {
   DishInterface,
   DishTagGroupInterface,
@@ -7,11 +10,9 @@ import type {
 import { api } from "@/services/api.ts";
 import { Chip } from "@/components/md3/Chip.tsx";
 import { Button } from "@/components/md3/Button.tsx";
-import { Icon } from "@/components/md3/Icon.tsx";
 import { IconButton } from "@/components/md3/IconButton.tsx";
-import { Sheet } from "@/components/md3/Sheet.tsx";
-import { Pressable } from "@/components/md3/Pressable.tsx";
-import { ListItem } from "@/components/md3/ListItem.tsx";
+import { FullScreenDialog } from "@/components/md3/FullScreenDialog.tsx";
+import { Snackbar } from "@/components/md3/Snackbar.tsx";
 import { navigateTo } from "@/utils/loading.ts";
 
 const fieldClass =
@@ -21,16 +22,53 @@ interface Props {
   dish?: DishInterface;
   tagGroups: DishTagGroupInterface[];
   items: ItemInterface[];
+  canDelete: boolean;
 }
 
-export default function DishEditor({ dish, tagGroups, items }: Props) {
+export default function DishEditor(
+  { dish, tagGroups, items, canDelete }: Props,
+) {
   const name = useSignal(dish?.name ?? "");
   const ingredientIds = useSignal<string[]>(dish?.ingredientIds ?? []);
   const tagValueIds = useSignal<string[]>(dish?.tagValueIds ?? []);
   const localItems = useSignal<ItemInterface[]>(items);
   const localGroups = useSignal<DishTagGroupInterface[]>(tagGroups);
   const pickerOpen = useSignal(false);
-  const ingredientQuery = useSignal("");
+  const { query: ingredientQuery, inputRef, reset } = useSearchInput();
+  const creatingIngredient = useSignal(false);
+  const ingredientStatus = useSignal("");
+  const primerRef = useRef<HTMLInputElement>(null);
+  const pickerTrigger = useRef<HTMLElement | null>(null);
+  const handoff = useSignal(false);
+  const ingredientError = useSignal<{ msg: string } | null>(null);
+  useEffect(() => {
+    if (!ingredientError.value) return;
+    const timer = setTimeout(() => (ingredientError.value = null), 5000);
+    return () => clearTimeout(timer);
+  }, [ingredientError.value]);
+
+  const openPicker = (event: Event) => {
+    pickerTrigger.current = event.currentTarget as HTMLElement;
+    ingredientQuery.value = "";
+    ingredientStatus.value = "";
+    ingredientError.value = null;
+    handoff.value = false;
+    primerRef.current?.focus();
+    pickerOpen.value = true;
+  };
+  const closePicker = () => {
+    if (creatingIngredient.value) return;
+    pickerOpen.value = false;
+    handoff.value = false;
+  };
+  useEffect(() => {
+    if (pickerOpen.value) {
+      inputRef.current?.focus();
+      handoff.value = document.activeElement === inputRef.current;
+    } else {
+      pickerTrigger.current?.focus();
+    }
+  }, [pickerOpen.value]);
   const newValueFor = useSignal<string | null>(null);
   const newValueLabel = useSignal("");
   const saving = useSignal(false);
@@ -45,16 +83,48 @@ export default function DishEditor({ dish, tagGroups, items }: Props) {
   const addIngredient = (itemId: string) => {
     if (!ingredientIds.value.includes(itemId)) {
       ingredientIds.value = [...ingredientIds.value, itemId];
+      ingredientStatus.value = `${
+        itemById(itemId)?.name ?? "Ingredient"
+      } added`;
     }
+    reset();
   };
   const removeIngredient = (itemId: string) => {
     ingredientIds.value = ingredientIds.value.filter((i) => i !== itemId);
+    ingredientStatus.value = `${
+      itemById(itemId)?.name ?? "Ingredient"
+    } removed`;
+    if (pickerOpen.value) inputRef.current?.focus();
   };
-  const createCatalogueItem = async (label: string) => {
-    const created = await api.items.create({ name: label });
-    if (created?.id) {
-      localItems.value = [...localItems.value, created];
-      addIngredient(created.id);
+  const createCatalogueItem = async () => {
+    const label = ingredientQuery.value.trim();
+    if (!label || creatingIngredient.value) return;
+    const existing = localItems.value.find((item) =>
+      item.name.trim().toLowerCase() === label.toLowerCase()
+    );
+    if (existing) {
+      addIngredient(existing.id);
+      return;
+    }
+    creatingIngredient.value = true;
+    ingredientError.value = null;
+    // Keep the keyboard attached to the search field across the async create.
+    inputRef.current?.focus();
+    try {
+      const created = await api.items.create({ name: label });
+      if (created?.id) {
+        localItems.value = [...localItems.value, created];
+        addIngredient(created.id);
+      } else {
+        ingredientError.value = { msg: "Couldn't add ingredient — try again" };
+        ingredientStatus.value = ingredientError.value.msg;
+      }
+    } catch {
+      // The current API can still throw on transport/JSON failures.
+      ingredientError.value = { msg: "Couldn't add ingredient — try again" };
+      ingredientStatus.value = ingredientError.value.msg;
+    } finally {
+      creatingIngredient.value = false;
     }
   };
   const addValue = async (groupId: string, label: string) => {
@@ -94,16 +164,6 @@ export default function DishEditor({ dish, tagGroups, items }: Props) {
     navigateTo("/menu");
   };
 
-  const q = ingredientQuery.value.trim().toLowerCase();
-  const chosen = new Set(ingredientIds.value);
-  const results = localItems.value
-    .filter((i) =>
-      !chosen.has(i.id) && (!q || i.name.toLowerCase().includes(q))
-    )
-    .sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
-  const exactMatch = !!q &&
-    localItems.value.some((i) => i.name.trim().toLowerCase() === q);
-
   return (
     <div class="px-4 pt-4 pb-[calc(96px+env(safe-area-inset-bottom))] flex flex-col gap-6">
       {/* Name */}
@@ -133,9 +193,11 @@ export default function DishEditor({ dish, tagGroups, items }: Props) {
               {itemById(id)?.name ?? "Unknown"}
               <IconButton
                 name="x"
-                size={28}
-                iconSize={14}
-                aria-label="Remove ingredient"
+                size={44}
+                iconSize={18}
+                aria-label={`Remove ${
+                  itemById(id)?.name ?? "Unknown ingredient"
+                }`}
                 onClick={() => removeIngredient(id)}
               />
             </span>
@@ -143,10 +205,7 @@ export default function DishEditor({ dish, tagGroups, items }: Props) {
           <Chip
             icon="plus"
             leadingCheck={false}
-            onClick={() => {
-              ingredientQuery.value = "";
-              pickerOpen.value = true;
-            }}
+            onClick={openPicker}
           >
             Add ingredient
           </Chip>
@@ -220,53 +279,60 @@ export default function DishEditor({ dish, tagGroups, items }: Props) {
         >
           {dish ? "Save changes" : "Create dish"}
         </Button>
-        {dish && (
+        {dish && canDelete && (
           <Button variant="error" icon="trash" onClick={remove}>
             Delete dish
           </Button>
         )}
       </div>
 
-      {/* Ingredient picker — search the catalogue, or create a new item inline */}
-      <Sheet
+      {/* Keep mobile keyboard activation inside the opening tap (§12). */}
+      {(!pickerOpen.value || !handoff.value) && (
+        <input
+          ref={primerRef}
+          type="text"
+          aria-hidden="true"
+          tabIndex={-1}
+          class="fixed top-0 left-0 opacity-0 pointer-events-none"
+          style={{ width: 1, height: 1, fontSize: 16 }}
+        />
+      )}
+      <FullScreenDialog
         open={pickerOpen.value}
-        onClose={() => (pickerOpen.value = false)}
-        title="Add ingredient"
-        size="large"
-      >
-        <div class="flex items-center gap-2 bg-surface-chighest rounded-[var(--md-shape-full)] h-12 pl-4 pr-1.5 mb-3">
-          <Icon name="search" size={20} class="text-on-surface-variant" />
-          <input
-            value={ingredientQuery.value}
-            onInput={(e) => (ingredientQuery.value = e.currentTarget.value)}
-            placeholder="Search or add an item"
-            class="flex-1 min-w-0 bg-transparent border-0 outline-none md-body-large text-on-surface"
-          />
-        </div>
-        {q && !exactMatch && (
-          <Pressable
-            onClick={async () => {
-              await createCatalogueItem(ingredientQuery.value.trim());
-              ingredientQuery.value = "";
-            }}
-            color="var(--md-primary)"
-            class="flex items-center gap-2.5 w-full text-left border-[1.5px] border-dashed border-outline rounded-[var(--md-shape-md)] px-4 py-3 text-primary md-label-large mb-2"
+        onClose={closePicker}
+        title="Ingredients"
+        action={
+          <Button
+            variant="text"
+            onClick={closePicker}
+            disabled={creatingIngredient.value}
           >
-            <Icon name="plus" size={20} stroke={2.3} /> Create “{ingredientQuery
-              .value.trim()}”
-          </Pressable>
-        )}
-        <div class="max-h-[360px] overflow-y-auto -mx-1">
-          {results.map((it) => (
-            <ListItem
-              key={it.id}
-              headline={it.name}
-              onClick={() => addIngredient(it.id)}
-              trailing={<Icon name="plus" size={20} class="text-primary" />}
+            Done
+          </Button>
+        }
+      >
+        {pickerOpen.value && (
+          <>
+            <IngredientPicker
+              items={localItems.value}
+              selectedIds={ingredientIds.value}
+              dishName={name.value}
+              query={ingredientQuery.value}
+              inputRef={inputRef}
+              creating={creatingIngredient.value}
+              onQuery={(value) => (ingredientQuery.value = value)}
+              onReset={reset}
+              onAdd={addIngredient}
+              onRemove={removeIngredient}
+              onCreate={createCatalogueItem}
             />
-          ))}
-        </div>
-      </Sheet>
+            <p role="status" aria-live="polite" class="sr-only">
+              {ingredientStatus.value}
+            </p>
+          </>
+        )}
+      </FullScreenDialog>
+      <Snackbar data={ingredientError.value} />
     </div>
   );
 }

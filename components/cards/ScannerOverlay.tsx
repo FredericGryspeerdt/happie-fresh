@@ -13,6 +13,7 @@ interface BarcodeDetectorLike {
 }
 interface BarcodeDetectorCtor {
   new (options?: { formats?: string[] }): BarcodeDetectorLike;
+  getSupportedFormats?(): Promise<string[]>;
 }
 
 /** Native BarcodeDetector format names → our supported symbologies. */
@@ -21,8 +22,12 @@ const DETECTED_FORMAT: Record<string, BarcodeFormat> = {
   ean_8: "ean8",
   upc_a: "upca",
   code_128: "code128",
+  code_39: "code39",
   qr_code: "qrcode",
 };
+
+/** The native format names we ask the detector to look for. */
+const REQUESTED_FORMATS = Object.keys(DETECTED_FORMAT);
 
 /** True when the browser can scan barcodes from the camera (Android/Chrome). */
 export function scannerSupported(): boolean {
@@ -76,9 +81,24 @@ export function ScannerOverlay(
         return;
       }
       try {
+        // Diagnostic: probe supported formats before opening camera.
+        try {
+          const fmt = await (Ctor as unknown as {
+            getSupportedFormats?: () => Promise<string[]>;
+          })
+            .getSupportedFormats?.();
+          if (fmt) console.debug("[scan] supported formats", fmt);
+        } catch {
+          // ignore — not all browsers expose this
+        }
+
         stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: "environment" },
         });
+        console.debug(
+          "[scan] getUserMedia ok, tracks",
+          stream.getTracks().length,
+        );
         // The overlay may have been closed while the permission prompt was
         // open — `stop()` ran before `stream` existed, so release it now
         // rather than leaving the camera on.
@@ -88,30 +108,84 @@ export function ScannerOverlay(
           return;
         }
         video.srcObject = stream;
-        await video.play();
 
-        const detector = new Ctor();
+        // Wait until the video has decodable frame data before we try to
+        // detect anything — without this `detect()` returns [] / throws
+        // because there is no image yet, and the silent retry masks the
+        // problem from both the user and the console.
+        if (video.readyState < 2) {
+          await new Promise<void>((resolve) => {
+            const done = () => {
+              video.removeEventListener("loadedmetadata", done);
+              video.removeEventListener("loadeddata", done);
+              resolve();
+            };
+            video.addEventListener("loadedmetadata", done, { once: true });
+            video.addEventListener("loadeddata", done, { once: true });
+          });
+        }
+        await video.play();
+        console.debug(
+          "[scan] video ready",
+          `readyState=${video.readyState}`,
+          `videoWidth=${video.videoWidth}x${video.videoHeight}`,
+        );
+
+        // Prefer an explicitly-formatted detector so every symbology we
+        // support is actually enabled. Some Chrome builds default to an
+        // empty set when constructed bare (no `formats`), which makes
+        // `detect()` return [] forever even with a perfect frame.
+        let detector: BarcodeDetectorLike;
+        try {
+          detector = new Ctor({ formats: REQUESTED_FORMATS });
+          console.debug("[scan] detector created with", REQUESTED_FORMATS);
+        } catch (err) {
+          console.debug(
+            "[scan] detector with formats failed, falling back to bare",
+            err,
+          );
+          detector = new Ctor();
+        }
         // Poll a few times a second — plenty for scanning, far lighter than
         // running the detector on every animation frame.
+        let failures = 0;
         const scan = async () => {
           if (done) return;
+          // Guard against polling a video that still has no frame.
+          if (video.readyState < 2 || video.videoWidth === 0) {
+            console.debug(
+              "[scan] video not ready, retry",
+              `readyState=${video.readyState}`,
+              `w=${video.videoWidth}`,
+            );
+            timer = setTimeout(scan, 200);
+            return;
+          }
           try {
             const codes = await detector.detect(video);
             if (codes.length > 0) {
+              console.debug("[scan] detected", codes[0]);
               const { rawValue, format } = codes[0];
-              finish(
-                rawValue,
-                DETECTED_FORMAT[format] ?? detectFormat(rawValue),
-              );
+              const mapped = DETECTED_FORMAT[format] ??
+                detectFormat(rawValue);
+              const normalized = mapped === "code39"
+                ? rawValue.toUpperCase().trim()
+                : rawValue;
+              finish(normalized, mapped);
               return;
             }
-          } catch {
-            // Transient detect failures are fine — keep polling.
+          } catch (err) {
+            failures++;
+            // Log the first few transient failures; continuous failures
+            // after this point indicate a real problem (e.g. video not
+            // ready or detector misconfigured) that we previously hid.
+            if (failures <= 3) console.debug("[scan] detect failed", err);
           }
           timer = setTimeout(scan, 200);
         };
         scan();
       } catch (_err) {
+        console.debug("[scan] start failed", _err);
         onError("Couldn't access the camera. Check the permission and retry.");
         stop();
         onClose();

@@ -43,6 +43,14 @@ debounced writes, cross-island signals, the MD3 component library, mobile/PWA
 details) so new features stay consistent. Keep it updated when you introduce a
 new pattern.
 
+## Functional Inventory
+
+[`docs/functional-inventory.md`](docs/functional-inventory.md) lists what a
+household member can do in each module and the domain rules that hold
+throughout, independent of how the interface presents them. Read it to learn
+what already exists before proposing a feature, and update it when a module
+gains or loses a capability.
+
 ## Build & Development Commands
 
 - `deno task dev` — Start dev server (Vite + HMR, requires `--unstable-kv`)
@@ -130,3 +138,19 @@ KV at `data/kv.db`; production uses remote Deno KV.
 **Data migrations** (`scripts/migrate.ts`) are run manually against production —
 never from the Deno Deploy build/pre-deploy command. See
 [`docs/running-migrations.md`](docs/running-migrations.md).
+
+## Agent skills
+
+### Issue tracker
+
+Issues are tracked on GitHub. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Canonical five-role vocabulary (`needs-triage`, `needs-info`, `ready-for-agent`,
+`ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: `CONTEXT.md` at the root + `docs/adr/`. See
+`docs/agents/domain.md`.

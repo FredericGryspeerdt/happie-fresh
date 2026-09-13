@@ -1,7 +1,7 @@
-// Push-only service worker. Deliberately no caching: registering the Workbox
-// worker in static/pwa-sw.js would switch on app-wide asset caching for the first
-// time as a side effect of shipping notifications, which is a change to every
-// page and deserves its own iteration.
+// Push-only service worker. Deliberately no caching: switching on app-wide
+// asset caching as a side effect of shipping notifications would be a change
+// to every page and deserves its own iteration — tracked as issue #74 in the
+// PWA roadmap (docs/superpowers/specs/2026-08-08-pwa-roadmap-design.md).
 
 self.addEventListener("push", (event) => {
   if (!event.data) return;

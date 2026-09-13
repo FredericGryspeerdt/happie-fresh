@@ -1,6 +1,6 @@
 import { type Context } from "fresh";
 import { ShoppingListItemRepo, ShoppingListRepo } from "@/database/index.ts";
-import { define, type StateInterface } from "@/utils/index.ts";
+import { define, requireManager, type StateInterface } from "@/utils/index.ts";
 
 async function authorizeList(
   ctx: Context<StateInterface>,
@@ -31,10 +31,14 @@ export const handler = define.handlers({
   },
 
   async DELETE(ctx) {
+    // Deleting a whole list is manager-only (ADR 0006).
+    const forbidden = requireManager(ctx);
+    if (forbidden) return forbidden;
     const list = await authorizeList(ctx, ctx.params.id);
     if (!list) return new Response("Not found", { status: 404 });
-    await ShoppingListItemRepo.deleteAll(list.id);
+    // Close the list to atomic moves before enumerating children for cleanup.
     await ShoppingListRepo.delete(ctx.state.householdId!, list.id);
+    await ShoppingListItemRepo.deleteAll(list.id);
     return new Response(null, { status: 204 });
   },
 });

@@ -1,5 +1,9 @@
 import { createDefine } from "fresh";
-import { ItemInterface, ShoppingListItemInterface } from "../models/index.ts";
+import {
+  ItemInterface,
+  MemberInterface,
+  ShoppingListItemInterface,
+} from "../models/index.ts";
 
 export interface AppBarDetail {
   mode: "detail";
@@ -18,6 +22,10 @@ export type AppBar = AppBarDetail | AppBarNone;
 export interface StateInterface {
   userId?: string;
   householdId?: string;
+  /** The member this request acts as (cookie claim, else the login's member). */
+  actingMember?: MemberInterface;
+  /** True only when a valid actingMemberId cookie made the claim. */
+  actingClaimed?: boolean;
   items?: ItemInterface[];
   shoppingList?: ShoppingListItemInterface[];
   error?: string;

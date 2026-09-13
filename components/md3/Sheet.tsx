@@ -1,6 +1,8 @@
 // components/md3/Sheet.tsx
-import { useEffect, useRef } from "preact/hooks";
+import { useEffect, useRef, useState } from "preact/hooks";
+import { createPortal } from "preact/compat";
 import type { ComponentChildren } from "preact";
+import { Scrim } from "./Scrim.tsx";
 interface SheetProps {
   open: boolean;
   onClose: () => void;
@@ -10,13 +12,29 @@ interface SheetProps {
    *  Default "auto" sizes to content (capped at maxHeight) — unchanged. */
   size?: "auto" | "large";
   children: ComponentChildren;
+  /** Optional responsive panel width for focused flows. */
+  class?: string;
 }
 export function Sheet(
-  { open, onClose, title, size = "auto", children }: SheetProps,
+  { open, onClose, title, size = "auto", children, class: panelClass = "" }:
+    SheetProps,
 ) {
   const sheetRef = useRef<HTMLDivElement>(null);
   const dragStartY = useRef(0);
   const currentDelta = useRef(0);
+  // Sheets can be rendered inside another sheet's panel (e.g. a settings row's
+  // own Sheet mounted inside MoreSheet). That panel always carries an inline
+  // `transform`, which makes it a containing block for `position: fixed`
+  // descendants — so a nested sheet's "fixed" wrapper would move with it
+  // instead of staying anchored to the viewport. After mount, portal the
+  // whole wrapper to <body> to escape any transformed ancestor. Before mount
+  // (SSR and the first client/hydration render) keep rendering in place so
+  // server and first client render agree (§11 progressive-enhancement
+  // pattern) and so render-to-string output used by tests is unchanged.
+  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    setPortalTarget(document.body);
+  }, []);
   useEffect(() => { // Escape to close — ported from the previous BottomSheet implementation
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -61,26 +79,18 @@ export function Sheet(
     } else reset();
     currentDelta.current = 0;
   };
-  return (
+  const tree = (
     <div
       class="fixed inset-0 z-[200] flex flex-col justify-end"
       style={{ pointerEvents: open ? "auto" : "none" }}
     >
-      <div
-        onClick={onClose}
-        aria-hidden="true"
-        class="absolute inset-0"
-        style={{
-          background: "rgba(0,0,0,.32)",
-          opacity: open ? 1 : 0,
-          transition: "opacity .3s var(--md-emphasized)",
-        }}
-      />
+      <Scrim open={open} onClick={onClose} />
       <div
         ref={sheetRef}
         role="dialog"
         aria-modal="true"
-        class="relative bg-surface-clow px-6 pb-8 flex flex-col"
+        aria-label={title}
+        class={`relative bg-surface-clow px-6 pb-8 flex flex-col ${panelClass}`}
         style={{
           borderRadius: "var(--md-shape-xl) var(--md-shape-xl) 0 0",
           maxHeight: "84%",
@@ -126,4 +136,5 @@ export function Sheet(
       </div>
     </div>
   );
+  return portalTarget ? createPortal(tree, portalTarget) : tree;
 }

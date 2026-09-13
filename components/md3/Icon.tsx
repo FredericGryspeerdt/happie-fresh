@@ -28,6 +28,7 @@ export type IconName =
   | "leaf"
   | "flame"
   | "tag"
+  | "download"
   | "expand";
 
 interface IconProps {
@@ -219,6 +220,13 @@ export function Icon({ name, size = 24, stroke = 2, class: cls }: IconProps) {
       <>
         <path d="M3 11V4h7l11 11-7 7L3 11Z" {...p} />
         <circle cx="7.5" cy="7.5" r="1.5" fill="currentColor" stroke="none" />
+      </>
+    ),
+    download: (
+      <>
+        <path d="M12 4v10.5" {...p} />
+        <path d="M7.5 10.5 12 15l4.5-4.5" {...p} />
+        <path d="M5 19.5h14" {...p} />
       </>
     ),
     expand: (

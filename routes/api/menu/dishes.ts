@@ -1,5 +1,5 @@
 import { DishRepo } from "@/database/dish.repo.ts";
-import { define } from "@/utils/index.ts";
+import { define, requireManager } from "@/utils/index.ts";
 
 export const handler = define.handlers({
   async GET(ctx) {
@@ -26,6 +26,9 @@ export const handler = define.handlers({
   async DELETE(ctx) {
     const householdId = ctx.state.householdId;
     if (!householdId) return new Response("Unauthorized", { status: 401 });
+    // Deleting a dish is manager-only (ADR 0006).
+    const forbidden = requireManager(ctx);
+    if (forbidden) return forbidden;
     const { id } = await ctx.req.json();
     if (!id) return new Response("ID is required", { status: 400 });
     await DishRepo.delete(householdId, id);

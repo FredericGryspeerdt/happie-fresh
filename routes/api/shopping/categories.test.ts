@@ -1,14 +1,37 @@
 import { assertEquals } from "jsr:@std/assert@^1.0.19";
 import { handler } from "@/routes/api/shopping/categories.ts";
 import { getKv } from "@/database/db.ts";
+import type { MemberInterface } from "@/models/index.ts";
 
 Deno.env.set("KV_PATH", ":memory:");
 
+const MANAGER: MemberInterface = {
+  id: "m-mgr",
+  householdId: "hh-1",
+  name: "Alex",
+  color: "sky",
+  emoji: "⭐",
+  isManager: true,
+};
+const KID: MemberInterface = {
+  id: "m-kid",
+  householdId: "hh-1",
+  name: "Bo",
+  color: "meadow",
+  emoji: "🐸",
+  isManager: false,
+};
+
 function ctx(
   req: Request,
-  state: { householdId?: string; userId?: string } = {
+  state: {
+    householdId?: string;
+    userId?: string;
+    actingMember?: MemberInterface;
+  } = {
     householdId: "hh-1",
     userId: "u-1",
+    actingMember: MANAGER,
   },
 ) {
   return { req, state } as unknown as Parameters<typeof handler.GET>[0];
@@ -83,5 +106,45 @@ Deno.test({
       body: JSON.stringify({}),
     });
     assertEquals((await handler.DELETE(ctx(badReq))).status, 400);
+  },
+});
+
+Deno.test({
+  name: "DELETE — a non-manager acting member gets 403",
+  sanitizeResources: false,
+  async fn() {
+    await clearCategories();
+    const created = await (await handler.POST(ctx(post({ label: "Bakery" }))))
+      .json();
+    const delReq = new Request("http://x/api/shopping/categories", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: created.id }),
+    });
+    const res = await handler.DELETE(
+      ctx(delReq, { householdId: "hh-1", userId: "u-1", actingMember: KID }),
+    );
+    assertEquals(res.status, 403);
+    // Still there — nothing was deleted.
+    const list = await (await handler.GET(
+      ctx(new Request("http://x/api/shopping/categories")),
+    )).json();
+    assertEquals(list.map((c: { id: string }) => c.id), [created.id]);
+  },
+});
+
+Deno.test({
+  name: "DELETE — a manager acting member deletes",
+  sanitizeResources: false,
+  async fn() {
+    await clearCategories();
+    const created = await (await handler.POST(ctx(post({ label: "Bakery" }))))
+      .json();
+    const delReq = new Request("http://x/api/shopping/categories", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: created.id }),
+    });
+    assertEquals((await handler.DELETE(ctx(delReq))).status, 204);
   },
 });

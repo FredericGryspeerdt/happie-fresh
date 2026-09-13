@@ -2,9 +2,17 @@
  * The barcode symbologies we support for loyalty cards. Values map directly to
  * bwip-js `bcid` names (see `utils/barcode.ts`). Linear numeric formats cover
  * the overwhelming majority of retail loyalty cards; `qrcode` covers app-style
- * cards; `code128` is the flexible alphanumeric fallback.
+ * cards; `code128` is the flexible alphanumeric fallback and `code39` covers
+ * legacy alphanumeric loyalty/library cards (Code 39 — uppercase A-Z, digits
+ * and - . $ / + % plus space, without the * sentinels).
  */
-export type BarcodeFormat = "ean13" | "ean8" | "upca" | "code128" | "qrcode";
+export type BarcodeFormat =
+  | "ean13"
+  | "ean8"
+  | "upca"
+  | "code128"
+  | "code39"
+  | "qrcode";
 
 export interface LoyaltyCardInterface {
   id: string;

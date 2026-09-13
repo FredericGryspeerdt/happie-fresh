@@ -155,9 +155,7 @@ Working now: the web manifest, Add to Home Screen, app icons, standalone
 chrome, `viewport-fit=cover` safe-area insets, real touch and scroll behaviour,
 and the on-screen keyboard.
 
-Not working yet: **offline, caching and the update prompt.** `static/pwa-sw.js`
-and `static/pwa-sw-register.ts` exist but nothing imports them, so no service
-worker is registered. `routes/_app.tsx` links the manifest only.
-
-Also note the manifest requests `"display": "fullscreen"`, which iOS does not
-implement; it falls back to standalone.
+Not working yet: **offline and caching.** No caching service worker exists —
+the only worker is the push-only `static/push-sw.js`, registered on demand
+when notifications are enabled. Offline support is roadmapped as issue #74
+(see `docs/superpowers/specs/2026-08-08-pwa-roadmap-design.md`).

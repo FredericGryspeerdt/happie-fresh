@@ -4,6 +4,7 @@ import { ListItem } from "@/components/md3/ListItem.tsx";
 import { Icon, type IconName } from "@/components/md3/Icon.tsx";
 import { Snackbar } from "@/components/md3/Snackbar.tsx";
 import { navigateTo } from "@/utils/loading.ts";
+import InstallSetting from "@/islands/shell/InstallSetting.tsx";
 import NotificationSetting from "@/islands/shell/NotificationSetting.tsx";
 import { unsubscribeThisDevice } from "@/islands/shell/usePushNotifications.ts";
 
@@ -106,7 +107,10 @@ export default function MoreSheet({ open, onClose }: MoreSheetProps) {
           leading={badge("people")}
           headline="Members"
           trailing={chevron()}
-          onClick={() => soon("Members")}
+          onClick={() => {
+            onClose();
+            navigateTo("/members");
+          }}
         />
         <ListItem
           leading={badge("cog")}
@@ -119,6 +123,7 @@ export default function MoreSheet({ open, onClose }: MoreSheetProps) {
             this one — the same reason the due picker is a sibling sheet. */
         }
         <NotificationSetting onOpen={onClose} />
+        <InstallSetting onOpen={onClose} />
         <ListItem
           leading={badge("swap")}
           headline="Switch household"

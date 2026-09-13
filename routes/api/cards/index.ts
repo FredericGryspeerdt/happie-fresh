@@ -1,4 +1,4 @@
-import { define } from "@/utils/index.ts";
+import { define, requireManager } from "@/utils/index.ts";
 import { LoyaltyCardRepo } from "@/database/index.ts";
 import type { BarcodeFormat } from "@/models/index.ts";
 import { validateBarcode } from "@/utils/barcode.ts";
@@ -8,6 +8,7 @@ const FORMATS = new Set<BarcodeFormat>([
   "ean8",
   "upca",
   "code128",
+  "code39",
   "qrcode",
 ]);
 
@@ -26,13 +27,13 @@ export const handler = define.handlers({
   },
 
   async POST(ctx) {
-    const { userId, householdId } = ctx.state;
-    if (!userId || !householdId) {
+    const { householdId, actingMember } = ctx.state;
+    if (!householdId || !actingMember) {
       return new Response("Unauthorized", { status: 401 });
     }
     const body = await ctx.req.json();
     const label = String(body.label ?? "").trim();
-    const value = String(body.value ?? "").trim();
+    let value = String(body.value ?? "").trim();
     const format = body.format as BarcodeFormat;
     const color = body.color ? String(body.color) : undefined;
 
@@ -40,6 +41,7 @@ export const handler = define.handlers({
     if (!FORMATS.has(format)) {
       return new Response("invalid format", { status: 400 });
     }
+    if (format === "code39") value = value.toUpperCase();
     const check = validateBarcode(value, format);
     if (!check.ok) return new Response(check.message, { status: 400 });
 
@@ -49,7 +51,7 @@ export const handler = define.handlers({
       value,
       format,
       color,
-      createdBy: userId,
+      createdBy: actingMember.id,
       createdAt: new Date().toISOString(),
     });
     return json(card, 201);
@@ -63,7 +65,7 @@ export const handler = define.handlers({
     if (!id) return new Response("ID is required", { status: 400 });
 
     const label = String(body.label ?? "").trim();
-    const value = String(body.value ?? "").trim();
+    let value = String(body.value ?? "").trim();
     const format = body.format as BarcodeFormat;
     const color = body.color ? String(body.color) : undefined;
 
@@ -71,6 +73,7 @@ export const handler = define.handlers({
     if (!FORMATS.has(format)) {
       return new Response("invalid format", { status: 400 });
     }
+    if (format === "code39") value = value.toUpperCase();
     const check = validateBarcode(value, format);
     if (!check.ok) return new Response(check.message, { status: 400 });
 
@@ -87,6 +90,9 @@ export const handler = define.handlers({
   async DELETE(ctx) {
     const householdId = ctx.state.householdId;
     if (!householdId) return new Response("Unauthorized", { status: 401 });
+    // Deleting a loyalty card is manager-only (ADR 0006).
+    const forbidden = requireManager(ctx);
+    if (forbidden) return forbidden;
     const { id } = await ctx.req.json();
     if (!id) return new Response("ID is required", { status: 400 });
     await LoyaltyCardRepo.delete(householdId, id);

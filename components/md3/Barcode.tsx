@@ -23,9 +23,12 @@ function toSvg(
   includeText: boolean,
 ): string {
   const isQr = format === "qrcode";
+  // Code 39 is uppercase-only; normalize so a stored lowercase value still
+  // renders and re-scans to its canonical form.
+  const text = format === "code39" ? value.toUpperCase() : value;
   return bwipjs.toSVG({
     bcid: format,
-    text: value,
+    text,
     scale: isQr ? 4 : 3,
     ...(isQr ? {} : {
       height: 14,

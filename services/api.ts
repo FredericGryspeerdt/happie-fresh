@@ -1,18 +1,32 @@
+import type {
+  MoveItemsInput,
+  MoveItemsResult,
+  UndoMoveResult,
+} from "@/models/shopping-list/move.ts";
 import {
+  BulkAddItemInput,
+  BulkAddOptions,
+  BulkAddResult,
   CategoryInterface,
-  ItemInterface,
-  ShoppingListInterface,
-  ShoppingListItemInterface,
-} from "@/models/index.ts";
-import { CreateItemDto } from "@/models/item/item.interface.ts";
-import {
   CreateDishDto,
   DishInterface,
   DishTagGroupInterface,
   DishTagValueInterface,
+  ItemInterface,
+  LoyaltyCardInput,
+  LoyaltyCardInterface,
+  MemberInput,
+  MemberInterface,
+  ShoppingListInterface,
+  ShoppingListItemInterface,
+  TodoInput,
+  TodoInterface,
+  UpdateMemberDto,
+  UpdateTodoDto,
+  Weekday,
+  WeeklyMenuInterface,
 } from "@/models/index.ts";
-import { LoyaltyCardInput, LoyaltyCardInterface } from "@/models/index.ts";
-import { TodoInput, TodoInterface, UpdateTodoDto } from "@/models/index.ts";
+import { CreateItemDto } from "@/models/item/item.interface.ts";
 
 export const api = {
   items: {
@@ -101,6 +115,18 @@ export const api = {
       if (!res.ok) return [];
       return res.json();
     },
+    // Like getAll, but distinguishes "no lists" from "request failed" — the
+    // menu's list picker must never tell a household it has no lists because
+    // the network blipped.
+    getAllOrNull: async (): Promise<ShoppingListInterface[] | null> => {
+      try {
+        const res = await fetch("/api/shopping/lists");
+        if (!res.ok) return null;
+        return await res.json();
+      } catch {
+        return null;
+      }
+    },
     create: async (name: string): Promise<ShoppingListInterface | null> => {
       const res = await fetch("/api/shopping/lists", {
         method: "POST",
@@ -127,13 +153,20 @@ export const api = {
     },
   },
   shoppingList: {
-    getItems: async (
+    getItemsOrNull: async (
       listId: string,
-    ): Promise<ShoppingListItemInterface[]> => {
-      const res = await fetch(`/api/shopping/lists/${listId}/items`);
-      if (!res.ok) return [];
-      return res.json();
+    ): Promise<ShoppingListItemInterface[] | null> => {
+      try {
+        const res = await fetch(`/api/shopping/lists/${listId}/items`);
+        return res.ok ? await res.json() : null;
+      } catch {
+        return null;
+      }
     },
+    // Compatibility for collection callers that intentionally treat failure
+    // as empty. Review flows use the nullable method to preserve their draft.
+    getItems: async (listId: string): Promise<ShoppingListItemInterface[]> =>
+      await api.shoppingList.getItemsOrNull(listId) ?? [],
     addItem: async (
       listId: string,
       itemId: string,
@@ -150,12 +183,47 @@ export const api = {
       listId: string,
       id: string,
       patch: Partial<ShoppingListItemInterface>,
-    ): Promise<void> => {
-      await fetch(`/api/shopping/lists/${listId}/items`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, ...patch }),
-      });
+    ): Promise<ShoppingListItemInterface | null> => {
+      try {
+        const res = await fetch(`/api/shopping/lists/${listId}/items`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...patch, id }),
+        });
+        return res.ok ? await res.json() : null;
+      } catch {
+        return null;
+      }
+    },
+    moveItems: async (
+      listId: string,
+      input: MoveItemsInput,
+    ): Promise<MoveItemsResult | null> => {
+      try {
+        const res = await fetch(`/api/shopping/lists/${listId}/move-items`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(input),
+        });
+        return await res.json();
+      } catch {
+        return null;
+      }
+    },
+    undoMove: async (
+      listId: string,
+      requestId: string,
+    ): Promise<UndoMoveResult | null> => {
+      try {
+        const res = await fetch(`/api/shopping/lists/${listId}/move-items`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ undoRequestId: requestId }),
+        });
+        return await res.json();
+      } catch {
+        return null;
+      }
     },
     removeItem: async (listId: string, id: string): Promise<void> => {
       await fetch(`/api/shopping/lists/${listId}/items`, {
@@ -171,6 +239,31 @@ export const api = {
       if (!res.ok) return null;
       const data = await res.json();
       return data.cleared as number;
+    },
+    bulkAdd: async (
+      listId: string,
+      items: BulkAddItemInput[],
+      options?: BulkAddOptions,
+    ): Promise<BulkAddResult | { error: string } | null> => {
+      try {
+        const res = await fetch(`/api/shopping/lists/${listId}/items/bulk`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ items, ...options }),
+        });
+        if (res.ok) return await res.json();
+        if ([400, 403, 404, 409].includes(res.status)) {
+          const body = await res.json().catch(() => null);
+          return {
+            error: typeof body?.error === "string"
+              ? body.error
+              : "Couldn't add these amounts. Review the list and try again.",
+          };
+        }
+        return null; // Outcome is uncertain; retry exactly the same operation.
+      } catch {
+        return null;
+      }
     },
   },
   dishes: {
@@ -294,6 +387,109 @@ export const api = {
       });
       if (!res.ok) return null;
       return res.json();
+    },
+  },
+  members: {
+    getAll: async (): Promise<MemberInterface[]> => {
+      const res = await fetch("/api/members");
+      if (!res.ok) return [];
+      return res.json();
+    },
+    create: async (input: MemberInput): Promise<MemberInterface | null> => {
+      const res = await fetch("/api/members", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+      });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    update: async (
+      id: string,
+      patch: UpdateMemberDto,
+    ): Promise<MemberInterface | null> => {
+      const res = await fetch(`/api/members/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(patch),
+      });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    remove: async (id: string): Promise<boolean> => {
+      const res = await fetch(`/api/members/${id}`, { method: "DELETE" });
+      return res.ok;
+    },
+    claim: async (id: string): Promise<boolean> => {
+      const res = await fetch("/api/members/acting", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ memberId: id }),
+      });
+      return res.ok;
+    },
+  },
+  weeklyMenu: {
+    get: async (): Promise<WeeklyMenuInterface | null> => {
+      const res = await fetch("/api/menu/plan");
+      if (!res.ok) return null;
+      return res.json();
+    },
+    addDish: async (dishId: string): Promise<WeeklyMenuInterface | null> => {
+      const res = await fetch("/api/menu/plan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dishId }),
+      });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    setDay: async (
+      entryId: string,
+      day: Weekday | null,
+    ): Promise<WeeklyMenuInterface | null> => {
+      const res = await fetch("/api/menu/plan", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ entryId, day }),
+      });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    removeEntry: async (
+      entryId: string,
+    ): Promise<WeeklyMenuInterface | null> => {
+      const res = await fetch("/api/menu/plan", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ entryId }),
+      });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    clear: async (): Promise<WeeklyMenuInterface | null> => {
+      const res = await fetch("/api/menu/plan", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clear: true }),
+      });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    setShoppingList: async (
+      shoppingListId: string,
+    ): Promise<WeeklyMenuInterface | null> => {
+      try {
+        const res = await fetch("/api/menu/plan", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ shoppingListId }),
+        });
+        if (!res.ok) return null;
+        return await res.json();
+      } catch {
+        return null;
+      }
     },
   },
 };

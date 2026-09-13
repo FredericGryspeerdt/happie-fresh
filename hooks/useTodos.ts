@@ -176,6 +176,38 @@ export function useTodos(initialTodos: TodoInterface[]) {
     }
   };
 
+  /**
+   * Set or clear who a to-do is for. Optimistic with rollback and an
+   * immediate PATCH — a discrete commit like setDueAt, not debounced typing.
+   * Works on done to-dos too (the editor opens for them). Assignment never
+   * changes rank, so no re-sort is needed.
+   */
+  const assign = async (
+    id: string,
+    memberId: string | null,
+  ): Promise<boolean> => {
+    if (!findAnywhere(id)) return false;
+    const openSnapshot = openTodos.value;
+    const doneSnapshot = doneTodos.value;
+    const apply = (list: TodoInterface[]) =>
+      list.map((t) => (t.id === id ? { ...t, assignedTo: memberId } : t));
+    openTodos.value = apply(openTodos.value);
+    doneTodos.value = apply(doneTodos.value);
+
+    startPending();
+    try {
+      const saved = await api.todos.update(id, { assignedTo: memberId });
+      if (!saved) {
+        openTodos.value = openSnapshot;
+        doneTodos.value = doneSnapshot;
+        return false;
+      }
+      return true;
+    } finally {
+      endPending();
+    }
+  };
+
   const tickOff = async (id: string): Promise<boolean> => {
     // A second tap during the exit animation (ordinary on mobile) must not
     // start a second run — the row stays in openTodos for EXIT_MS on purpose,
@@ -216,6 +248,16 @@ export function useTodos(initialTodos: TodoInterface[]) {
         doneTodos.value = doneSnapshot;
         return false;
       }
+      // Adopt only the completedBy stamp the optimistic copy can't know (the
+      // acting member lives server-side) — NOT the whole `saved` record.
+      // TodoRepo.update fetches the pre-patch record from KV before merging,
+      // so `saved`'s other fields (title, notes, …) can be stale relative to
+      // an edit that's mid-debounce and hasn't reached the server yet (the
+      // exact race the "edit landing during the exit animation" test below
+      // covers); adopting the full record would silently revert that edit.
+      doneTodos.value = doneTodos.value.map((t) =>
+        t.id === id ? { ...t, completedBy: saved.completedBy } : t
+      );
       return true;
     } finally {
       endPending();
@@ -244,6 +286,15 @@ export function useTodos(initialTodos: TodoInterface[]) {
         doneTodos.value = doneSnapshot;
         return false;
       }
+      // Adopt only the cleared completedBy stamp — see the matching comment
+      // in tickOff for why we don't adopt the whole `saved` record. Rank
+      // never depends on completedBy, but re-sort anyway since this list's
+      // invariant (array position IS the order) must hold after every write.
+      openTodos.value = openTodos.value
+        .map((
+          t,
+        ) => (t.id === id ? { ...t, completedBy: saved.completedBy } : t))
+        .sort(compareTodos);
       return true;
     } finally {
       endPending();
@@ -306,6 +357,7 @@ export function useTodos(initialTodos: TodoInterface[]) {
     editTodo,
     flushTodo,
     setDueAt,
+    assign,
     tickOff,
     unTick,
     removeTodo,

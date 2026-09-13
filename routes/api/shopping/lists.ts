@@ -13,9 +13,8 @@ export const handler = define.handlers({
   },
 
   async POST(ctx) {
-    const userId = ctx.state.userId;
-    const householdId = ctx.state.householdId;
-    if (!userId || !householdId) {
+    const { householdId, actingMember } = ctx.state;
+    if (!householdId || !actingMember) {
       return new Response("Unauthorized", { status: 401 });
     }
     const { name } = await ctx.req.json();
@@ -23,7 +22,7 @@ export const handler = define.handlers({
     const list = await ShoppingListRepo.create({
       householdId,
       name: name.trim(),
-      createdBy: userId,
+      createdBy: actingMember.id,
       createdAt: new Date().toISOString(),
     });
     return new Response(JSON.stringify(list), {

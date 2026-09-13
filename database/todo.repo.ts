@@ -9,13 +9,23 @@ import { TodoNotificationRepo } from "./todo-notification.repo.ts";
 import { compareTodos } from "@/utils/todo-due.ts";
 
 /**
- * `dueAt` was added after the first to-dos were written, so older records have
- * no such key and `value.dueAt` is `undefined`. Normalising here — once, at the
- * read boundary — keeps every consumer free of `?? null` defensiveness. No
- * migration is needed: the field is additive and optional in storage.
+ * `dueAt`, `assignedTo` and `completedBy` were each added after the first
+ * to-dos were written, so older records lack the keys. Normalising here —
+ * once, at the read boundary — keeps every consumer free of `?? null`
+ * defensiveness. No migration is needed: the fields are additive and
+ * optional in storage.
  */
 function normalise(value: TodoInterface): TodoInterface {
-  return value.dueAt === undefined ? { ...value, dueAt: null } : value;
+  if (
+    value.dueAt !== undefined && value.assignedTo !== undefined &&
+    value.completedBy !== undefined
+  ) return value;
+  return {
+    ...value,
+    dueAt: value.dueAt ?? null,
+    assignedTo: value.assignedTo ?? null,
+    completedBy: value.completedBy ?? null,
+  };
 }
 
 /**
@@ -85,5 +95,27 @@ export class TodoRepo {
     // could never be reclaimed and would accumulate forever.
     await TodoNotificationRepo.deleteForTodo(householdId, id);
     await kv.delete(["todos", householdId, id]);
+  }
+
+  /**
+   * A removed member's open to-dos return to "up for grabs" (spec: the work
+   * still needs doing and must not be invisibly parked on a ghost). Done rows
+   * keep their ids dangling by design. Called from the members DELETE handler.
+   */
+  static async unassignMember(
+    householdId: string,
+    memberId: string,
+  ): Promise<number> {
+    const kv = await getKv();
+    let cleared = 0;
+    for await (
+      const entry of kv.list<TodoInterface>({ prefix: ["todos", householdId] })
+    ) {
+      const todo = entry.value;
+      if (todo.assignedTo !== memberId || todo.completedAt !== null) continue;
+      await kv.set(entry.key, { ...todo, assignedTo: null });
+      cleared++;
+    }
+    return cleared;
   }
 }

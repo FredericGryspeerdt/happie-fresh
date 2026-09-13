@@ -322,13 +322,47 @@ safe areas) with far less bespoke CSS. New modules of the platform should feel
 like the same product.
 
 **How:** Reach for the existing pieces first: `Button`, `IconButton`,
-`Pressable`, `Card`, `Sheet` (bottom sheets), `Snackbar`, `Spinner`, `Progress`,
-`Chip`, `Segmented`, `ListItem`, `Icon`, `SearchBar`, `Stepper`, `RoundCheck`,
-`PullToRefresh`, `FabMenu`, `CategoryPickerList`. Confirmations use a bottom
-`Sheet`, not a browser `confirm()` or a center modal.
+`Pressable`, `Card`, `Sheet` (bottom sheets), `Dialog`, `FullScreenDialog`,
+`TextField`, `Switch`, `Snackbar`, `Spinner`, `Progress`, `Chip`, `Segmented`,
+`ListItem`, `ListSubheader`, `Divider`, `Icon`, `SearchBar`, `Stepper`,
+`RoundCheck`, `PullToRefresh`, `FabMenu`, `CategoryPickerList`.
+
+**Overlay boundary (Sheet vs Dialog):**
+
+- **`Sheet`** is the default for keyboard-less overlays: confirmations
+  (always), action lists, pickers, informational content. Never a browser
+  `confirm()`.
+- **`Dialog`** (basic, centered) is for short typed input — one or two
+  fields — or an urgent decision that needs typing. Centered keeps it clear of
+  the soft keyboard, which a bottom sheet fights.
+- **`FullScreenDialog`** is for multi-field create/edit flows on mobile; on
+  larger screens it renders as a centered dialog.
+
+`FullScreenDialog` can take a `footer` outside its scrolling body for persistent
+selection summaries and completion actions. The menu dish picker derives its
+summary from the whole plan, independently of search; “View all” temporarily
+shows planned dishes and preserves the query for “Back to results”. Selection
+saves immediately, so its completion button says “Back to this week”. Disable
+an ancestor `PullToRefresh` while this picker is open so it cannot intercept
+scrolling inside the dialog. See `components/menu/DishPicker.tsx`.
+
+Both dialogs share `useModal` (`components/md3/useModal.ts`): while open they
+lock background scrolling, trap `Tab` focus inside the surface, focus the first
+control on open, and restore focus to the trigger on close. `Sheet` does not
+yet do this — treat that as a known gap, not a pattern to copy.
+
+**Ingredient entry:** use `FullScreenDialog` for repeated search-and-select
+inside the dish editor. Keep a bounded, scrollable selection summary above
+search; matched selections remain visible as “Already added”. Additions clear
+and refocus search (§5); failed creates keep the query and show a Snackbar.
+Close and Done both return to the same dish draft — saving the dish remains
+separate. This is a picker within a create/edit flow, not a stays-open dish
+creation form (§13). See `components/dishes/IngredientPicker.tsx` and
+`islands/dishes/DishEditor.tsx`.
 
 **See:** `components/md3/` (component set), `components/md3/tokens.ts` (tokens +
-`cn` helper).
+`cn` helper), `/design` (dev-only showcase of every component and state — 404s
+in production; use it to verify component changes live).
 
 ---
 
@@ -473,48 +507,20 @@ same shape for the create sheet: `primerRef`/`handoff`/`openCreate`/
 
 ---
 
-## 13. Create sheets that stay open for rapid capture
+## 13. Create surfaces close on save
 
-**Rule:** Most create sheets close on save (New list, Add card, Add dish).
-Where a user plausibly adds several things in one sitting — the to-do backlog
-— the sheet **stays open** after a successful save: it clears its fields and
-keeps focus on the title field. Dismissing it is a separate, deliberate step —
-same as any other `Sheet` (`components/md3/Sheet.tsx`): its own "Close"
-button, tapping the scrim, pressing Escape, or swiping it down.
+**Rule:** A create sheet/dialog **closes when the entry is saved**. Do not
+build stays-open "rapid capture" create flows.
 
-**Why:** It removes two taps per item (no re-opening the sheet for each
-entry), and it keeps the mobile keyboard up between entries instead of
-dismissing and re-raising it — the same class of problem the keyboard primer
-(§12) exists to solve.
+**Why:** The to-dos create sheet originally stayed open between saves to
+remove taps for batch entry. Real-world use (tested on device, Aug 2026)
+showed people add one to-do and move on — the open surface read as "did my
+tap work?" rather than an invitation to add more. Retired with the to-do
+assignment iteration; the keyboard primer (§12) is unaffected and still
+applies to dynamically mounted create fields.
 
-**Don't** use this for creates that need a decision per item (choosing a
-category, a barcode format) — there the sheet closing *is* the confirmation
-that the item was captured correctly.
-
-**How:**
-
-```ts
-const submitNew = async () => {
-  const title = newTitle.value.trim();
-  if (!title) return;
-  const notes = newNotes.value.trim();
-  const created = await addTodo({ title, notes: notes || undefined });
-  if (!created) {
-    say("Couldn't add that to-do. Try again?");
-    return;
-  }
-  // Keep the sheet open and the field focused for the next entry. The
-  // Enter-key path never loses focus, but a tap on the "Add" button does —
-  // so focus must be reclaimed explicitly (same as handleCreate in
-  // islands/add-items.tsx).
-  newTitle.value = "";
-  newNotes.value = "";
-  titleRef.current?.focus();
-};
-```
-
-**See:** `islands/todos/TodoBacklog.tsx` — the create `Sheet` (~line 247) and
-`submitNew` (~line 93).
+**See:** `islands/todos/TodoBacklog.tsx` (`submitNew` closes via
+`closeCreate()`).
 
 ---
 
@@ -536,10 +542,238 @@ trap, which is why the More sheet row exists alongside it.
 show a dead button), granted but nothing stored (subscribe silently), and — on
 iOS — not yet installed to the home screen, where the API exists but cannot work.
 
+**Granted ≠ registered.** `Notification.permission` says what the browser will
+allow, not whether the server knows this device. A phone restored from backup
+keeps the granted permission but not its device-bound push endpoint, so the UI
+reads "on" while nothing ever arrives — and a household-wide test "succeeds" on
+someone else's phone. Any flow that reports on *this* device must first
+re-subscribe it (`syncIfGranted()` on the settings row tap, `subscribe()` inside
+`sendTest()`), inside a user gesture so Safari accepts it.
+
 **See:** `islands/shell/usePushNotifications.ts` and
 `islands/shell/NotificationSetting.tsx`; the nudge in `islands/todos/TodoBacklog.tsx`.
 
 ---
+
+## 15. Acting member: attribution, manager gating, and the chip
+
+**Rule:** Every request acts as a **member** (`ctx.state.actingMember`),
+resolved by the auth middleware from the device's `actingMemberId` cookie
+(falling back to the login's linked member). Stamp attribution
+(`createdBy`) with the acting member's id. Destructive endpoints call
+`requireManager(ctx)` and return its 403 when set; the UI additionally
+hides destructive affordances behind a `canDelete` prop derived from
+`ctx.state.actingMember?.isManager`. The avatar chip in the top app bar is
+always visible so a wrong identity is noticed and switched in one tap.
+
+**Why:** Members are people, users are credentials, and the claim is honor
+system — a guardrail against curious kids, not a security boundary (see
+docs/adr/0006). Hiding the buttons prevents the accidental case; the server
+403 backstops the rest. Never present a "kids can't X" rule as security.
+
+**How:** server: `requireManager` (utils/manager.ts) after the auth guard;
+routes pass `canDelete: ctx.state.actingMember?.isManager === true` into
+islands. Client: `api.members.claim(id)` sets the device cookie; a full
+`reloadPage()` after switching re-renders everything under the new member.
+
+**See:** `routes/_middleware.ts` (resolution), `utils/manager.ts`,
+`islands/shell/ActingMemberChip.tsx`, `routes/api/members/`,
+`docs/adr/0006-members-are-people-users-are-credentials.md`.
+
+---
+
+## 16. Pre-hydration browser events: the head stash script
+
+**Rule:** When a one-shot browser event can fire before islands hydrate (e.g.
+`beforeinstallprompt`), capture it with a tiny inline script in the app
+shell's `<Head>` (`routes/_app.tsx`): call `preventDefault()` if the event
+needs it, park the payload on a `window` property, and dispatch a custom
+event so islands that hydrate later still hear about it.
+
+**Why:** Islands hydrate after the page loads, but a one-shot event doesn't
+wait for them. Chromium fires `beforeinstallprompt` once per page load and
+never re-fires it for that page — an instance that lands before hydration and
+isn't captured is gone for good, and the "Install" affordance would have
+nothing to trigger.
+
+**How:** Emit the script via `dangerouslySetInnerHTML`, not JSX text
+children — **preact-render-to-string HTML-escapes text children of
+`<script>`**, so a plain-children script renders as inert, `&quot;`-escaped
+soup instead of executable JS. A file-level
+`// deno-lint-ignore-file react-no-danger` at the top of `_app.tsx` scopes the
+lint suppression to the one file that needs it, rather than disabling the
+rule line-by-line or repo-wide. The `window` property name and the
+re-announce event name are necessarily duplicated between the stash script (a
+plain string, not type-checked) and its consumer — pin both sides with tests
+so the two copies can't drift apart silently.
+
+```ts
+// routes/_app.tsx — inside <Head>, ahead of any island script
+<script
+  dangerouslySetInnerHTML={{
+    __html:
+      'addEventListener("beforeinstallprompt",(e)=>{e.preventDefault();window.__happieInstallPrompt=e;dispatchEvent(new Event("happie:install-ready"))});',
+  }}
+/>
+```
+
+```ts
+// islands/shell/useInstallPrompt.ts — the consumer contract
+const STASH_KEY = "__happieInstallPrompt";
+export const INSTALL_READY_EVENT = "happie:install-ready";
+addEventListener(INSTALL_READY_EVENT, () => (state.value = detect()));
+```
+
+**See:** `routes/_app.tsx` (stash script, ~lines 36–41; file-level lint
+ignore, line 1), `islands/shell/useInstallPrompt.ts` (consumer contract —
+`STASH_KEY`/`INSTALL_READY_EVENT`, ~lines 21–22, and the listener, ~line 66),
+`tests/app-head.test.ts` (pins the unescaped script, ~lines 40–47).
+
+---
+
+## 17. Sheets portal to body — and are transformed containing blocks
+
+**Rule:** `Sheet` renders in place during SSR and the first client render,
+then portals its wrapper to `document.body` after mount. Never rely on a
+sheet's DOM position. Corollary: anything `position: fixed` rendered *inside*
+a sheet panel is positioned relative to the panel, not the viewport — the
+panel always carries an inline `transform`.
+
+**Why:** A CSS `transform` makes an element the containing block for `fixed`
+descendants. Sheets nested inside another sheet's panel (More → Notifications
+/ Install the app) used to open completely off-screen, because their "fixed"
+wrapper was actually anchored to the outer sheet's transformed panel — which
+then slid away the moment that outer sheet closed.
+
+**How:** A mount-gated portal — the §11 progressive-enhancement flip applied
+to portaling, not just to capability probes — keeps SSR output and hydration
+byte-identical, so `preact-render-to-string` tests keep seeing closed-sheet
+content render in place; some flows depend on that. `Dialog` and
+`FullScreenDialog` do **not** portal yet — don't nest either of them inside a
+`Sheet` (tracked as a follow-up alongside #87).
+
+```ts
+// components/md3/Sheet.tsx
+const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
+useEffect(() => {
+  setPortalTarget(document.body); // after mount only — SSR/first render stay in place
+}, []);
+// …
+return portalTarget ? createPortal(tree, portalTarget) : tree;
+```
+
+**See:** `components/md3/Sheet.tsx` (`portalTarget` state and effect, ~lines
+31–34; the conditional portal, ~line 135), `components/md3/Sheet.test.tsx`
+("SSR renders in place (portal waits for mount)", ~lines 6–15).
+
+---
+
+## 18. Device-capability hooks publish real state, not intent
+
+**Rule:** A reusable hook wrapping a browser capability (wake lock,
+geolocation, sensors, …) belongs in `hooks/` behind a signal-driven API — it
+takes its inputs as `ReadonlySignal`s and returns one. Publish the
+capability's *actual, granted* state, not merely what was requested, and
+degrade silently when the capability is unsupported or refused (§11).
+
+**Why:** UI driven by intent instead of outcome lies. A "we want this" signal
+stays true even when the browser can't or won't grant it — an unsupported
+API, a request the OS refuses (battery saver, most commonly), or a grant the
+browser later revokes on its own — so any indicator built on it keeps
+claiming something is happening when it isn't.
+
+**How:** Track the granted state in its own `useSignal`, flip it at every
+point the underlying resource is acquired, released, revoked, or refused, and
+return *that* signal (not the input intent) for callers to render from.
+
+```ts
+// hooks/useWakeLock.ts
+export function useWakeLock(
+  shouldHold: ReadonlySignal<boolean>,
+): { held: ReadonlySignal<boolean> } { /* … */ }
+```
+
+```ts
+// islands/items.tsx
+const { held: screenAwake } = useWakeLock(hasOpenItems);
+// …
+{screenAwake.value && <span>… Screen awake</span>}
+```
+
+The Shop-mode chip renders from `held`, so it disappears the moment a browser
+refuses the lock (battery saver mid-shop) instead of claiming an awake screen
+that isn't there.
+
+**See:** `hooks/useWakeLock.ts`, `islands/items.tsx`.
+
+---
+
+## 19. Bulk writes go through a guided review and one server-side endpoint
+
+**Rule:** When one tap would write many records (e.g. "Add ingredients to a shopping list"
+on the weekly menu), show a guided `FullScreenDialog` first — every row ticked by
+default, including editable additions to existing entries — and send the confirmed
+set as **one** request whose handler applies the dedup/merge rules and commits
+atomically. Never loop single-record POSTs from the client.
+
+Keep weekly planning and shopping as distinct entry points: outlined **Add
+dishes** opens the planning checklist; the filled bottom **Add ingredients to a
+shopping list** action starts **Shop for dishes**, using the current weekly plan.
+The planning picker returns to the week before shopping begins. Its persistent
+summary only describes the plan; shopping selections belong to the guided review.
+
+**Why:** A blind bulk add is noisy (pantry staples) and hard to undo; per-row
+requests leave half-written state on flaky mobile connections and race when two
+members tap at once. The preview *is* the undo, and the server is the only
+place the "already there" decision can be made safely.
+
+**How:** Pure row-builder (`collectIngredients`) → flow hook holds
+`step`/dish-selection/ingredient-selection/amount signals → presentational dialog renders rows with `RoundCheck`
++ `ListItem` and a `Button loading` confirm labelled with the count → `api`
+call to a `/bulk` route → repo method builds one `kv.atomic()`.
+
+**See:** `utils/menu-ingredients.ts`, `hooks/useMenuShopping.ts`,
+`components/menu/IngredientPreviewDialog.tsx`,
+`routes/api/shopping/lists/[id]/items/bulk.ts`,
+`database/shopping-list-item.repo.ts` (`bulkAdd`).
+
+---
+
+### Menu shopping details
+
+Choose dishes first, then review category-grouped ingredients. A separate
+`components/shopping/ShoppingAmountDialog.tsx` edits a local amount/unit draft; only final confirmation
+writes shopping entries. Amounts are shopping choices, not recipe totals.
+Changing the destination opens the list picker above the retained review, like
+the amount editor. Cancelling returns to that review; choosing a list refreshes
+its existing amounts and totals. The initial list choice opens on its own.
+Back and destination changes preserve selections and amount overrides. Failed
+list-entry reads preserve the previous state rather than showing an empty list.
+Already-on-list entries stay in their category with an editable additional amount
+and a preview of the combined total. Unticking leaves the existing entry unchanged.
+Bought entries retain their previous amount unless explicitly edited.
+
+`utils/shopping-amount.ts` owns compatible-unit arithmetic for both preview and
+server writes. Only g/kg and ml/L convert; pieces and packs remain separate.
+The menu sends `addToExisting` with a stable request ID. The repo adds against
+the latest stored amount and records the result atomically; repeating the same
+request returns that result without adding again. Ordinary bulk callers retain
+their existing skip behavior.
+
+An uncertain submission keeps the draft locked with an inline retry action,
+reusing the exact payload and request ID. This draft survives closing/reopening
+the dialog in the current page, but is not persisted across page reloads.
+A definite rejection unlocks the draft and refreshes list amounts for correction.
+
+The full-screen dialog uses a bounded grid row and a shrinkable surface, so its
+body scrolls independently while the footer remains visible. Disable the page
+pull-to-refresh gesture while the guided flow is open.
+
+`useModal` keeps a stack: only the top modal handles Escape/Tab, and background
+scrolling remains locked until the last modal closes. Closed dialogs are inert.
+For the amount editor, focus the dialog heading on open; users tap the decimal
+field to open their keyboard. This deliberate extra-tap interaction avoids an
+unreliable asynchronous keyboard request (§12).
 
 ## Review checklist for user-facing changes
 
@@ -562,8 +796,13 @@ Before merging anything the user sees, tick these (section refs in parens):
       `useSignal` (never a bare `signal()` in a body)? (§8)
 - [ ] UI is composed from MD3 components + tokens, not hand-rolled or
       hardcoded colors/spacing? (§9)
+- [ ] Overlays respect the boundary: `Sheet` for keyboard-less content,
+      `Dialog` for short typed input, `FullScreenDialog` for multi-field
+      flows? (§9)
 - [ ] Works mobile-first: safe areas respected, primary actions reachable, touch
       targets generous, gestures supported? (§10)
+- [ ] A single tap that writes many records goes through a guided review and one
+      bulk endpoint, never a client-side loop of single writes? (§19)
 
 ## Extending this document
 
@@ -576,3 +815,42 @@ in the same change.
 Candidate topics still to document as they solidify: form validation & inline
 errors, confirmation/destructive-action flow, empty & loading states for whole
 screens, drag-to-reorder, and offline behavior.
+
+
+### Shopping implementation ownership
+
+- `models/shopping-list/shopping-list-item.interface.ts` owns `SHOPPING_UNITS`;
+  the type, validator, and dialog options derive from that list.
+- `utils/shopping-list-entries.ts` owns legacy duplicate resolution, used by
+  ingredient collection, preview amounts, and atomic bulk writes.
+- `api.shoppingList.updateItem` is the single PATCH method and returns the saved
+  entry or `null`. Both debounced edits and explicit amount saves use it.
+- `useMenuShopping` owns the local draft. `useShoppingList.saveAmount` owns the
+  persisted save, including waiting for older queued writes. These are different
+  operations and intentionally do not share a controller.
+- `getItems` retains the existing empty-array fallback for older callers but
+  delegates to `getItemsOrNull`; review uses the nullable result to distinguish
+  failure from an empty shopping list.
+
+## Bulk shopping moves
+
+**Rule:** Enter explicit selection mode before moving shopping list entries.
+Rows become whole-row checkbox targets with read-only quantities; in-cart
+entries remain separately selectable. A keyboard-less destination `Sheet`
+leads to a sibling short-input `Dialog` for a new list. Focus follows the
+keyboard-primer pattern; never nest that Dialog inside a transformed Sheet.
+
+**Why:** Selection must not accidentally change quantities or check off items.
+Move confirmation stays on the source list and offers Undo for ten seconds.
+A newly created destination stays after Undo; matching catalogue items remain
+separate entries (ADR 0008).
+
+**How:** Wait for pending and in-flight entry saves before moving. Use one
+atomic operation (up to 40 entries), show loading, and keep selection on failure.
+This bulk operation waits for server confirmation because its destination may
+be created in the same transaction. Animate rows out after success. Undo checks
+that entries have not changed since the move and reports conflicts instead of
+overwriting newer household changes. Receipts make move/undo retries idempotent.
+
+**See:** `components/shopping/MoveItems.tsx`, `hooks/useShoppingList.ts`,
+`database/shopping-list-move.repo.ts`, `utils/debounce-update.ts`.

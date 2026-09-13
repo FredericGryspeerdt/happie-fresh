@@ -27,10 +27,11 @@ const fieldClass =
 interface CatalogueProps {
   initialItems: ItemInterface[];
   initialCategories: CategoryInterface[];
+  canDelete: boolean;
 }
 
 export default function Catalogue(
-  { initialItems, initialCategories }: CatalogueProps,
+  { initialItems, initialCategories, canDelete }: CatalogueProps,
 ) {
   // useMemo with [] ensures useCatalogue is called only once — its signals
   // are initialized from SSR props and must not be recreated on re-render.
@@ -263,6 +264,7 @@ export default function Catalogue(
         item={editing.value}
         cats={cats}
         names={names}
+        canDelete={canDelete}
         onClose={() => (editing.value = null)}
         onRename={(name) => {
           if (editing.value) renameItem(editing.value.id, name);
@@ -317,6 +319,7 @@ export default function Catalogue(
         itemCount={menuCat.value
           ? itemsForCategory(menuCat.value.id).length
           : 0}
+        canDelete={canDelete}
         onClose={() => (menuCat.value = null)}
         onRename={(label) => {
           if (menuCat.value) renameCategory(menuCat.value.id, label);
@@ -361,10 +364,11 @@ export default function Catalogue(
 
 /* ── Edit one catalogue item ── */
 function EditItemSheet(
-  { item, cats, names, onClose, onRename, onMove, onRemove }: {
+  { item, cats, names, canDelete, onClose, onRename, onMove, onRemove }: {
     item: ItemInterface | null;
     cats: CategoryInterface[];
     names: Set<string>;
+    canDelete: boolean;
     onClose: () => void;
     onRename: (name: string) => void;
     onMove: (categoryId: string) => void;
@@ -422,9 +426,11 @@ function EditItemSheet(
             ))}
           </div>
         </div>
-        <Button variant="error" icon="trash" onClick={onRemove}>
-          Remove from catalogue
-        </Button>
+        {canDelete && (
+          <Button variant="error" icon="trash" onClick={onRemove}>
+            Remove from catalogue
+          </Button>
+        )}
       </div>
     </Sheet>
   );
@@ -656,9 +662,10 @@ function CategoryPicker(
 
 /* ── Rename / delete a category ── */
 function CategoryMenuSheet(
-  { category, itemCount, onClose, onRename, onDelete }: {
+  { category, itemCount, canDelete, onClose, onRename, onDelete }: {
     category: CategoryInterface | null;
     itemCount: number;
+    canDelete: boolean;
     onClose: () => void;
     onRename: (label: string) => void;
     onDelete: () => void;
@@ -691,13 +698,15 @@ function CategoryMenuSheet(
             </Button>
           </div>
         </div>
-        <Button variant="error" icon="trash" onClick={onDelete}>
-          Delete category{itemCount > 0
-            ? ` · ${itemCount} item${
-              itemCount === 1 ? "" : "s"
-            } become uncategorized`
-            : ""}
-        </Button>
+        {canDelete && (
+          <Button variant="error" icon="trash" onClick={onDelete}>
+            Delete category{itemCount > 0
+              ? ` · ${itemCount} item${
+                itemCount === 1 ? "" : "s"
+              } become uncategorized`
+              : ""}
+          </Button>
+        )}
       </div>
     </Sheet>
   );

@@ -5,7 +5,12 @@ import AppChrome from "./AppChrome.tsx";
 
 Deno.test("AppChrome — mode:none renders only the loading bar (full-screen route)", () => {
   const html = render(
-    h(AppChrome, { appBar: { mode: "none" }, sectionTitle: "Shopping" }),
+    h(AppChrome, {
+      appBar: { mode: "none" },
+      sectionTitle: "Shopping",
+      actingMember: null,
+      actingClaimed: true,
+    }),
   );
   assertStringIncludes(html, 'role="progressbar"');
   assertFalse(html.includes('aria-label="Main navigation"'));
@@ -17,6 +22,8 @@ Deno.test("AppChrome — mode:detail renders a back + title bar", () => {
     h(AppChrome, {
       appBar: { mode: "detail", title: "Add items", backUrl: "/shopping/l1" },
       sectionTitle: "Shopping",
+      actingMember: null,
+      actingClaimed: true,
     }),
   );
   assertStringIncludes(html, "Add items");

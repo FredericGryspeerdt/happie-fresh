@@ -27,9 +27,17 @@ export interface SeedList {
   items: SeedListItem[];
 }
 
+export interface FixtureMember {
+  name: string;
+  color: string;
+  emoji: string;
+  isManager: boolean;
+}
+
 export interface SeedUser {
   username: string;
   password: string;
+  members: FixtureMember[];
   lists: SeedList[];
 }
 
@@ -128,6 +136,12 @@ export const users: SeedUser[] = [
     // SEED_USERNAME/SEED_PASSWORD when those env vars are set.
     username: "demo",
     password: "password",
+    members: [
+      { name: "Demo", color: "coral", emoji: "🦊", isManager: true },
+      { name: "Robin", color: "sunshine", emoji: "🌻", isManager: true },
+      { name: "Bo", color: "meadow", emoji: "🐸", isManager: false },
+      { name: "Pip", color: "lavender", emoji: "🦄", isManager: false },
+    ],
     lists: [
       {
         name: "Weekly Groceries",
@@ -186,6 +200,9 @@ export const users: SeedUser[] = [
   {
     username: "alex",
     password: "happie123",
+    members: [
+      { name: "Alex", color: "sky", emoji: "⭐", isManager: true },
+    ],
     lists: [
       {
         name: "Groceries",
@@ -214,6 +231,9 @@ export const users: SeedUser[] = [
   {
     username: "sam",
     password: "happie123",
+    members: [
+      { name: "Sam", color: "slate", emoji: "🐼", isManager: true },
+    ],
     lists: [
       {
         // Edge: a long list spanning every category + an uncategorized item.

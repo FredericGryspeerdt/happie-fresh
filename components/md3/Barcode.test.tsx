@@ -15,6 +15,16 @@ Deno.test("Barcode — renders an SVG image for a QR code", () => {
   assertStringIncludes(html, "data:image/svg+xml");
 });
 
+Deno.test("Barcode — renders an SVG image for a Code 39", () => {
+  const html = render(h(Barcode, { value: "HELLO-123", format: "code39" }));
+  assertStringIncludes(html, "data:image/svg+xml");
+});
+
+Deno.test("Barcode — Code 39 lower-case is normalized to upper and renders", () => {
+  const html = render(h(Barcode, { value: "hello", format: "code39" }));
+  assertStringIncludes(html, "data:image/svg+xml");
+});
+
 Deno.test("Barcode — friendly fallback when the value can't be encoded", () => {
   // A non-numeric value is invalid for EAN-13, so bwip-js throws.
   const html = render(h(Barcode, { value: "not-a-barcode", format: "ean13" }));

@@ -68,8 +68,19 @@ Deno.test("validateBarcode — qrcode accepts arbitrary non-empty text", () => {
   assertEquals(validateBarcode("", "qrcode").ok, false);
 });
 
+Deno.test("validateBarcode — code39 accepts uppercase A-Z 0-9 - . $ / + % and space, case-insensitive, rejects *", () => {
+  assertEquals(validateBarcode("ABC-123", "code39").ok, true);
+  assertEquals(validateBarcode("HELLO 123", "code39").ok, true);
+  assertEquals(validateBarcode("A/B+C.D$E%F", "code39").ok, true);
+  assertEquals(validateBarcode("abc-123", "code39").ok, true);
+  assertEquals(validateBarcode("ABC*123", "code39").ok, false);
+  assertEquals(validateBarcode("ABC_123", "code39").ok, false);
+  assertEquals(validateBarcode("   ", "code39").ok, false);
+});
+
 Deno.test("formatLabel — human-readable names", () => {
   assertEquals(formatLabel("ean13"), "EAN-13");
+  assertEquals(formatLabel("code39"), "Code 39");
   assertEquals(formatLabel("qrcode"), "QR code");
 });
 
@@ -79,6 +90,7 @@ Deno.test("SUPPORTED_FORMATS — covers every supported symbology once", () => {
     "ean8",
     "upca",
     "code128",
+    "code39",
     "qrcode",
   ]);
 });

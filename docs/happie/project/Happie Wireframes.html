@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Happie · Wireframe Exploration</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Caveat:wght@500;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="wireframe.css" />
+</head>
+<body>
+
+<header class="top">
+  <img src="assets/logo.svg" alt="Happie logo" />
+  <h1>Happie</h1>
+  <span class="sub hand">wireframe exploration · v1</span>
+  <div class="legend">
+    <span class="dot"><span class="sw"></span> = accent / active</span>
+    <span class="dot hand">low-fi · structure over polish</span>
+  </div>
+</header>
+
+<!-- IDEA SWITCH -->
+<div class="tabs lvl1" id="ideaTabs">
+  <button class="tab active" data-idea="shell">🧭 App Shell &amp; Navigation</button>
+  <button class="tab" data-idea="shop">🛒 Shopping Flow</button>
+</div>
+
+<!-- APPROACH ROW: SHELL -->
+<div class="tabs lvl2" data-for="shell">
+  <button class="tab small active" data-app="a"><span class="k">A</span>Module Tabs</button>
+  <button class="tab small" data-app="b"><span class="k">B</span>Home Hub + Drawer</button>
+  <button class="tab small" data-app="c"><span class="k">C</span>Household Timeline</button>
+</div>
+<!-- APPROACH ROW: SHOP -->
+<div class="tabs lvl2" data-for="shop" style="display:none">
+  <button class="tab small active" data-app="a"><span class="k">A</span>Plan vs Shop modes</button>
+  <button class="tab small" data-app="b"><span class="k">B</span>Catalogue &amp; Aisles</button>
+  <button class="tab small" data-app="c"><span class="k">C</span>Live Shared Cart</button>
+</div>
+
+<!-- ===================== SHELL · A — MODULE TABS ===================== -->
+<section class="panel active" id="shell-a">
+  <div class="concept">
+    <span class="tag">bottom tab bar</span>
+    <h2>A · Module Tabs</h2>
+    <p>Each module is a bottom tab; a <b>Home</b> tab is the household dashboard. Familiar, thumb-friendly, instantly legible for any age. A fifth “More” slot absorbs new modules as the platform grows.</p>
+  </div>
+  <div class="board">
+    <!-- Home dashboard -->
+    <div class="frame">
+      <div class="phone"><div class="notch"></div><div class="screen">
+        <div class="pbar"><span class="ttl grow">Casa Garcia</span>
+          <div class="stack"><span class="av h">M</span><span class="av b">D</span><span class="av g">S</span></div>
+          <span class="icbtn">🔔</span></div>
+        <div class="scroll">
+          <span class="hand lg muted">Good morning! ☀️</span>
+          <div class="grid2">
+            <div class="sk pad col gap6"><span class="lg">🛒</span><span class="md b">Shopping</span><span class="sm muted">6 items · 2 lists</span></div>
+            <div class="sk2 pad col gap6"><span class="lg">✅</span><span class="md b">To-dos</span><span class="sm muted">3 tasks · 1 yours</span></div>
+          </div>
+          <div class="sk pad between"><span class="sm b">Who's home</span>
+            <div class="stack"><span class="av sm h">M</span><span class="av sm g">S</span><span class="av sm p">Mi</span></div></div>
+          <span class="sm b" style="margin-top:2px">Latest activity</span>
+          <div class="sk pad col gap8">
+            <div class="row"><span class="av sm h">M</span><span class="sm">added <b>Milk</b> to Groceries</span></div>
+            <div class="row"><span class="av sm g">S</span><span class="sm">✓ finished <b>Trash</b> 🎉</span></div>
+          </div>
+        </div>
+        <div class="fab">＋</div>
+        <div class="btab">
+          <div class="it on"><span class="ic">🏠</span>Home</div>
+          <div class="it"><span class="ic">🛒</span>Shop</div>
+          <div class="it"><span class="ic">✅</span>To-dos</div>
+          <div class="it"><span class="ic">🍽️</span>Menu</div>
+          <div class="it"><span class="ic">•••</span>More</div>
+        </div>
+      </div></div>
+      <div class="cap"><span class="step">1 ·</span> <b>Home dashboard</b> — a glance at the whole household.</div>
+    </div>
+
+    <!-- annotation -->
+    <div class="notewrap">
+      <div class="note tilt">5 slots = 4 core modules + “More”. New modules park under More, then get promoted to a tab when used a lot.</div>
+      <div class="arrow">↙ tab bar</div>
+      <div class="note tilt2">FAB “＋” is context-aware: quick-add to whichever module you're in.</div>
+    </div>
+
+    <!-- Shopping tab -->
+    <div class="frame">
+      <div class="phone"><div class="notch"></div><div class="screen">
+        <div class="pbar"><span class="ttl grow">Shopping</span>
+          <div class="stack"><span class="av h">M</span><span class="av b">D</span></div></div>
+        <div class="row gap6" style="padding:2px 4px 6px"><span class="chip on">Lists</span><span class="chip">Catalogue</span><span class="chip">Categories</span></div>
+        <div class="scroll">
+          <div class="sk pad col gap8"><div class="between"><span class="md b">Weekly Groceries</span><span class="pill">6</span></div>
+            <div class="bar m honeyfill"></div>
+            <div class="between"><span class="stack"><span class="av sm h">M</span><span class="av sm b">D</span><span class="av sm g">S</span></span><span class="xs muted">updated 2m ago</span></div></div>
+          <div class="sk2 pad col gap8"><div class="between"><span class="md b">Hardware store</span><span class="pill">3</span></div>
+            <div class="bar s"></div>
+            <div class="row"><span class="av sm b">D</span></div></div>
+          <div class="dashbox pad sm">＋ New list</div>
+        </div>
+        <div class="btab"><div class="it"><span class="ic">🏠</span>Home</div><div class="it on"><span class="ic">🛒</span>Shop</div><div class="it"><span class="ic">✅</span>To-dos</div><div class="it"><span class="ic">🍽️</span>Menu</div><div class="it"><span class="ic">•••</span>More</div></div>
+      </div></div>
+      <div class="cap"><span class="step">2 ·</span> <b>Module screen</b> — sub-sections become chips, not nested menus.</div>
+    </div>
+
+    <!-- More sheet -->
+    <div class="frame">
+      <div class="phone"><div class="notch"></div><div class="screen">
+        <div class="pbar"><span class="ttl grow">More</span></div>
+        <div class="scroll">
+          <span class="sm b muted">Modules</span>
+          <div class="sk pad row gap8"><span class="lg">🍽️</span><span class="md grow">Menu planner</span><span class="muted">›</span></div>
+          <div class="sk2 pad row gap8"><span class="lg">🎟️</span><span class="md grow">Loyalty cards</span><span class="muted">›</span></div>
+          <div class="dashbox pad sm">＋ Add module</div>
+          <span class="sm b muted" style="margin-top:6px">Household</span>
+          <div class="sk pad row gap8"><span class="lg">👪</span><span class="md grow">Members</span><span class="muted">›</span></div>
+          <div class="sk2 pad row gap8"><span class="lg">⚙️</span><span class="md grow">Settings</span><span class="muted">›</span></div>
+          <div class="sk pad row gap8"><span class="lg">🔁</span><span class="md grow">Switch household</span><span class="muted">›</span></div>
+        </div>
+        <div class="btab"><div class="it"><span class="ic">🏠</span>Home</div><div class="it"><span class="ic">🛒</span>Shop</div><div class="it"><span class="ic">✅</span>To-dos</div><div class="it"><span class="ic">🍽️</span>Menu</div><div class="it on"><span class="ic">•••</span>More</div></div>
+      </div></div>
+      <div class="cap"><span class="step">3 ·</span> <b>“More”</b> — overflow modules + household settings in one place.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== SHELL · B — HOME HUB + DRAWER ===================== -->
+<section class="panel" id="shell-b">
+  <div class="concept">
+    <span class="tag">hamburger / drawer</span>
+    <h2>B · Home Hub + Drawer</h2>
+    <p>A spacious <b>hub of module tiles</b> is home. A left <b>drawer</b> handles household switching, members, the full module list and settings. The grid scales forever — a new module is just one more card.</p>
+  </div>
+  <div class="board">
+    <!-- Drawer open -->
+    <div class="frame">
+      <div class="phone"><div class="notch"></div><div class="screen">
+        <div class="drawer"><div class="sheet">
+          <div class="row gap8"><img src="assets/logo.svg" style="width:26px;height:26px" alt="" /><span class="lg b grow">Casa Garcia</span><span class="muted">▾</span></div>
+          <span class="xs muted">Household members</span>
+          <div class="col gap6">
+            <div class="row gap8"><span class="av sm h">M</span><span class="sm">Mom</span></div>
+            <div class="row gap8"><span class="av sm b">D</span><span class="sm">Dad</span></div>
+            <div class="row gap8"><span class="av sm g">S</span><span class="sm">Sam</span></div>
+            <div class="row gap8"><span class="av sm p">Mi</span><span class="sm">Mia</span></div>
+          </div>
+          <div class="bar l" style="height:2px;background:var(--line);border:none"></div>
+          <div class="col gap8 sm">
+            <div class="row gap8"><span>🛒</span> Shopping</div>
+            <div class="row gap8"><span>✅</span> To-dos</div>
+            <div class="row gap8"><span>🍽️</span> Menu planner</div>
+            <div class="row gap8"><span>🎟️</span> Loyalty cards</div>
+            <div class="row gap8 muted"><span>＋</span> Add module</div>
+          </div>
+          <div class="bar l" style="height:2px;background:var(--line);border:none"></div>
+          <div class="row gap8 sm">⚙️ Settings</div>
+        </div><div class="scrim"></div></div>
+      </div></div>
+      <div class="cap"><span class="step">1 ·</span> <b>Drawer</b> — switch household, see members, jump to any module.</div>
+    </div>
+
+    <div class="notewrap">
+      <div class="note tilt">Drawer carries everything that isn't a module: household identity, people, settings.</div>
+      <div class="arrow">tiles ↘</div>
+      <div class="note tilt2">Each tile shows a live status badge so home doubles as a dashboard.</div>
+    </div>
+
+    <!-- Hub -->
+    <div class="frame">
+      <div class="phone"><div class="notch"></div><div class="screen">
+        <div class="pbar"><span class="icbtn">☰</span><span class="ttl grow">Casa Garcia</span>
+          <div class="stack"><span class="av h">M</span><span class="av b">D</span><span class="av g">S</span></div></div>
+        <div class="scroll">
+          <span class="hand lg muted">Hi team 👋</span>
+          <div class="grid2">
+            <div class="tile"><span class="ic">🛒</span><span class="md b">Shopping</span><span class="badge">6 items</span><div class="bar m honeyfill"></div></div>
+            <div class="tile"><span class="ic">✅</span><span class="md b">To-dos</span><span class="badge">3 today</span><div class="bar s"></div></div>
+            <div class="tile"><span class="ic">🍽️</span><span class="md b">Menu</span><span class="badge">Plan week</span></div>
+            <div class="tile"><span class="ic">🎟️</span><span class="md b">Cards</span><span class="badge">4 saved</span></div>
+          </div>
+          <div class="dashbox pad md">＋ Add a module</div>
+        </div>
+      </div></div>
+      <div class="cap"><span class="step">2 ·</span> <b>Home hub</b> — big tiles, each a module with status at a glance.</div>
+    </div>
+
+    <!-- Module opened -->
+    <div class="frame">
+      <div class="phone"><div class="notch"></div><div class="screen">
+        <div class="pbar"><span class="icbtn">←</span><span class="ttl grow">Shopping</span></div>
+        <div class="row gap6" style="padding:2px 4px 6px"><span class="chip on">Lists</span><span class="chip">Catalogue</span><span class="chip">Categories</span></div>
+        <div class="scroll">
+          <div class="sk pad col gap8"><div class="between"><span class="md b">Weekly Groceries</span><span class="pill">6</span></div><div class="bar m honeyfill"></div>
+            <div class="stack"><span class="av sm h">M</span><span class="av sm b">D</span></div></div>
+          <div class="sk2 pad col gap8"><div class="between"><span class="md b">Birthday party</span><span class="pill">8</span></div><div class="bar l"></div></div>
+          <div class="dashbox pad sm">＋ New list</div>
+        </div>
+      </div></div>
+      <div class="cap"><span class="step">3 ·</span> <b>Tile → module → back.</b> Flat &amp; roomy; depth only when needed.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== SHELL · C — HOUSEHOLD TIMELINE ===================== -->
+<section class="panel" id="shell-c">
+  <div class="concept">
+    <span class="tag">novel · collaboration-first</span>
+    <h2>C · Household Timeline</h2>
+    <p>Home is a <b>living feed</b> of household life — who added, finished, planned what — with reactions and kudos. Modules open from a launcher, keeping the shared effort, not the navigation, at the centre.</p>
+  </div>
+  <div class="board">
+    <!-- Feed -->
+    <div class="frame">
+      <div class="phone"><div class="notch"></div><div class="screen">
+        <div class="pbar"><span class="icbtn">⊞</span><span class="ttl grow">Casa Garcia</span>
+          <div class="stack"><span class="av h">M</span><span class="av b">D</span><span class="av g">S</span></div></div>
+        <div class="row gap6 wrap" style="padding:2px 4px 6px"><span class="chip on">All</span><span class="chip">🛒</span><span class="chip">✅</span><span class="chip">🍽️</span></div>
+        <div class="scroll">
+          <div class="event"><span class="av sm h">M</span><div class="col gap4 grow"><span class="sm"><b>Mom</b> added 3 items</span><span class="row gap6 wrap"><span class="xs muted">8:02</span><span class="react">👍 2</span></span></div></div>
+          <div class="event"><span class="av sm g">S</span><div class="col gap4 grow"><span class="sm"><b>Sam</b> ✓ Take out trash</span><span class="row gap6 wrap"><span class="xs muted">7:40</span><span class="react">🔥 +1</span><span class="react">🙌</span></span></div></div>
+          <div class="event"><span class="av sm b">D</span><div class="col gap4 grow"><span class="sm"><b>Dad</b> planned dinner</span><span class="row gap6 wrap"><span class="xs muted">y'day</span><span class="react">❤️ 1</span></span></div></div>
+        </div>
+        <div class="fab">＋</div>
+      </div></div>
+      <div class="cap"><span class="step">1 ·</span> <b>Timeline</b> — household life as a shared, reactable feed.</div>
+    </div>
+
+    <div class="notewrap">
+      <div class="note tilt">No nav bar. The feed is the point — effort stays visible, so chores feel collective.</div>
+      <div class="arrow">⊞ launcher ↗</div>
+      <div class="note tilt2">Filter chips scope the feed to one module without leaving home.</div>
+    </div>
+
+    <!-- Launcher -->
+    <div class="frame">
+      <div class="phone"><div class="notch"></div><div class="screen" style="background:rgba(44,43,40,.28)">
+        <div style="opacity:.4;pointer-events:none;display:flex;flex-direction:column;gap:8px;padding:2px 4px">
+          <div class="pbar"><span class="icbtn">⊞</span><span class="ttl grow">Casa Garcia</span></div>
+          <div class="event"><span class="av sm h">M</span><div class="col gap4 grow"><span class="sm">Mom added 3 items…</span></div></div>
+          <div class="event"><span class="av sm g">S</span><div class="col gap4 grow"><span class="sm">Sam ✓ Take out trash</span></div></div>
+        </div>
+        <div class="sk pad14 col gap12" style="margin:auto 6px 14px">
+          <span class="lg b">Open a module</span>
+          <div class="grid2">
+            <div class="sk pad col center gap6"><span class="lg">🛒</span><span class="sm">Shopping</span></div>
+            <div class="sk2 pad col center gap6"><span class="lg">✅</span><span class="sm">To-dos</span></div>
+            <div class="sk2 pad col center gap6"><span class="lg">🍽️</span><span class="sm">Menu</span></div>
+            <div class="sk pad col center gap6"><span class="lg">🎟️</span><span class="sm">Cards</span></div>
+          </div>
+          <div class="dashbox pad sm">＋ Add module</div>
+        </div>
+      </div></div>
+      <div class="cap"><span class="step">2 ·</span> <b>Launcher</b> — modules open like apps, summoned from the ⊞ button.</div>
+    </div>
+
+    <!-- Kudos / assign -->
+    <div class="frame">
+      <div class="phone"><div class="notch"></div><div class="screen">
+        <div class="pbar"><span class="icbtn">←</span><span class="ttl grow">Sam's win 🎉</span></div>
+        <div class="scroll">
+          <div class="sk pad14 col gap12 center" style="text-align:center">
+            <span class="av g" style="width:54px;height:54px;font-size:24px">S</span>
+            <span class="lg b">Nice one, Sam!</span>
+            <span class="sm muted">Trash done — 3-day streak 🔥</span>
+            <div class="row gap8"><span class="react">👏</span><span class="react">❤️</span><span class="react">🙌</span><span class="chip on">Say thanks</span></div>
+          </div>
+          <div class="sk2 pad col gap8"><span class="sm b">Pass it on</span>
+            <div class="between"><span class="sm muted">Assign next chore</span><span class="chip">Mia ▾</span></div></div>
+        </div>
+      </div></div>
+      <div class="cap"><span class="step">3 ·</span> <b>Kudos &amp; hand-off</b> — thank, react, then assign the next turn.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== SHOP · A — PLAN vs SHOP ===================== -->
+<section class="panel" id="shop-a">
+  <div class="concept">
+    <span class="tag">two modes, one list</span>
+    <h2>A · Plan vs Shop modes</h2>
+    <p>Every list has two faces. <b>Plan</b> at home — add, set quantities, notes, assign to a person. <b>Shop</b> on the go — condensed, big tap targets, progress, screen stays awake. A single toggle flips between them.</p>
+  </div>
+  <div class="board">
+    <!-- Lists overview -->
+    <div class="frame">
+      <div class="phone"><div class="notch"></div><div class="screen">
+        <div class="pbar"><span class="ttl grow">Shopping</span><div class="stack"><span class="av h">M</span><span class="av b">D</span></div></div>
+        <div class="scroll">
+          <div class="sk pad col gap8"><div class="between"><span class="md b">Weekly Groceries</span><span class="pill">6</span></div><div class="bar m honeyfill"></div>
+            <div class="between"><span class="stack"><span class="av sm h">M</span><span class="av sm b">D</span><span class="av sm g">S</span></span><span class="xs muted">updated 2m</span></div></div>
+          <div class="sk2 pad col gap8"><div class="between"><span class="md b">Hardware store</span><span class="pill">3</span></div><div class="bar s"></div></div>
+          <div class="sk pad col gap8"><div class="between"><span class="md b">Birthday party</span><span class="pill">8</span></div><div class="bar l"></div></div>
+          <div class="dashbox pad sm">＋ New list</div>
+        </div>
+      </div></div>
+      <div class="cap"><span class="step">1 ·</span> <b>Lists</b> — progress + who's contributing on each.</div>
+    </div>
+
+    <!-- Plan mode -->
+    <div class="frame">
+      <div class="phone"><div class="notch"></div><div class="screen">
+        <div class="pbar"><span class="icbtn">←</span><span class="ttl grow">Weekly Groceries</span></div>
+        <div class="row gap6" style="padding:2px 4px 6px"><span class="chip on">✎ Plan</span><span class="chip">🛒 Shop</span></div>
+        <div class="scroll">
+          <div class="sk pad row gap8"><span class="muted">🔍</span><span class="sm muted grow">Add item or search catalogue…</span><span class="chip dash">＋</span></div>
+          <span class="sm b muted">Produce</span>
+          <div class="sk2 pad col gap6"><div class="between"><span class="sm b">Apples</span><span class="row gap6"><span class="pill">– 2 +</span></span></div>
+            <div class="between"><span class="xs muted">note: the red ones</span><span class="chip"><span class="av sm g">S</span>Sam</span></div></div>
+          <span class="sm b muted">Dairy</span>
+          <div class="sk2 pad between"><span class="sm b">Milk</span><span class="row gap6"><span class="pill">– 1 +</span><span class="chip"><span class="av sm h">M</span></span></span></div>
+        </div>
+      </div></div>
+      <div class="cap"><span class="step">2 ·</span> <b>Plan mode</b> — quantities, notes, assign each item to someone.</div>
+    </div>
+
+    <div class="notewrap">
+      <div class="note tilt">Same data, two views. The toggle is the whole interaction model — no separate “edit” screens.</div>
+      <div class="arrow">↙ Shop mode</div>
+      <div class="note tilt2">Shop view: huge tap targets, a clear x/total, wake-lock so the screen never sleeps mid-aisle.</div>
+    </div>
+
+    <!-- Shop mode -->
+    <div class="frame">
+      <div class="phone"><div class="notch"></div><div class="screen">
+        <div class="pbar"><span class="icbtn">←</span><span class="ttl grow">Weekly Groceries</span></div>
+        <div class="row gap6" style="padding:2px 4px 6px"><span class="chip">✎ Plan</span><span class="chip on">🛒 Shop</span></div>
+        <div class="sk pad between" style="margin:2px 4px"><span class="sm b">4 / 12 done</span><span class="live"><span class="ping"></span>screen awake</span></div>
+        <div class="scroll">
+          <div class="sk2 pad row gap12 center"><span class="ck">·</span><span class="lg grow">Apples ×2</span></div>
+          <div class="sk pad row gap12 center"><span class="ck">·</span><span class="lg grow">Bread</span></div>
+          <div class="sk2 pad row gap12 center" style="opacity:.5"><span class="ck done">✓</span><span class="lg grow" style="text-decoration:line-through">Milk</span></div>
+          <div class="sk pad row gap12 center" style="opacity:.5"><span class="ck done">✓</span><span class="lg grow" style="text-decoration:line-through">Eggs</span></div>
+        </div>
+      </div></div>
+      <div class="cap"><span class="step">3 ·</span> <b>Shop mode</b> — big checks, live progress, distractions gone.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== SHOP · B — CATALOGUE & AISLES ===================== -->
+<section class="panel" id="shop-b">
+  <div class="concept">
+    <span class="tag">catalogue-driven</span>
+    <h2>B · Catalogue &amp; Aisles</h2>
+    <p>Build lists fast from a <b>reusable catalogue</b>, then let the list organise itself by <b>store aisle</b>. Shopping mode walks you aisle-by-aisle so you never double back.</p>
+  </div>
+  <div class="board">
+    <!-- Catalogue -->
+    <div class="frame">
+      <div class="phone"><div class="notch"></div><div class="screen">
+        <div class="pbar"><span class="icbtn">←</span><span class="ttl grow">Catalogue</span></div>
+        <div class="sk pad row gap8" style="margin:0 4px 6px"><span class="muted">🔍</span><span class="sm muted grow">Search items…</span></div>
+        <div class="row gap6 wrap" style="padding:0 4px 6px"><span class="chip on">Produce</span><span class="chip">Dairy</span><span class="chip">Bakery</span></div>
+        <div class="scroll"><div class="grid2">
+          <div class="sk pad between"><span class="sm">Apples</span><span class="chip on">✓</span></div>
+          <div class="sk2 pad between"><span class="sm">Bananas</span><span class="chip dash">＋</span></div>
+          <div class="sk2 pad between"><span class="sm">Carrots</span><span class="chip dash">＋</span></div>
+          <div class="sk pad between"><span class="sm">Spinach</span><span class="chip dash">＋</span></div>
+        </div>
+          <div class="dashbox pad sm">No match? Create “Oat milk” ＋</div>
+        </div>
+      </div></div>
+      <div class="cap"><span class="step">1 ·</span> <b>Catalogue</b> — tap to add; create on the fly when there's no match.</div>
+    </div>
+
+    <!-- By aisle -->
+    <div class="frame">
+      <div class="phone"><div class="notch"></div><div class="screen">
+        <div class="pbar"><span class="icbtn">←</span><span class="ttl grow">Groceries</span><span class="chip">by aisle ▾</span></div>
+        <div class="scroll">
+          <span class="sm b muted">1 · Produce</span>
+          <div class="sk pad row gap8 center"><span class="muted">⋮⋮</span><span class="sm grow">Apples ×2</span></div>
+          <div class="sk2 pad row gap8 center"><span class="muted">⋮⋮</span><span class="sm grow">Spinach</span></div>
+          <span class="sm b muted">2 · Dairy</span>
+          <div class="sk pad row gap8 center"><span class="muted">⋮⋮</span><span class="sm grow">Milk</span></div>
+          <span class="sm b muted">3 · Bakery</span>
+          <div class="sk2 pad row gap8 center"><span class="muted">⋮⋮</span><span class="sm grow">Bread</span></div>
+        </div>
+      </div></div>
+      <div class="cap"><span class="step">2 ·</span> <b>By aisle</b> — items auto-group to match the store layout.</div>
+    </div>
+
+    <div class="notewrap">
+      <div class="note tilt">Aisle order is the killer feature: the list mirrors how you actually walk the shop.</div>
+      <div class="arrow">↙ aisle stepper</div>
+      <div class="note tilt2">One aisle on screen at a time → less scrolling, no backtracking with a trolley.</div>
+    </div>
+
+    <!-- Aisle stepper -->
+    <div class="frame">
+      <div class="phone"><div class="notch"></div><div class="screen">
+        <div class="pbar"><span class="icbtn">←</span><span class="ttl grow">Aisle 2 / 5</span><span class="pill">Dairy</span></div>
+        <div class="sk pad between" style="margin:2px 4px"><span class="sm b">7 / 11 done</span><div class="bar s honeyfill" style="width:120px"></div></div>
+        <div class="scroll">
+          <div class="sk2 pad row gap12 center"><span class="ck">·</span><span class="lg grow">Milk</span></div>
+          <div class="sk pad row gap12 center"><span class="ck">·</span><span class="lg grow">Yoghurt ×4</span></div>
+          <div class="sk2 pad row gap12 center" style="opacity:.5"><span class="ck done">✓</span><span class="lg grow" style="text-decoration:line-through">Butter</span></div>
+        </div>
+        <div class="sk pad center honeyfill" style="margin:0 4px 8px;text-align:center"><span class="md b">Next aisle · Bakery →</span></div>
+      </div></div>
+      <div class="cap"><span class="step">3 ·</span> <b>Aisle stepper</b> — finish an aisle, tap to the next.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== SHOP · C — LIVE SHARED CART ===================== -->
+<section class="panel" id="shop-c">
+  <div class="concept">
+    <span class="tag">real-time · celebrate · loyalty</span>
+    <h2>C · Live Shared Cart</h2>
+    <p>A <b>real-time</b> cart where you see who's adding and checking live. Split the shop into per-person sub-lists, finish together with <b>kudos</b>, and the right <b>loyalty card</b> surfaces at checkout.</p>
+  </div>
+  <div class="board">
+    <!-- Live list -->
+    <div class="frame">
+      <div class="phone"><div class="notch"></div><div class="screen">
+        <div class="pbar"><span class="icbtn">←</span><span class="ttl grow">Groceries</span>
+          <div class="stack"><span class="av h">M</span><span class="av b">D</span></div></div>
+        <div class="row gap6" style="padding:2px 4px 6px"><span class="live"><span class="ping"></span><b>Dad</b> is adding…</span></div>
+        <div class="scroll">
+          <div class="sk2 pad row gap12 center" style="opacity:.5"><span class="ck done">✓</span><span class="lg grow" style="text-decoration:line-through">Milk</span><span class="av sm h">M</span></div>
+          <div class="sk pad row gap12 center"><span class="ck">·</span><span class="lg grow">Bread</span><span class="av sm b">D</span></div>
+          <div class="sk2 pad row gap12 center"><span class="ck">·</span><span class="lg grow">Apples ×2</span><span class="av sm g">S</span></div>
+          <div class="sk pad row gap8 center" style="border-style:dashed;opacity:.7"><span class="muted">✍️</span><span class="sm muted grow">Dad is typing “Pasta”…</span></div>
+        </div>
+      </div></div>
+      <div class="cap"><span class="step">1 ·</span> <b>Live cart</b> — see who added &amp; checked, as it happens.</div>
+    </div>
+
+    <!-- Split -->
+    <div class="frame">
+      <div class="phone"><div class="notch"></div><div class="screen">
+        <div class="pbar"><span class="icbtn">←</span><span class="ttl grow">Split the shop</span></div>
+        <div class="scroll">
+          <div class="sk pad col gap8"><div class="row gap8"><span class="av sm h">M</span><span class="sm b grow">Mom</span><span class="pill">3</span></div>
+            <div class="sm muted">Milk · Bread · Eggs</div></div>
+          <div class="sk2 pad col gap8"><div class="row gap8"><span class="av sm g">S</span><span class="sm b grow">Sam</span><span class="pill">2</span></div>
+            <div class="sm muted">Apples · Bananas</div></div>
+          <div class="sk pad col gap8"><div class="row gap8"><span class="av sm b">D</span><span class="sm b grow">Dad</span><span class="pill">4</span></div>
+            <div class="sm muted">Pasta · Sauce · Cheese · Oil</div></div>
+        </div>
+        <div class="sk pad center" style="margin:0 4px 8px;text-align:center"><span class="sm muted">drag items between people →</span></div>
+      </div></div>
+      <div class="cap"><span class="step">2 ·</span> <b>Split</b> — divide &amp; conquer; kid-sized lists for younger helpers.</div>
+    </div>
+
+    <div class="notewrap">
+      <div class="note tilt">Real-time presence turns a solo errand into something the family does together, even apart.</div>
+      <div class="arrow">↙ finish line</div>
+      <div class="note tilt2">Loyalty cards live with shopping — the right one pops up exactly at checkout.</div>
+    </div>
+
+    <!-- Done + loyalty -->
+    <div class="frame">
+      <div class="phone"><div class="notch"></div><div class="screen">
+        <div class="pbar"><span class="ttl grow">All done 🎉</span></div>
+        <div class="scroll">
+          <div class="sk pad14 col gap12 center" style="text-align:center">
+            <span class="xl">🎉</span><span class="lg b">Great teamwork!</span>
+            <span class="sm muted">12 items · everyone pitched in</span>
+            <div class="stack"><span class="av h">M</span><span class="av b">D</span><span class="av g">S</span></div>
+            <div class="row gap8"><span class="react">👏 nice</span><span class="chip on">Say thanks</span></div>
+          </div>
+          <span class="sm b muted">At checkout</span>
+          <div class="sk2 pad14 col gap8 center" style="text-align:center"><span class="md b">Albert Heijn</span>
+            <div class="bar l" style="height:34px;background:repeating-linear-gradient(90deg,var(--ink) 0 3px,transparent 3px 6px);border-radius:4px"></div>
+            <span class="xs muted">tap to show barcode</span></div>
+        </div>
+      </div></div>
+      <div class="cap"><span class="step">3 ·</span> <b>Finish</b> — kudos for the crew + loyalty card ready to scan.</div>
+    </div>
+  </div>
+</section>
+
+<script>
+(function(){
+  var idea = "shell";
+  var app = { shell:"a", shop:"a" };
+
+  function render(){
+    // approach rows
+    document.querySelectorAll('.tabs.lvl2').forEach(function(row){
+      row.style.display = (row.dataset.for === idea) ? "flex" : "none";
+      row.querySelectorAll('.tab').forEach(function(t){
+        t.classList.toggle('active', t.dataset.app === app[idea]);
+      });
+    });
+    // idea tabs
+    document.querySelectorAll('#ideaTabs .tab').forEach(function(t){
+      t.classList.toggle('active', t.dataset.idea === idea);
+    });
+    // panels
+    var id = idea + "-" + app[idea];
+    document.querySelectorAll('.panel').forEach(function(p){
+      p.classList.toggle('active', p.id === id);
+    });
+    window.scrollTo({top:0,behavior:'instant'});
+  }
+
+  document.querySelectorAll('#ideaTabs .tab').forEach(function(t){
+    t.addEventListener('click', function(){ idea = t.dataset.idea; render(); });
+  });
+  document.querySelectorAll('.tabs.lvl2 .tab').forEach(function(t){
+    t.addEventListener('click', function(){ app[idea] = t.dataset.app; render(); });
+  });
+  render();
+})();
+</script>
+</body>
+</html>

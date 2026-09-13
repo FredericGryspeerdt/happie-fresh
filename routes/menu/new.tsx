@@ -12,14 +12,22 @@ export const handler = define.handlers({
       DishTagGroupRepo.getAll(householdId),
       ItemRepo.readAll(householdId),
     ]);
-    return page({ tagGroups, items });
+    return page({
+      tagGroups,
+      items,
+      canDelete: ctx.state.actingMember?.isManager === true,
+    });
   },
 });
 
 export default define.page<typeof handler>(function NewDishPage({ data }) {
   return (
     <main class="max-w-md mx-auto">
-      <DishEditor tagGroups={data.tagGroups} items={data.items} />
+      <DishEditor
+        tagGroups={data.tagGroups}
+        items={data.items}
+        canDelete={data.canDelete}
+      />
     </main>
   );
 });

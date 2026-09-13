@@ -2,9 +2,11 @@
 //
 // One-off, manually-run data migration (`deno task db:migrate`). Idempotent —
 // safe to re-run. It (1) rehashes legacy SHA-256 passwords to PBKDF2, (2)
-// back-fills a household per user and moves legacy shopping-list items, and
-// (3) scopes the previously-global catalogue (items, categories, dishes,
-// dish_tag_groups) under a single primary household.
+// back-fills a household per user and moves legacy shopping-list items, (3)
+// scopes the previously-global catalogue (items, categories, dishes,
+// dish_tag_groups) under a single primary household, and (4) backfills a
+// linked manager member per user and rewrites `createdBy` from userId to
+// memberId across todos, loyalty_cards, and shopping_lists.
 //
 // Environment:
 //   SEED_PASSWORD    (required) the shared legacy password, used to rehash.
@@ -176,6 +178,58 @@ export async function migrateCatalogue(
   return { householdId, counts };
 }
 
+/** Collections whose `createdBy` predates members and stored a userId. */
+const ATTRIBUTED_COLLECTIONS = [
+  "todos",
+  "loyalty_cards",
+  "shopping_lists",
+] as const;
+
+/**
+ * (4) Members: every user gets a linked manager member (via
+ * UserRepo.ensureMember), then all `createdBy` fields that hold a *user* id
+ * are rewritten to that user's member id — one id-space, no dual reads (see
+ * docs/adr/0006). Idempotent: the rewrite map is keyed by user ids, which no
+ * longer appear in createdBy once rewritten.
+ */
+export async function migrateMembers(
+  kv: Deno.Kv,
+): Promise<{ membersCreated: number; createdByRewritten: number }> {
+  let membersCreated = 0;
+  let createdByRewritten = 0;
+
+  const memberIdByUserId = new Map<string, string>();
+  for await (const entry of kv.list<UserInterface>({ prefix: ["users"] })) {
+    const user = entry.value;
+    if (!user?.id) continue;
+    // ensureMember's counting contract: a truthy input memberId does NOT
+    // guarantee no member is created — a dangling link (memberId set but the
+    // member deleted) is healed by creating a new one. So creation is
+    // detected by comparing the returned memberId against the pre-call
+    // value, not by testing the input's truthiness. See UserRepo.ensureMember.
+    const before = user.memberId;
+    const linked = await UserRepo.ensureMember(user);
+    if (!linked.memberId) continue;
+    if (linked.memberId !== before) membersCreated++;
+    memberIdByUserId.set(user.id, linked.memberId);
+  }
+
+  for (const collection of ATTRIBUTED_COLLECTIONS) {
+    for await (
+      const entry of kv.list<{ createdBy?: string }>({ prefix: [collection] })
+    ) {
+      const mapped = entry.value?.createdBy
+        ? memberIdByUserId.get(entry.value.createdBy)
+        : undefined;
+      if (!mapped) continue;
+      await kv.set(entry.key, { ...entry.value, createdBy: mapped });
+      createdByRewritten++;
+    }
+  }
+
+  return { membersCreated, createdByRewritten };
+}
+
 async function migrate() {
   const password = Deno.env.get("SEED_PASSWORD");
   if (!password) {
@@ -274,6 +328,10 @@ async function migrate() {
     // already-migrated KV — e.g. a fresh preview deployment with no users.
     const scoped = await migrateCatalogue(kv);
 
+    // Backfill a linked member per user and rewrite createdBy from userId to
+    // memberId across the collections that predate members.
+    const members = await migrateMembers(kv);
+
     console.log(`
 Migration complete.
   Passwords: ${passwordsMigrated} rehashed, ${passwordsSkipped} skipped (mismatch), ${passwordsAlready} already PBKDF2
@@ -284,7 +342,8 @@ Migration complete.
           JSON.stringify(scoped.counts)
         }`
         : "no global entries to scope (skipped)"
-    }`);
+    }
+  Members: ${members.membersCreated} created, ${members.createdByRewritten} createdBy rewritten`);
   } finally {
     kv.close();
   }

@@ -1,4 +1,5 @@
 import { signal } from "@preact/signals";
+import { isIosDevice, isStandaloneDisplay } from "@/islands/shell/platform.ts";
 
 export type PushState =
   | "unsupported"
@@ -90,13 +91,7 @@ export async function unsubscribeThisDevice(): Promise<boolean> {
 
 /** iOS only allows push in an installed PWA (16.4+). */
 function iosNeedsInstall(): boolean {
-  const ua = navigator.userAgent;
-  const isIos = /iPad|iPhone|iPod/.test(ua);
-  if (!isIos) return false;
-  const standalone =
-    (navigator as unknown as { standalone?: boolean }).standalone === true ||
-    matchMedia("(display-mode: standalone)").matches;
-  return !standalone;
+  return isIosDevice() && !isStandaloneDisplay();
 }
 
 /**
@@ -211,9 +206,17 @@ export function usePushNotifications() {
     }
   };
 
+  /**
+   * Registers this device first, then asks the server to send. The server fans
+   * out to every device in the household, so without this step the test can
+   * "succeed" (someone else's phone buzzes) while the device in hand was never
+   * registered — exactly what happens after restoring a phone from backup: the
+   * granted permission survives the restore, the device-bound endpoint does not.
+   */
   const sendTest = async () => {
     busy.value = true;
     try {
+      if (!(await subscribe())) return null;
       const res = await fetch("/api/push/test", { method: "POST" });
       if (!res.ok) return null;
       return await res.json() as { sent: number; failed: number };

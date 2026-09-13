@@ -7,6 +7,7 @@ import { formatLabel } from "@/utils/barcode.ts";
 
 interface CardPresentProps {
   card: LoyaltyCardInterface;
+  canDelete: boolean;
   onClose: () => void;
   onEdit: (card: LoyaltyCardInterface) => void;
   onDelete: (id: string) => void;
@@ -18,7 +19,7 @@ interface CardPresentProps {
  * confirm-guarded edit/remove actions.
  */
 export function CardPresent(
-  { card, onClose, onEdit, onDelete }: CardPresentProps,
+  { card, canDelete, onClose, onEdit, onDelete }: CardPresentProps,
 ) {
   const confirming = useSignal(false);
   const isQr = card.format === "qrcode";
@@ -37,11 +38,13 @@ export function CardPresent(
             aria-label="Edit card"
             onClick={() => onEdit(card)}
           />
-          <IconButton
-            name="trash"
-            aria-label="Remove card"
-            onClick={() => (confirming.value = true)}
-          />
+          {canDelete && (
+            <IconButton
+              name="trash"
+              aria-label="Remove card"
+              onClick={() => (confirming.value = true)}
+            />
+          )}
         </div>
       </div>
 
