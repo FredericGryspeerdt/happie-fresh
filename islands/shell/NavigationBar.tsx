@@ -24,7 +24,8 @@ export default function NavigationBar({
     <nav
       class="fixed bottom-0 left-0 right-0 z-40 flex bg-surface-c"
       style={{
-        height: 80,
+        // Keep the full tab height above the device's bottom safe area.
+        height: "calc(80px + env(safe-area-inset-bottom))",
         paddingBottom: "env(safe-area-inset-bottom)",
       }}
       aria-label="Main navigation"
