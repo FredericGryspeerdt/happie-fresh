@@ -1,4 +1,4 @@
-import { useEffect } from "preact/hooks";
+import { useEffect, useRef } from "preact/hooks";
 import { useSignal } from "@preact/signals";
 import type { MemberInterface } from "@/models/index.ts";
 import { api } from "@/services/api.ts";
@@ -8,6 +8,7 @@ import { Sheet } from "@/components/md3/Sheet.tsx";
 import { ListItem } from "@/components/md3/ListItem.tsx";
 import { Icon } from "@/components/md3/Icon.tsx";
 import { Pressable } from "@/components/md3/Pressable.tsx";
+import { Snackbar } from "@/components/md3/Snackbar.tsx";
 
 interface Props {
   actingMember: MemberInterface | null;
@@ -25,6 +26,21 @@ export default function ActingMemberChip({ actingMember, claimed }: Props) {
   const open = useSignal(false);
   const acting = useSignal<MemberInterface | null>(actingMember);
   const members = useSignal<MemberInterface[] | null>(null);
+
+  // Transient error feedback — a failed switch must be visible, not silent
+  // (see docs/ui-ux-patterns.md §3).
+  const snackData = useSignal<{ msg: string } | null>(null);
+  const snackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const showSnack = (msg: string) => {
+    snackData.value = { msg };
+    if (snackTimer.current) clearTimeout(snackTimer.current);
+    snackTimer.current = setTimeout(() => {
+      snackData.value = null;
+    }, 3000);
+  };
+  useEffect(() => () => {
+    if (snackTimer.current) clearTimeout(snackTimer.current);
+  }, []);
 
   const load = async () => {
     if (members.value === null) members.value = await api.members.getAll();
@@ -46,7 +62,14 @@ export default function ActingMemberChip({ actingMember, claimed }: Props) {
 
   const pick = async (m: MemberInterface) => {
     const ok = await api.members.claim(m.id);
-    if (!ok) return; // sheet stays open; nothing changed
+    if (!ok) {
+      // The member may have been removed on another device moments ago. Say
+      // so, and re-fetch so a stale roster can't be picked from again (§3).
+      showSnack("Couldn't switch — try again?");
+      members.value = null;
+      await load();
+      return;
+    }
     open.value = false;
     // Full reload: manager gating and attribution are server-resolved, so
     // every screen must re-render under the new acting member.
@@ -92,6 +115,7 @@ export default function ActingMemberChip({ actingMember, claimed }: Props) {
           />
         ))}
       </Sheet>
+      <Snackbar data={snackData.value} />
     </>
   );
 }

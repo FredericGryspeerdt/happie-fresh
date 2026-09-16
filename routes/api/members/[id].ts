@@ -9,7 +9,11 @@ import {
   requireManager,
 } from "@/utils/index.ts";
 import { MemberRepo, TodoRepo } from "@/database/index.ts";
-import { isAvatarColor, type UpdateMemberDto } from "@/models/index.ts";
+import {
+  isAvatarColor,
+  isAvatarEmoji,
+  type UpdateMemberDto,
+} from "@/models/index.ts";
 
 const LAST_MANAGER_MSG =
   "The household needs at least one manager — promote someone else first";
@@ -45,8 +49,8 @@ export const handler = define.handlers({
     }
     if (body.emoji !== undefined) {
       const emoji = String(body.emoji).trim();
-      if (!emoji || emoji.length > 16) {
-        return badRequest("emoji must be a short glyph");
+      if (!isAvatarEmoji(emoji)) {
+        return badRequest("emoji must be a preset avatar");
       }
       patch.emoji = emoji;
     }

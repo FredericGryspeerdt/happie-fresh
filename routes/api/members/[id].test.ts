@@ -261,3 +261,22 @@ Deno.test({
     );
   },
 });
+
+Deno.test({
+  name: "PATCH — rejects an emoji outside the preset avatars",
+  sanitizeResources: false,
+  async fn() {
+    await clearMembers();
+    const kid = await seed("Bo", false);
+    // "XX" is short enough to pass a length check but is not a preset avatar.
+    const res = await handler.PATCH(
+      ctx(patch({ emoji: "XX" }), kid.id, {
+        householdId: "h1",
+        actingMember: kid,
+      }),
+    );
+    assertEquals(res.status, 400);
+    assertEquals(await res.text(), "emoji must be a preset avatar");
+    assertEquals((await MemberRepo.getById("h1", kid.id))?.emoji, "🙂");
+  },
+});

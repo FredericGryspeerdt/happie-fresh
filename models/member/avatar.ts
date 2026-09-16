@@ -53,3 +53,11 @@ export function resolveAvatarColor(key?: string): AvatarColor {
 export function isAvatarColor(key: unknown): key is string {
   return typeof key === "string" && AVATAR_COLORS.some((c) => c.key === key);
 }
+
+/** True when `glyph` is one of the preset avatar emoji (server-side
+ *  validation). Guards the avatar against arbitrary short text like "XX",
+ *  which a length check alone would wave through. */
+export function isAvatarEmoji(glyph: unknown): glyph is string {
+  return typeof glyph === "string" &&
+    AVATAR_EMOJIS.includes(glyph.trim());
+}
