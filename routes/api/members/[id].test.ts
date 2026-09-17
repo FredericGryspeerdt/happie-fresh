@@ -280,3 +280,32 @@ Deno.test({
     assertEquals((await MemberRepo.getById("h1", kid.id))?.emoji, "🙂");
   },
 });
+
+Deno.test({
+  name: "PATCH — a rename keeps a legacy emoji that predates the allow-list",
+  sanitizeResources: false,
+  async fn() {
+    // Rows written before the allow-list existed can hold a non-preset emoji.
+    // The edit form always resends the emoji it loaded, so rejecting an
+    // *unchanged* emoji turns a pure rename into a 400 on a field the user
+    // never touched.
+    await clearMembers();
+    const legacy = await MemberRepo.create({
+      householdId: "h1",
+      name: "Bo",
+      color: "sky",
+      emoji: "XX",
+      isManager: false,
+    });
+    const res = await handler.PATCH(
+      ctx(patch({ name: "Bo!", emoji: "XX" }), legacy.id, {
+        householdId: "h1",
+        actingMember: legacy,
+      }),
+    );
+    assertEquals(res.status, 200);
+    const after = await MemberRepo.getById("h1", legacy.id);
+    assertEquals(after?.name, "Bo!");
+    assertEquals(after?.emoji, "XX");
+  },
+});

@@ -49,7 +49,11 @@ export const handler = define.handlers({
     }
     if (body.emoji !== undefined) {
       const emoji = String(body.emoji).trim();
-      if (!isAvatarEmoji(emoji)) {
+      // An *unchanged* emoji passes whatever it is. Rows written before the
+      // allow-list existed can hold a non-preset glyph, and the edit form
+      // always resends the emoji it loaded, so rejecting it here would turn a
+      // pure rename into a 400 on a field the user never touched.
+      if (emoji !== target.emoji && !isAvatarEmoji(emoji)) {
         return badRequest("emoji must be a preset avatar");
       }
       patch.emoji = emoji;

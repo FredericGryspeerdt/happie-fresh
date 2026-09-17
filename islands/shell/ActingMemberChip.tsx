@@ -1,4 +1,5 @@
-import { useEffect, useRef } from "preact/hooks";
+import { useEffect, useRef, useState } from "preact/hooks";
+import { createPortal } from "preact/compat";
 import { useSignal } from "@preact/signals";
 import type { MemberInterface } from "@/models/index.ts";
 import { api } from "@/services/api.ts";
@@ -26,6 +27,15 @@ export default function ActingMemberChip({ actingMember, claimed }: Props) {
   const open = useSignal(false);
   const acting = useSignal<MemberInterface | null>(actingMember);
   const members = useSignal<MemberInterface[] | null>(null);
+
+  // The snackbar must portal to <body> (patterns doc §17). Rendered in place it
+  // sits inside the top bar's subtree, so the open picker's full-viewport scrim
+  // paints over it and a failed switch stays invisible — which is exactly the
+  // silent failure this feedback exists to remove.
+  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    setPortalTarget(document.body);
+  }, []);
 
   // Transient error feedback — a failed switch must be visible, not silent
   // (see docs/ui-ux-patterns.md §3).
@@ -64,7 +74,7 @@ export default function ActingMemberChip({ actingMember, claimed }: Props) {
     const ok = await api.members.claim(m.id);
     if (!ok) {
       // The member may have been removed on another device moments ago. Say
-      // so, and re-fetch so a stale roster can't be picked from again (§3).
+      // so, and re-fetch so a removed member can no longer be picked (§3).
       showSnack("Couldn't switch — try again?");
       members.value = null;
       await load();
@@ -115,7 +125,8 @@ export default function ActingMemberChip({ actingMember, claimed }: Props) {
           />
         ))}
       </Sheet>
-      <Snackbar data={snackData.value} />
+      {portalTarget &&
+        createPortal(<Snackbar data={snackData.value} />, portalTarget)}
     </>
   );
 }
