@@ -1,5 +1,4 @@
-import { useEffect, useRef, useState } from "preact/hooks";
-import { createPortal } from "preact/compat";
+import { useEffect, useRef } from "preact/hooks";
 import { useSignal } from "@preact/signals";
 import type { MemberInterface } from "@/models/index.ts";
 import { api } from "@/services/api.ts";
@@ -27,15 +26,6 @@ export default function ActingMemberChip({ actingMember, claimed }: Props) {
   const open = useSignal(false);
   const acting = useSignal<MemberInterface | null>(actingMember);
   const members = useSignal<MemberInterface[] | null>(null);
-
-  // The snackbar must portal to <body> (patterns doc §17). Rendered in place it
-  // sits inside the top bar's subtree, so the open picker's full-viewport scrim
-  // paints over it and a failed switch stays invisible — which is exactly the
-  // silent failure this feedback exists to remove.
-  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
-  useEffect(() => {
-    setPortalTarget(document.body);
-  }, []);
 
   // Transient error feedback — a failed switch must be visible, not silent
   // (see docs/ui-ux-patterns.md §3).
@@ -125,8 +115,7 @@ export default function ActingMemberChip({ actingMember, claimed }: Props) {
           />
         ))}
       </Sheet>
-      {portalTarget &&
-        createPortal(<Snackbar data={snackData.value} />, portalTarget)}
+      <Snackbar data={snackData.value} />
     </>
   );
 }
