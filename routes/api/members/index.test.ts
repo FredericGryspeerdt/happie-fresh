@@ -113,3 +113,21 @@ Deno.test({
     assertEquals(badColor.status, 400);
   },
 });
+
+Deno.test({
+  name: "POST — rejects an emoji outside the preset avatars",
+  sanitizeResources: false,
+  async fn() {
+    await clearMembers();
+    // "XX" is short enough to pass a length check but is not a preset avatar.
+    const res = await handler.POST(
+      ctx(post({ name: "Pip", color: "lavender", emoji: "XX" }), {
+        householdId: "h1",
+        actingMember: MANAGER,
+      }),
+    );
+    assertEquals(res.status, 400);
+    assertEquals(await res.text(), "emoji must be a preset avatar");
+    assertEquals((await MemberRepo.getAll("h1")).length, 0);
+  },
+});

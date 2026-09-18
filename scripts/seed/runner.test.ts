@@ -238,3 +238,44 @@ Deno.test({
     assertEquals(members.some((m) => !m.isManager), true); // the kids exist
   },
 });
+
+Deno.test({
+  name: "runSeed — rejects a fixture whose first member is not a manager",
+  sanitizeResources: false,
+  async fn() {
+    // The first fixture member becomes the login's linked member, so it has to
+    // be a manager. Guard must fail loudly rather than seed a useless login.
+    const target = users[0];
+    const original = target.members[0].isManager;
+    target.members[0].isManager = false;
+    try {
+      await assertRejects(
+        () => runSeed(),
+        Error,
+        "manager",
+      );
+    } finally {
+      target.members[0].isManager = original;
+    }
+  },
+});
+
+Deno.test({
+  name: "runSeed — a rejected fixture leaves the existing database intact",
+  sanitizeResources: false,
+  async fn() {
+    // The guard must refuse before wiping, not after: a bad fixture edit should
+    // never cost you the database you already had.
+    await runSeed();
+    assertExists(await UserRepo.findByUsername("demo"));
+    const target = users[0];
+    const original = target.members[0].isManager;
+    target.members[0].isManager = false;
+    try {
+      await assertRejects(() => runSeed(), Error, "manager");
+      assertExists(await UserRepo.findByUsername("demo"));
+    } finally {
+      target.members[0].isManager = original;
+    }
+  },
+});

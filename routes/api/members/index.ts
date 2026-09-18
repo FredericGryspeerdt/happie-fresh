@@ -1,6 +1,6 @@
 import { badRequest, define, json, requireManager } from "@/utils/index.ts";
 import { MemberRepo } from "@/database/index.ts";
-import { isAvatarColor } from "@/models/index.ts";
+import { isAvatarColor, isAvatarEmoji } from "@/models/index.ts";
 
 /** Shared field validation for create (all fields) — returns a message or the
  *  cleaned values. PATCH re-validates per-field in [id].ts. */
@@ -11,7 +11,7 @@ export function parseMemberFields(
   if (!name) return "name required";
   if (!isAvatarColor(body.color)) return "unknown color";
   const emoji = String(body.emoji ?? "").trim();
-  if (!emoji || emoji.length > 16) return "emoji must be a short glyph";
+  if (!isAvatarEmoji(emoji)) return "emoji must be a preset avatar";
   return { name, color: body.color, emoji };
 }
 

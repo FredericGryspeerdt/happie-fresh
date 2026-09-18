@@ -66,6 +66,18 @@ export async function runSeed(opts: SeedOptions = {}): Promise<void> {
     );
   }
 
+  // Validate the whole fixture set before touching the database: a bad fixture
+  // should refuse the run, not cost you the data you already had.
+  for (const fixtureUser of users) {
+    // The first fixture member becomes the login's linked member, so it has to
+    // be a manager — otherwise the seeded login can manage nothing.
+    if (!fixtureUser.members[0]?.isManager) {
+      throw new Error(
+        `Fixture user '${fixtureUser.username}' must list a manager as its first member`,
+      );
+    }
+  }
+
   const kv = await getKv();
   await resetDatabase();
 
@@ -86,7 +98,7 @@ export async function runSeed(opts: SeedOptions = {}): Promise<void> {
     const household = await HouseholdRepo.create(`${username}'s household`);
 
     // Members: the people of this household. The first fixture member is the
-    // login's linked member (and must be a manager per the fixture data).
+    // login's linked member.
     const memberIds: string[] = [];
     for (const fixtureMember of fixtureUser.members) {
       const member = await MemberRepo.create({
