@@ -131,9 +131,10 @@ consistent failure feedback (issue #52). Until then, **don't add new silent `voi
 mutations** — give a new write a checkable result (`null`/boolean) and surface
 failure at the call site.
 
-**How:** New code takes the state from `useSnack()` instead of hand-rolling the
-pair below; the manual form is what most islands still carry and what the hook
-replaces. Either way, render one `<Snackbar>`:
+**How:** Take the state from `useSnack()` — it owns the signal, the dismiss
+timer and the unmount cleanup, so a site cannot forget to clear the timer (#112).
+Three islands still hand-roll the pair below; read it as the shape the hook
+replaces, not as something to copy. Either way, render one `<Snackbar>`:
 
 ```ts
 const snackData = useSignal<{ msg: string } | null>(null);
@@ -146,13 +147,22 @@ const showSnack = (msg: string) => {
 <Snackbar data={snackData.value} />
 ```
 
+`useSnack(defaultMs)` sets that site's plain-message lifetime (3000 is the
+default; `TodoBacklog`, `DishPicker` and `WeeklyMenu` pass 4000, `MoveItems`
+6000). A snack carrying an `action` outlives a plain one (`SNACK_ACTION_MS`,
+10s) whatever `defaultMs` says, because an offer of Undo has to be readable
+again before it lapses — so a site wanting a shorter life on its Undo snack
+(`WeeklyMenu`, 4s) overrides per call, not via `defaultMs`. Pass `ms: null` for
+a snack pinned while its outcome is unknown (`MoveItems` "Undoing move…"): no
+timer at all, cleared only by whichever snack replaces it.
+
 The `Snackbar` component supports an optional `action`/`onAction` for a single
 inline button.
 
 **See:** `hooks/useSnack.ts` (state, timer and duration policy),
 `components/md3/Snackbar.tsx` (component + `action` support).
-Usage: `islands/items.tsx` (`showSnack`, ~line 120), `components/md3/PullToRefresh.tsx`
-(error message, ~line 41), `islands/shell/MoreSheet.tsx` ("coming soon").
+Usage: `islands/items.tsx` (`useSnack`, ~line 145), `components/md3/PullToRefresh.tsx`
+(error message, ~line 39), `islands/shell/MoreSheet.tsx` ("coming soon", manual form).
 
 ---
 
