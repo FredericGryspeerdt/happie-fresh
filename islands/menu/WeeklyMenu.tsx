@@ -75,14 +75,15 @@ export default function WeeklyMenu(
   }, []);
 
   const dayPickEntryId = useSignal<string | null>(null);
-  const { snack, showSnack: show } = useSnack();
-  // Every snack here lives 4s, Undo affordances included — the override keeps
-  // the hook's longer action duration from stretching them.
+  const { snack, showSnack: showWithMs } = useSnack();
+  // Every snack here lives 4s, Undo affordances included. The per-call override
+  // is load-bearing: `useSnack(4000)` alone would not pin them, because the
+  // action leg ignores defaultMs and would stretch Undo snacks to 10s.
   const showSnack = (
     msg: string,
     action?: string,
     onAction?: () => void,
-  ) => show(msg, action, onAction, 4000);
+  ) => showWithMs(msg, action, onAction, 4000);
 
   // Undo for Clear: re-add each dish, then re-apply its weekday pin. The snack
   // (and its Undo action) only appears once Clear has settled, so Undo can
