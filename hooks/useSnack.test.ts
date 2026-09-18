@@ -32,6 +32,16 @@ Deno.test("snackDuration — a per-call override beats both legs", () => {
   assertEquals(snackDuration({ defaultMs: SNACK_MS, overrideMs: 0 }), 0);
 });
 
+Deno.test("snackDuration — a null override means persistent, not zero", () => {
+  assertEquals(snackDuration({ defaultMs: SNACK_MS, overrideMs: null }), null);
+  // Persistent wins over the action leg too: MoveItems pins "Undoing move…"
+  // while the outcome is unknown, and no clock may clear it.
+  assertEquals(
+    snackDuration({ defaultMs: 6000, action: "Retry", overrideMs: null }),
+    null,
+  );
+});
+
 Deno.test("useSnack — showSnack sets message, action and handler", () => {
   const time = new FakeTime();
   const s = createSnackController();
@@ -114,6 +124,25 @@ Deno.test("useSnack — replacing a live snack resets its timer", async () => {
     await time.tickAsync(1999); // t=11_999
     assertEquals(s.snack.value?.msg, "Undoing move…");
     await time.tickAsync(1); // t=12_000
+    assertEquals(s.snack.value, null);
+  } finally {
+    s.dispose();
+    time.restore();
+  }
+});
+
+Deno.test("useSnack — a null ms stays up until replaced or hidden", async () => {
+  const time = new FakeTime();
+  const s = createSnackController(6000);
+  try {
+    s.showSnack("Undoing move…", undefined, undefined, null);
+    await time.tickAsync(60_000);
+    assertEquals(s.snack.value?.msg, "Undoing move…");
+    // The next snack takes over normally, on its own cadence.
+    s.showSnack("Items moved back");
+    await time.tickAsync(5999);
+    assertEquals(s.snack.value?.msg, "Items moved back");
+    await time.tickAsync(1);
     assertEquals(s.snack.value, null);
   } finally {
     s.dispose();
