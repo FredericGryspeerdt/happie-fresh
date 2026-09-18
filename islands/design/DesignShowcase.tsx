@@ -1,6 +1,7 @@
 // islands/design/DesignShowcase.tsx — dev-only, served by /design (404 in
 // production). Every md3 component in its states: the live-verification
 // surface for component work.
+import { useEffect, useRef } from "preact/hooks";
 import { useSignal } from "@preact/signals";
 import type { ComponentChildren } from "preact";
 import { Button } from "@/components/md3/Button.tsx";
@@ -42,6 +43,19 @@ export default function DesignShowcase() {
   const fsOpen = useSignal(false);
   const sheetOpen = useSignal(false);
   const snack = useSignal<{ msg: string } | null>(null);
+  const snackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // The dismiss timer must not fire against an unmounted showcase.
+  useEffect(() => () => {
+    if (snackTimer.current) clearTimeout(snackTimer.current);
+  }, []);
+
+  const showSnack = (msg: string) => {
+    snack.value = { msg };
+    if (snackTimer.current) clearTimeout(snackTimer.current);
+    snackTimer.current = setTimeout(() => snack.value = null, 3000);
+  };
+
   return (
     <div class="flex flex-col gap-2 pb-24">
       <h1 class="md-headline-small text-on-surface pt-4">MD3 showcase</h1>
@@ -187,10 +201,7 @@ export default function DesignShowcase() {
           </div>
           <Button
             variant="text"
-            onClick={() => {
-              snack.value = { msg: "Saved to the household" };
-              setTimeout(() => snack.value = null, 3000);
-            }}
+            onClick={() => showSnack("Saved to the household")}
           >
             Snackbar
           </Button>

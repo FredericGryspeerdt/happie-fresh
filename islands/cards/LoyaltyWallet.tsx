@@ -1,5 +1,4 @@
-import { useMemo } from "preact/hooks";
-import { useEffect } from "preact/hooks";
+import { useEffect, useMemo, useRef } from "preact/hooks";
 import { useSignal } from "@preact/signals";
 import type { BarcodeFormat, LoyaltyCardInterface } from "@/models/index.ts";
 import { useLoyaltyCards } from "@/hooks/useLoyaltyCards.ts";
@@ -50,6 +49,7 @@ export default function LoyaltyWallet({ initialCards, canDelete }: Props) {
   const saving = useSignal(false);
   const scannerAvailable = useSignal(false);
   const snack = useSignal<{ msg: string } | null>(null);
+  const snackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const form = {
     label: useSignal(""),
@@ -66,8 +66,14 @@ export default function LoyaltyWallet({ initialCards, canDelete }: Props) {
 
   const toast = (msg: string) => {
     snack.value = { msg };
-    setTimeout(() => (snack.value = null), 2400);
+    if (snackTimer.current) clearTimeout(snackTimer.current);
+    snackTimer.current = setTimeout(() => (snack.value = null), 2400);
   };
+
+  // The dismiss timer must not fire against an unmounted island.
+  useEffect(() => () => {
+    if (snackTimer.current) clearTimeout(snackTimer.current);
+  }, []);
 
   const openAdd = () => {
     editingId.value = null;

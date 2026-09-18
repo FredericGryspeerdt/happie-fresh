@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "preact/hooks";
 import { useSignal } from "@preact/signals";
 import { Sheet } from "@/components/md3/Sheet.tsx";
 import { ListItem } from "@/components/md3/ListItem.tsx";
@@ -26,10 +27,18 @@ const badge = (icon: IconName) => (
 
 export default function MoreSheet({ open, onClose }: MoreSheetProps) {
   const snack = useSignal<{ msg: string } | null>(null);
+  const snackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const soon = (label: string) => {
     snack.value = { msg: `${label} — coming soon` };
-    setTimeout(() => snack.value = null, 2200);
+    if (snackTimer.current) clearTimeout(snackTimer.current);
+    snackTimer.current = setTimeout(() => snack.value = null, 2200);
   };
+
+  // The dismiss timer must not fire against an unmounted sheet.
+  useEffect(() => () => {
+    if (snackTimer.current) clearTimeout(snackTimer.current);
+  }, []);
+
   const chevron = () => <Icon name="chevron" size={18} />;
 
   /**
