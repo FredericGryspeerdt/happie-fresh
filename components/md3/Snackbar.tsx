@@ -1,9 +1,6 @@
 // components/md3/Snackbar.tsx
-interface SnackData {
-  msg: string;
-  action?: string;
-  onAction?: () => void;
-}
+import type { SnackData } from "@/hooks/useSnack.ts";
+
 interface SnackbarProps {
   data: SnackData | null;
 }
