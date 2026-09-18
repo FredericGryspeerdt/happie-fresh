@@ -1,5 +1,5 @@
 import { useSignal } from "@preact/signals";
-import { useEffect, useMemo, useRef } from "preact/hooks";
+import { useMemo } from "preact/hooks";
 import type { DishInterface } from "@/models/index.ts";
 import type { useWeeklyMenu } from "@/hooks/useWeeklyMenu.ts";
 import { useSearchBox } from "@/hooks/useSearchBox.ts";
@@ -8,6 +8,7 @@ import { Button } from "@/components/md3/Button.tsx";
 import { Icon } from "@/components/md3/Icon.tsx";
 import { IconButton } from "@/components/md3/IconButton.tsx";
 import { Snackbar } from "@/components/md3/Snackbar.tsx";
+import { useSnack } from "@/hooks/useSnack.ts";
 import { cn } from "@/components/md3/tokens.ts";
 
 type Menu = ReturnType<typeof useWeeklyMenu>;
@@ -29,11 +30,7 @@ export function DishPicker({ dishes, menu, onClose }: Props) {
   );
   const showPlanned = useSignal(false);
   const error = useSignal<string | null>(null);
-  const snack = useSignal<string | null>(null);
-  const snackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => () => {
-    if (snackTimer.current) clearTimeout(snackTimer.current);
-  }, []);
+  const { snack, showSnack, hideSnack } = useSnack(4000);
   const planned = sorted.filter((dish) =>
     menu.plannedDishIds.value.has(dish.id)
   );
@@ -47,15 +44,13 @@ export function DishPicker({ dishes, menu, onClose }: Props) {
     // response cannot overwrite a newer choice (including rapid double taps).
     if (menu.pendingCount.value) return;
     error.value = null;
-    snack.value = null;
-    if (snackTimer.current) clearTimeout(snackTimer.current);
+    hideSnack();
     const ok = menu.plannedDishIds.value.has(dish.id)
       ? await menu.removeDishFromPlan(dish.id)
       : await menu.addDish(dish.id);
     if (!ok) {
       error.value = "Couldn't update this week. Try again.";
-      snack.value = error.value;
-      snackTimer.current = setTimeout(() => (snack.value = null), 4000);
+      showSnack(error.value);
     }
   };
 
@@ -228,7 +223,7 @@ export function DishPicker({ dishes, menu, onClose }: Props) {
           Back to results
         </Button>
       )}
-      <Snackbar data={snack.value ? { msg: snack.value } : null} />
+      <Snackbar data={snack.value} />
     </FullScreenDialog>
   );
 }

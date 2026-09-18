@@ -1,4 +1,4 @@
-import { useMemo, useRef } from "preact/hooks";
+import { useMemo } from "preact/hooks";
 import { useSignal } from "@preact/signals";
 import type { MemberInterface } from "@/models/index.ts";
 import {
@@ -13,6 +13,7 @@ import { Sheet } from "@/components/md3/Sheet.tsx";
 import { ListItem } from "@/components/md3/ListItem.tsx";
 import { Button } from "@/components/md3/Button.tsx";
 import { Snackbar } from "@/components/md3/Snackbar.tsx";
+import { useSnack } from "@/hooks/useSnack.ts";
 
 interface Props {
   initialMembers: MemberInterface[];
@@ -39,13 +40,7 @@ export default function MembersScreen(
   const draftManager = useSignal(false);
   const saving = useSignal(false);
 
-  const snack = useSignal<{ msg: string } | null>(null);
-  const snackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const say = (msg: string) => {
-    snack.value = { msg };
-    if (snackTimer.current) clearTimeout(snackTimer.current);
-    snackTimer.current = setTimeout(() => (snack.value = null), 3000);
-  };
+  const { snack, showSnack: say } = useSnack();
 
   const managerCount = members.value.filter((m) => m.isManager).length;
   const editing = editingId.value !== null && editingId.value !== ""

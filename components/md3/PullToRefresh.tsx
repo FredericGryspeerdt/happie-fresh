@@ -1,7 +1,7 @@
 import type { ComponentChildren, VNode } from "preact";
 import { useEffect, useMemo, useRef } from "preact/hooks";
-import { useSignal } from "@preact/signals";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh.ts";
+import { useSnack } from "@/hooks/useSnack.ts";
 import { Icon } from "@/components/md3/Icon.tsx";
 import { Snackbar } from "@/components/md3/Snackbar.tsx";
 
@@ -30,18 +30,13 @@ export function PullToRefresh(
   { onRefresh, disabled, class: className, children }: PullToRefreshProps,
 ): VNode {
   const rootRef = useRef<HTMLDivElement>(null);
-  const snack = useSignal<{ msg: string } | null>(null);
-  const snackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { snack, showSnack } = useSnack();
 
   // Latest props for the once-bound listeners / memoized controller to read.
   const latest = useRef({ onRefresh, disabled });
   latest.current = { onRefresh, disabled };
 
-  const showError = () => {
-    snack.value = { msg: "Couldn't refresh — try again" };
-    if (snackTimer.current) clearTimeout(snackTimer.current);
-    snackTimer.current = setTimeout(() => (snack.value = null), 3000);
-  };
+  const showError = () => showSnack("Couldn't refresh — try again");
 
   // useMemo with [] ensures usePullToRefresh is called only once.
   // usePullToRefresh uses plain signal() (not useSignal), so calling it on every
@@ -96,7 +91,6 @@ export function PullToRefresh(
       el.removeEventListener("touchmove", onMove);
       el.removeEventListener("touchend", onEnd);
       el.removeEventListener("touchcancel", onCancel);
-      if (snackTimer.current) clearTimeout(snackTimer.current);
     };
   }, []);
 

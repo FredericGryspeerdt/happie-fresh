@@ -9,7 +9,7 @@ import {
   ShoppingListInterface,
   ShoppingListItemInterface,
 } from "@/models/index.ts";
-import { useShoppingList, useWakeLock } from "@/hooks/index.ts";
+import { useShoppingList, useSnack, useWakeLock } from "@/hooks/index.ts";
 import { api } from "@/services/api.ts";
 import { Segmented } from "@/components/md3/Segmented.tsx";
 import { Sheet } from "@/components/md3/Sheet.tsx";
@@ -142,24 +142,11 @@ export default function Items(
   // ── list management sheet ────────────────────────────────────────────────
   const mgmtOpen = useSignal(false);
   const renameValue = useSignal("");
-  const snackData = useSignal<{ msg: string } | null>(null);
-  const snackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const showSnack = (msg: string) => {
-    snackData.value = { msg };
-    if (snackTimer.current) clearTimeout(snackTimer.current);
-    snackTimer.current = setTimeout(() => {
-      snackData.value = null;
-    }, 3000);
-  };
+  const { snack: snackData, showSnack } = useSnack();
 
   useEffect(() => {
     if (saveError.value) showSnack("Couldn't save your changes — try again");
   }, [saveError.value]);
-
-  useEffect(() => () => {
-    if (snackTimer.current) clearTimeout(snackTimer.current);
-  }, []);
 
   // ── register the "list options" overflow into the shell's TopAppBar ───────
   // The top app bar is rendered by the shell (AppChrome), a separate island;

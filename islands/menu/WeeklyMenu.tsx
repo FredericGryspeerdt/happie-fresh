@@ -1,5 +1,5 @@
 import { useSignal } from "@preact/signals";
-import { useEffect, useMemo, useRef } from "preact/hooks";
+import { useMemo } from "preact/hooks";
 import type {
   CategoryInterface,
   DishInterface,
@@ -19,6 +19,7 @@ import { IconButton } from "@/components/md3/IconButton.tsx";
 import { Pressable } from "@/components/md3/Pressable.tsx";
 import { Sheet } from "@/components/md3/Sheet.tsx";
 import { Snackbar } from "@/components/md3/Snackbar.tsx";
+import { useSnack } from "@/hooks/useSnack.ts";
 import { useMenuShopping as createMenuShopping } from "@/hooks/useMenuShopping.ts";
 import { ShoppingListPickerDialog } from "@/components/menu/ShoppingListPickerDialog.tsx";
 import { IngredientPreviewDialog } from "@/components/menu/IngredientPreviewDialog.tsx";
@@ -32,12 +33,6 @@ interface Props {
   initialDishes: DishInterface[];
   initialTagGroups: DishTagGroupInterface[];
   initialItems: ItemInterface[];
-}
-
-interface Snack {
-  msg: string;
-  action?: string;
-  onAction?: () => void;
 }
 
 export default function WeeklyMenu(
@@ -80,16 +75,14 @@ export default function WeeklyMenu(
   }, []);
 
   const dayPickEntryId = useSignal<string | null>(null);
-  const snack = useSignal<Snack | null>(null);
-  const snackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const showSnack = (msg: string, action?: string, onAction?: () => void) => {
-    snack.value = { msg, action, onAction };
-    if (snackTimer.current) clearTimeout(snackTimer.current);
-    snackTimer.current = setTimeout(() => (snack.value = null), 4000);
-  };
-  useEffect(() => () => {
-    if (snackTimer.current) clearTimeout(snackTimer.current);
-  }, []);
+  const { snack, showSnack: show } = useSnack();
+  // Every snack here lives 4s, Undo affordances included — the override keeps
+  // the hook's longer action duration from stretching them.
+  const showSnack = (
+    msg: string,
+    action?: string,
+    onAction?: () => void,
+  ) => show(msg, action, onAction, 4000);
 
   // Undo for Clear: re-add each dish, then re-apply its weekday pin. The snack
   // (and its Undo action) only appears once Clear has settled, so Undo can
