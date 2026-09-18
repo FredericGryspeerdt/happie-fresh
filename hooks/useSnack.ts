@@ -89,7 +89,7 @@ export function createSnackController(defaultMs = SNACK_MS): SnackController {
 
 /**
  * Self-dismissing snackbar state for one island. Replaces the per-site
- * `snack` signal + `snackTimer` ref pair (docs/ui-ux-patterns.md §6).
+ * `snack` signal + `snackTimer` ref pair (docs/ui-ux-patterns.md §3).
  *
  * The dismiss timer is cancelled on unmount, so a timer can never fire against
  * a torn-down island (#112).
