@@ -131,8 +131,9 @@ consistent failure feedback (issue #52). Until then, **don't add new silent `voi
 mutations** — give a new write a checkable result (`null`/boolean) and surface
 failure at the call site.
 
-**How:** Keep a local `snack` signal + a dismiss timer, and render one
-`<Snackbar>`:
+**How:** New code takes the state from `useSnack()` instead of hand-rolling the
+pair below; the manual form is what most islands still carry and what the hook
+replaces. Either way, render one `<Snackbar>`:
 
 ```ts
 const snackData = useSignal<{ msg: string } | null>(null);
@@ -148,7 +149,8 @@ const showSnack = (msg: string) => {
 The `Snackbar` component supports an optional `action`/`onAction` for a single
 inline button.
 
-**See:** `components/md3/Snackbar.tsx` (component + `action` support).
+**See:** `hooks/useSnack.ts` (state, timer and duration policy),
+`components/md3/Snackbar.tsx` (component + `action` support).
 Usage: `islands/items.tsx` (`showSnack`, ~line 120), `components/md3/PullToRefresh.tsx`
 (error message, ~line 41), `islands/shell/MoreSheet.tsx` ("coming soon").
 
