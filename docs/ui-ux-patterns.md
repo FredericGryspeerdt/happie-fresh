@@ -131,20 +131,18 @@ consistent failure feedback (issue #52). Until then, **don't add new silent `voi
 mutations** — give a new write a checkable result (`null`/boolean) and surface
 failure at the call site.
 
-**How:** Take the state from `useSnack()` — it owns the signal, the dismiss
-timer and the unmount cleanup, so a site cannot forget to clear the timer (#112).
-Three islands still hand-roll the pair below; read it as the shape the hook
-replaces, not as something to copy. Either way, render one `<Snackbar>`:
+**How:** Take the state and `showSnack` function from `useSnack()` — it owns the
+signal, dismiss timer and unmount cleanup, so a site cannot forget to clear the
+timer (#112). Render one `<Snackbar>` from the hook's signal:
 
 ```ts
-const snackData = useSignal<{ msg: string } | null>(null);
-const showSnack = (msg: string) => {
-  snackData.value = { msg };
-  clearTimeout(snackTimer.current!);
-  snackTimer.current = setTimeout(() => (snackData.value = null), 3000);
-};
+const { snack, showSnack } = useSnack();
+
+// When an action fails:
+showSnack("Couldn't save your changes — try again");
+
 // …
-<Snackbar data={snackData.value} />
+<Snackbar data={snack.value} />
 ```
 
 `useSnack(defaultMs)` sets that site's plain-message lifetime (3000 is the
@@ -161,8 +159,9 @@ inline button.
 
 **See:** `hooks/useSnack.ts` (state, timer and duration policy),
 `components/md3/Snackbar.tsx` (component + `action` support).
-Usage: `islands/items.tsx` (`useSnack`, ~line 145), `components/md3/PullToRefresh.tsx`
-(error message, ~line 39), `islands/shell/MoreSheet.tsx` ("coming soon", manual form).
+Usage: `islands/items.tsx` (`useSnack`, ~line 145),
+`components/md3/PullToRefresh.tsx` (error message, ~line 39), and
+`islands/shell/MoreSheet.tsx` ("coming soon", ~line 28).
 
 ---
 
@@ -797,7 +796,8 @@ Before merging anything the user sees, tick these (section refs in parens):
 
 - [ ] **Does every new mutation surface failure to the user — rollback (where
       applicable) **and** a Snackbar — rather than failing silently? (§3)** No
-      new fire-and-forget `void` mutations.
+      new fire-and-forget `void` mutations; use `useSnack()` rather than
+      hand-rolling snackbar state and timers.
 - [ ] Mutations follow optimistic (update/delete/toggle) vs. pessimistic
       (create) correctly? (§1)
 - [ ] All network access goes through the `api` service, and the caller reacts
