@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useRef } from "preact/hooks";
+import { useEffect, useMemo } from "preact/hooks";
 import { useSignal } from "@preact/signals";
 import type { BarcodeFormat, LoyaltyCardInterface } from "@/models/index.ts";
 import { useLoyaltyCards } from "@/hooks/useLoyaltyCards.ts";
+import { useSnack } from "@/hooks/useSnack.ts";
 import { formatLabel } from "@/utils/barcode.ts";
 import { PullToRefresh } from "@/components/md3/PullToRefresh.tsx";
 import { Sheet } from "@/components/md3/Sheet.tsx";
@@ -48,8 +49,7 @@ export default function LoyaltyWallet({ initialCards, canDelete }: Props) {
   const present = useSignal<LoyaltyCardInterface | null>(null);
   const saving = useSignal(false);
   const scannerAvailable = useSignal(false);
-  const snack = useSignal<{ msg: string } | null>(null);
-  const snackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { snack, showSnack } = useSnack(2400);
 
   const form = {
     label: useSignal(""),
@@ -62,17 +62,6 @@ export default function LoyaltyWallet({ initialCards, canDelete }: Props) {
   // Feature-detect the camera scanner on the client only (avoids SSR mismatch).
   useEffect(() => {
     if (scannerSupported()) scannerAvailable.value = true;
-  }, []);
-
-  const toast = (msg: string) => {
-    snack.value = { msg };
-    if (snackTimer.current) clearTimeout(snackTimer.current);
-    snackTimer.current = setTimeout(() => (snack.value = null), 2400);
-  };
-
-  // The dismiss timer must not fire against an unmounted island.
-  useEffect(() => () => {
-    if (snackTimer.current) clearTimeout(snackTimer.current);
   }, []);
 
   const openAdd = () => {
@@ -117,7 +106,7 @@ export default function LoyaltyWallet({ initialCards, canDelete }: Props) {
     const saved = id ? await updateCard(id, input) : await addCard(input);
     saving.value = false;
     if (!saved) {
-      toast(
+      showSnack(
         id
           ? "Couldn't save your changes — try again."
           : "Couldn't save that card — try again.",
@@ -130,7 +119,7 @@ export default function LoyaltyWallet({ initialCards, canDelete }: Props) {
   const handleDelete = async (id: string) => {
     present.value = null;
     const ok = await removeCard(id);
-    toast(ok ? "Card removed." : "Couldn't remove that card — try again.");
+    showSnack(ok ? "Card removed." : "Couldn't remove that card — try again.");
   };
 
   const list = sorted.value;
@@ -229,7 +218,7 @@ export default function LoyaltyWallet({ initialCards, canDelete }: Props) {
         <ScannerOverlay
           onDetect={onScanDetect}
           onClose={() => (scannerOpen.value = false)}
-          onError={(msg) => toast(msg)}
+          onError={showSnack}
         />
       )}
 

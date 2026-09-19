@@ -2,6 +2,7 @@ import { useEffect, useMemo } from "preact/hooks";
 import { useSignal } from "@preact/signals";
 import type { CategoryInterface, ItemInterface } from "@/models/index.ts";
 import { useCatalogue } from "@/hooks/useCatalogue.ts";
+import { useSnack } from "@/hooks/useSnack.ts";
 import { PullToRefresh } from "@/components/md3/PullToRefresh.tsx";
 import { Segmented } from "@/components/md3/Segmented.tsx";
 import { Chip } from "@/components/md3/Chip.tsx";
@@ -34,12 +35,7 @@ interface CatalogueProps {
 export default function Catalogue(
   { initialItems, initialCategories, canDelete }: CatalogueProps,
 ) {
-  const snack = useSignal<{ msg: string } | null>(null);
-  useEffect(() => {
-    if (!snack.value) return;
-    const timer = setTimeout(() => (snack.value = null), 3000);
-    return () => clearTimeout(timer);
-  }, [snack.value]);
+  const { snack, showSnack } = useSnack();
   // useMemo with [] ensures useCatalogue is called only once — its signals
   // are initialized from SSR props and must not be recreated on re-render.
   const {
@@ -285,7 +281,7 @@ export default function Catalogue(
           const id = editing.value?.id;
           editing.value = null;
           if (id && !(await removeItem(id))) {
-            snack.value = { msg: "Couldn't remove that item — try again" };
+            showSnack("Couldn't remove that item — try again");
           }
         }}
       />
@@ -342,7 +338,7 @@ export default function Catalogue(
           if (await deleteCategory(id)) {
             if (selected.value === id) selected.value = UNCAT;
           } else {
-            snack.value = { msg: "Couldn't delete that category — try again" };
+            showSnack("Couldn't delete that category — try again");
           }
         }}
       />
