@@ -1,6 +1,7 @@
 import { useSignal } from "@preact/signals";
 import { useEffect, useRef } from "preact/hooks";
 import { useSearchInput } from "@/hooks/useSearchInput.ts";
+import { useSnack } from "@/hooks/useSnack.ts";
 import { IngredientPicker } from "@/components/dishes/IngredientPicker.tsx";
 import type {
   DishInterface,
@@ -40,18 +41,18 @@ export default function DishEditor(
   const primerRef = useRef<HTMLInputElement>(null);
   const pickerTrigger = useRef<HTMLElement | null>(null);
   const handoff = useSignal(false);
-  const snack = useSignal<{ msg: string } | null>(null);
-  useEffect(() => {
-    if (!snack.value) return;
-    const timer = setTimeout(() => (snack.value = null), 5000);
-    return () => clearTimeout(timer);
-  }, [snack.value]);
+  const { snack, showSnack, hideSnack } = useSnack(5000);
+  const showIngredientCreateError = () => {
+    const message = "Couldn't add ingredient — try again";
+    showSnack(message);
+    ingredientStatus.value = message;
+  };
 
   const openPicker = (event: Event) => {
     pickerTrigger.current = event.currentTarget as HTMLElement;
     ingredientQuery.value = "";
     ingredientStatus.value = "";
-    snack.value = null;
+    hideSnack();
     handoff.value = false;
     primerRef.current?.focus();
     pickerOpen.value = true;
@@ -108,7 +109,7 @@ export default function DishEditor(
       return;
     }
     creatingIngredient.value = true;
-    snack.value = null;
+    hideSnack();
     // Keep the keyboard attached to the search field across the async create.
     inputRef.current?.focus();
     try {
@@ -117,13 +118,11 @@ export default function DishEditor(
         localItems.value = [...localItems.value, created];
         addIngredient(created.id);
       } else {
-        snack.value = { msg: "Couldn't add ingredient — try again" };
-        ingredientStatus.value = snack.value.msg;
+        showIngredientCreateError();
       }
     } catch {
       // The current API can still throw on transport/JSON failures.
-      snack.value = { msg: "Couldn't add ingredient — try again" };
-      ingredientStatus.value = snack.value.msg;
+      showIngredientCreateError();
     } finally {
       creatingIngredient.value = false;
     }
@@ -166,7 +165,7 @@ export default function DishEditor(
       if (await api.dishes.delete(dish.id)) {
         navigateTo("/menu");
       } else {
-        snack.value = { msg: "Couldn't delete this dish — try again" };
+        showSnack("Couldn't delete this dish — try again");
       }
     } finally {
       deleting.value = false;
