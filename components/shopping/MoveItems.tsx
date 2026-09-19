@@ -17,6 +17,7 @@ import { Sheet } from "@/components/md3/Sheet.tsx";
 import { Dialog } from "@/components/md3/Dialog.tsx";
 import { Card } from "@/components/md3/Card.tsx";
 import { Snackbar } from "@/components/md3/Snackbar.tsx";
+import { useSnack } from "@/hooks/useSnack.ts";
 import { useModal } from "@/components/md3/useModal.ts";
 import { SelectionRow } from "./SelectionRow.tsx";
 
@@ -76,10 +77,7 @@ export function MoveItems(
   const error = useSignal("");
   const leaving = useSignal(false);
   const request = useSignal<MoveItemsInput | null>(null);
-  const snack = useSignal<
-    { msg: string; action?: string; onAction?: () => void } | null
-  >(null);
-  const snackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { snack, showSnack } = useSnack(6000);
   const primer = useRef<HTMLInputElement>(null);
   const nameInput = useRef<HTMLInputElement>(null);
   const handedOff = useSignal(false);
@@ -90,17 +88,6 @@ export function MoveItems(
     if (!busy.value) sheetOpen.value = false;
   };
 
-  const showSnack = (msg: string, action?: string, onAction?: () => void) => {
-    if (snackTimer.current) clearTimeout(snackTimer.current);
-    snack.value = { msg, action, onAction };
-    snackTimer.current = setTimeout(
-      () => snack.value = null,
-      action ? 10_000 : 6000,
-    );
-  };
-  useEffect(() => () => {
-    if (snackTimer.current) clearTimeout(snackTimer.current);
-  }, []);
   useEffect(() => {
     if (!active.value) {
       selected.value = new Set();
@@ -133,8 +120,9 @@ export function MoveItems(
     if (busy.value) return;
     busy.value = true;
     beginBusy();
-    if (snackTimer.current) clearTimeout(snackTimer.current);
-    snack.value = { msg: "Undoing move…" };
+    // Persistent: the outcome is unknown until the request settles, so nothing
+    // may dismiss this on a clock (the next snack replaces it).
+    showSnack("Undoing move…", undefined, undefined, null);
     try {
       const result = await api.shoppingList.undoMove(listId, requestId);
       if (result?.ok) {

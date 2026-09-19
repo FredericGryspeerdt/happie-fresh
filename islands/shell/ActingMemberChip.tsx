@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "preact/hooks";
+import { useEffect } from "preact/hooks";
 import { useSignal } from "@preact/signals";
 import type { MemberInterface } from "@/models/index.ts";
 import { api } from "@/services/api.ts";
@@ -9,6 +9,7 @@ import { ListItem } from "@/components/md3/ListItem.tsx";
 import { Icon } from "@/components/md3/Icon.tsx";
 import { Pressable } from "@/components/md3/Pressable.tsx";
 import { Snackbar } from "@/components/md3/Snackbar.tsx";
+import { useSnack } from "@/hooks/useSnack.ts";
 
 interface Props {
   actingMember: MemberInterface | null;
@@ -29,18 +30,7 @@ export default function ActingMemberChip({ actingMember, claimed }: Props) {
 
   // Transient error feedback — a failed switch must be visible, not silent
   // (see docs/ui-ux-patterns.md §3).
-  const snackData = useSignal<{ msg: string } | null>(null);
-  const snackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const showSnack = (msg: string) => {
-    snackData.value = { msg };
-    if (snackTimer.current) clearTimeout(snackTimer.current);
-    snackTimer.current = setTimeout(() => {
-      snackData.value = null;
-    }, 3000);
-  };
-  useEffect(() => () => {
-    if (snackTimer.current) clearTimeout(snackTimer.current);
-  }, []);
+  const { snack: snackData, showSnack } = useSnack();
 
   const load = async () => {
     if (members.value === null) members.value = await api.members.getAll();

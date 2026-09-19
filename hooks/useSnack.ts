@@ -20,24 +20,28 @@ export interface SnackTiming {
   defaultMs: number;
   /** The action label attached to this snack, if any. */
   action?: string;
-  /** Per-call override; wins over everything else. */
-  overrideMs?: number;
+  /** Per-call override; wins over everything else. `null` means persistent. */
+  overrideMs?: number | null;
 }
 
-/** Pure duration policy — exported for unit tests. */
-export function snackDuration(timing: SnackTiming): number {
+/** Pure duration policy — exported for unit tests. `null` = never self-dismiss. */
+export function snackDuration(timing: SnackTiming): number | null {
   if (timing.overrideMs !== undefined) return timing.overrideMs;
   return timing.action ? SNACK_ACTION_MS : timing.defaultMs;
 }
 
 export interface SnackController {
   snack: ReadonlySignal<SnackData | null>;
-  /** `ms` overrides this snack's lifetime only, not the hook's default. */
+  /**
+   * `ms` overrides this snack's lifetime only, not the hook's default. Pass
+   * `null` for a snack that stays until the next one replaces it — for an
+   * in-progress message whose outcome is unknown (`MoveItems` "Undoing move…").
+   */
   showSnack: (
     msg: string,
     action?: string,
     onAction?: () => void,
-    ms?: number,
+    ms?: number | null,
   ) => void;
   hideSnack: () => void;
   /** Cancel the pending dismiss timer. `useSnack` wires this to unmount. */
@@ -68,11 +72,12 @@ export function createSnackController(defaultMs = SNACK_MS): SnackController {
     msg: string,
     action?: string,
     onAction?: () => void,
-    ms?: number,
+    ms?: number | null,
   ) => {
     cancel();
     snack.value = { msg, action, onAction };
     const life = snackDuration({ defaultMs, action, overrideMs: ms });
+    if (life === null) return;
     timer = setTimeout(() => {
       snack.value = null;
       timer = null;

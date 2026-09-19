@@ -10,6 +10,7 @@ import { RoundCheck } from "@/components/md3/RoundCheck.tsx";
 import { Icon } from "@/components/md3/Icon.tsx";
 import { Segmented } from "@/components/md3/Segmented.tsx";
 import { Snackbar } from "@/components/md3/Snackbar.tsx";
+import { useSnack } from "@/hooks/useSnack.ts";
 import { Pressable } from "@/components/md3/Pressable.tsx";
 import { MemberAvatar } from "@/components/members/MemberAvatar.tsx";
 import Fab from "@/islands/shell/Fab.tsx";
@@ -68,8 +69,7 @@ export default function TodoBacklog(
   const dueEditingId = useSignal<string | null>(null);
   const dueDraft = useSignal("");
   const showEarlierDone = useSignal(false);
-  const snack = useSignal<{ msg: string } | null>(null);
-  const snackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { snack, showSnack: say } = useSnack(4000);
 
   const filter = useSignal<"all" | "mine">("all");
   const memberById = new Map(members.map((m) => [m.id, m]));
@@ -153,16 +153,6 @@ export default function TodoBacklog(
   const editing = () =>
     open.find((t) => t.id === editingId.value) ??
       done.find((t) => t.id === editingId.value);
-
-  const say = (msg: string) => {
-    snack.value = { msg };
-    if (snackTimer.current) clearTimeout(snackTimer.current);
-    snackTimer.current = setTimeout(() => (snack.value = null), 4000);
-  };
-
-  useEffect(() => () => {
-    if (snackTimer.current) clearTimeout(snackTimer.current);
-  }, []);
 
   const submitNew = async () => {
     const title = newTitle.value.trim();

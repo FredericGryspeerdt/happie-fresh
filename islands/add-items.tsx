@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useRef } from "preact/hooks";
+import { useEffect, useMemo } from "preact/hooks";
 import { useComputed, useSignal } from "@preact/signals";
 import {
   CategoryInterface,
   ItemInterface,
   ShoppingListItemInterface,
 } from "@/models/index.ts";
-import { useSearchBox, useShoppingList } from "@/hooks/index.ts";
+import { useSearchBox, useShoppingList, useSnack } from "@/hooks/index.ts";
 import { Icon } from "@/components/md3/Icon.tsx";
 import { Button } from "@/components/md3/Button.tsx";
 import { Pressable } from "@/components/md3/Pressable.tsx";
@@ -103,18 +103,7 @@ export default function AddItems(
 
   // Transient error feedback — a failed add/create must be visible, not silent
   // (see docs/ui-ux-patterns.md §3).
-  const snackData = useSignal<{ msg: string } | null>(null);
-  const snackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const showSnack = (msg: string) => {
-    snackData.value = { msg };
-    if (snackTimer.current) clearTimeout(snackTimer.current);
-    snackTimer.current = setTimeout(() => {
-      snackData.value = null;
-    }, 3000);
-  };
-  useEffect(() => () => {
-    if (snackTimer.current) clearTimeout(snackTimer.current);
-  }, []);
+  const { snack: snackData, showSnack } = useSnack();
 
   const trackAdded = (liId: string | null) => {
     if (liId) addedThisVisit.value = [...addedThisVisit.value, liId];
