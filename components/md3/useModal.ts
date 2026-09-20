@@ -8,6 +8,18 @@ let originalOverflow = "";
 const FOCUSABLE =
   'button, [href], input, textarea, select, [tabindex]:not([tabindex="-1"])';
 
+/** Consume Escape before lower overlays (such as a Sheet) can also close. */
+export function handleModalEscape(
+  event: KeyboardEvent,
+  onClose: () => void,
+): boolean {
+  if (event.key !== "Escape") return false;
+  event.preventDefault();
+  event.stopPropagation();
+  onClose();
+  return true;
+}
+
 /** Shared modal behavior for Dialog/FullScreenDialog while open:
  *  - locks background scrolling (body overflow)
  *  - traps Tab focus inside the modal surface
@@ -46,10 +58,7 @@ export function useModal(
 
     const onKey = (e: KeyboardEvent) => {
       if (modalStack.at(-1) !== host) return;
-      if (e.key === "Escape") {
-        closeRef.current();
-        return;
-      }
+      if (handleModalEscape(e, closeRef.current)) return;
       if (e.key !== "Tab") return;
       const els = focusables();
       if (!els.length) return;
@@ -65,9 +74,10 @@ export function useModal(
         first.focus();
       }
     };
-    document.addEventListener("keydown", onKey);
+    // Capture Escape before a lower overlay's document listener sees it.
+    document.addEventListener("keydown", onKey, true);
     return () => {
-      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("keydown", onKey, true);
       const wasTop = modalStack.at(-1) === host;
       const index = modalStack.indexOf(host);
       if (index >= 0) modalStack.splice(index, 1);

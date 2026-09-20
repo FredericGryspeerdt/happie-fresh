@@ -54,7 +54,7 @@ export function Dialog(
     <div
       aria-hidden={!open}
       inert={!open}
-      class="fixed inset-0 z-[200] grid place-items-center p-6"
+      class="fixed inset-0 z-[210] grid place-items-center p-6"
       style={{
         pointerEvents: open ? "auto" : "none",
         ...(viewport
