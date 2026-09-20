@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from "preact/hooks";
 import { useSignal } from "@preact/signals";
+import type { Ref } from "preact";
 import type { MemberInterface, TodoInterface } from "@/models/index.ts";
 import { EXIT_MS, useTodos } from "@/hooks/useTodos.ts";
 import { PullToRefresh } from "@/components/md3/PullToRefresh.tsx";
@@ -12,6 +13,7 @@ import { Segmented } from "@/components/md3/Segmented.tsx";
 import { Snackbar } from "@/components/md3/Snackbar.tsx";
 import { useSnack } from "@/hooks/useSnack.ts";
 import { Pressable } from "@/components/md3/Pressable.tsx";
+import { TextField } from "@/components/md3/TextField.tsx";
 import { MemberAvatar } from "@/components/members/MemberAvatar.tsx";
 import Fab from "@/islands/shell/Fab.tsx";
 import DueChip from "@/islands/todos/DueChip.tsx";
@@ -24,6 +26,53 @@ interface Props {
   members: MemberInterface[];
   actingMemberId: string | null;
   canDelete: boolean;
+}
+
+interface TodoEditorTextFieldsProps {
+  title: string;
+  notes: string;
+  onTitleInput: (value: string) => void;
+  onNotesInput: (value: string) => void;
+  idPrefix?: string;
+  titlePlaceholder?: string;
+  titleRef?: Ref<HTMLInputElement>;
+  onTitleKeyDown?: (event: KeyboardEvent) => void;
+}
+
+export function TodoEditorTextFields(
+  {
+    title,
+    notes,
+    onTitleInput,
+    onNotesInput,
+    idPrefix = "todo-editor",
+    titlePlaceholder,
+    titleRef,
+    onTitleKeyDown,
+  }: TodoEditorTextFieldsProps,
+) {
+  return (
+    <>
+      <TextField
+        id={`${idPrefix}-title`}
+        label="Title"
+        value={title}
+        onInput={onTitleInput}
+        placeholder={titlePlaceholder}
+        inputRef={titleRef}
+        onKeyDown={onTitleKeyDown}
+      />
+      <TextField
+        id={`${idPrefix}-notes`}
+        label="Notes"
+        value={notes}
+        onInput={onNotesInput}
+        multiline
+        rows={2}
+        placeholder="Notes (optional)"
+      />
+    </>
+  );
 }
 
 export default function TodoBacklog(
@@ -461,27 +510,20 @@ export default function TodoBacklog(
       >
         {createOpen.value && (
           <div class="flex flex-col gap-3 pt-2">
-            <input
-              ref={titleRef}
-              value={newTitle.value}
-              onInput={(e) => (newTitle.value = e.currentTarget.value)}
-              onKeyDown={(e) => {
+            <TodoEditorTextFields
+              idPrefix="new-todo"
+              title={newTitle.value}
+              notes={newNotes.value}
+              onTitleInput={(value) => (newTitle.value = value)}
+              onNotesInput={(value) => (newNotes.value = value)}
+              titlePlaceholder="What needs doing?"
+              titleRef={titleRef}
+              onTitleKeyDown={(e) => {
                 if (e.key === "Enter") {
                   e.preventDefault();
                   submitNew();
                 }
               }}
-              placeholder="What needs doing?"
-              aria-label="What needs doing?"
-              class="w-full md-body-large text-on-surface bg-surface-chigh border-0 rounded-[var(--md-shape-lg)] py-3 px-4 outline-none"
-            />
-            <textarea
-              value={newNotes.value}
-              onInput={(e) => (newNotes.value = e.currentTarget.value)}
-              rows={2}
-              placeholder="Notes (optional)"
-              aria-label="Notes (optional)"
-              class="w-full md-body-large text-on-surface bg-surface-chigh border-0 rounded-[var(--md-shape-lg)] py-3 px-4 outline-none resize-none"
             />
             <input
               type="datetime-local"
@@ -511,21 +553,12 @@ export default function TodoBacklog(
           if (!t) return null;
           return (
             <div class="flex flex-col gap-3 pt-2">
-              <input
-                value={t.title}
-                onInput={(e) =>
-                  editTodo(t.id, { title: e.currentTarget.value })}
-                aria-label="Title"
-                class="w-full md-body-large text-on-surface bg-surface-chigh border-0 rounded-[var(--md-shape-lg)] py-3 px-4 outline-none"
-              />
-              <textarea
-                value={t.notes ?? ""}
-                onInput={(e) =>
-                  editTodo(t.id, { notes: e.currentTarget.value })}
-                rows={2}
-                placeholder="Notes (optional)"
-                aria-label="Notes"
-                class="w-full md-body-large text-on-surface bg-surface-chigh border-0 rounded-[var(--md-shape-lg)] py-3 px-4 outline-none resize-none"
+              <TodoEditorTextFields
+                idPrefix="edit-todo"
+                title={t.title}
+                notes={t.notes ?? ""}
+                onTitleInput={(value) => editTodo(t.id, { title: value })}
+                onNotesInput={(value) => editTodo(t.id, { notes: value })}
               />
               <input
                 type="datetime-local"

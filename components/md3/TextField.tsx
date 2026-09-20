@@ -1,5 +1,5 @@
 // components/md3/TextField.tsx
-import type { ComponentChildren } from "preact";
+import type { ComponentChildren, Ref } from "preact";
 import { Icon, type IconName } from "./Icon.tsx";
 import { cn } from "./tokens.ts";
 
@@ -29,6 +29,8 @@ interface TextFieldProps {
     | "url"
     | "search";
   class?: string;
+  inputRef?: Ref<HTMLInputElement>;
+  onKeyDown?: (event: KeyboardEvent) => void;
 }
 
 /** House-style filled text field: static always-visible label above the
@@ -51,6 +53,8 @@ export function TextField(
     rows = 3,
     inputMode,
     class: cls,
+    inputRef,
+    onKeyDown,
   }: TextFieldProps,
 ) {
   const invalid = Boolean(error);
@@ -107,6 +111,7 @@ export function TextField(
           )
           : (
             <input
+              ref={inputRef}
               id={id}
               name={name}
               type={type}
@@ -116,6 +121,7 @@ export function TextField(
               inputMode={inputMode}
               aria-invalid={invalid ? "true" : undefined}
               aria-describedby={helpId}
+              onKeyDown={onKeyDown}
               class={inputCls}
               onInput={handle}
             />
