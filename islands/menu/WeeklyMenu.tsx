@@ -78,7 +78,8 @@ export default function WeeklyMenu(
   const dayPickEntryId = useSignal<string | null>(null);
   const entryToRemove = useSignal<string | null>(null);
   const clearOpen = useSignal(false);
-  const destructivePending = useSignal(false);
+  const entryRemovalPending = useSignal(false);
+  const clearWeekPending = useSignal(false);
   const { snack, showSnack: showWithMs } = useSnack();
   // Every snack here lives 4s, Undo affordances included. The per-call override
   // is load-bearing: `useSnack(4000)` alone would not pin them, because the
@@ -94,7 +95,7 @@ export default function WeeklyMenu(
   // never race an in-flight wipe.
   const onClear = async () => {
     const prev = menu.value.entries;
-    destructivePending.value = true;
+    clearWeekPending.value = true;
     try {
       const ok = await clear();
       clearOpen.value = false;
@@ -106,7 +107,7 @@ export default function WeeklyMenu(
         )
         : showSnack("Couldn't clear this week");
     } finally {
-      destructivePending.value = false;
+      clearWeekPending.value = false;
     }
   };
 
@@ -392,18 +393,18 @@ export default function WeeklyMenu(
           )?.name ?? "This dish"
         }” will stay in your dishes.`}
         confirmLabel="Remove dish"
-        pending={destructivePending.value}
+        pending={entryRemovalPending.value}
         onClose={() => (entryToRemove.value = null)}
         onConfirm={async () => {
           const id = entryToRemove.value;
           if (!id) return;
-          destructivePending.value = true;
+          entryRemovalPending.value = true;
           try {
             const ok = await removeEntry(id);
             entryToRemove.value = null;
             showSnack(ok ? "Removed from this week" : "Couldn't remove it");
           } finally {
-            destructivePending.value = false;
+            entryRemovalPending.value = false;
           }
         }}
       />
@@ -412,7 +413,7 @@ export default function WeeklyMenu(
         headline="Clear this week?"
         supportingText="Every planned dish will be removed. You can undo this afterwards."
         confirmLabel="Clear week"
-        pending={destructivePending.value}
+        pending={clearWeekPending.value}
         onClose={() => (clearOpen.value = false)}
         onConfirm={onClear}
       />

@@ -75,7 +75,8 @@ export default function Catalogue(
   const menuCat = useSignal<CategoryInterface | null>(null);
   const itemToRemove = useSignal<ItemInterface | null>(null);
   const categoryToDelete = useSignal<CategoryInterface | null>(null);
-  const destructivePending = useSignal(false);
+  const itemRemovalPending = useSignal(false);
+  const categoryDeletionPending = useSignal(false);
   // When true, the add sheet opens directly in "new category" mode (FAB action).
   const addNewCat = useSignal(false);
 
@@ -346,17 +347,17 @@ export default function Catalogue(
             itemToRemove.value?.name ?? "This item"
           }” will no longer be available to add to lists.`}
           confirmLabel="Remove item"
-          pending={destructivePending.value}
+          pending={itemRemovalPending.value}
           onClose={() => (itemToRemove.value = null)}
           onConfirm={async () => {
             const item = itemToRemove.value;
             if (!item) return;
-            destructivePending.value = true;
+            itemRemovalPending.value = true;
             try {
               if (await removeItem(item.id)) itemToRemove.value = null;
               else showSnack("Couldn't remove that item — try again");
             } finally {
-              destructivePending.value = false;
+              itemRemovalPending.value = false;
             }
           }}
         />
@@ -369,19 +370,19 @@ export default function Catalogue(
             categoryToDelete.value?.label ?? "this category"
           }” will become uncategorized.`}
           confirmLabel="Delete category"
-          pending={destructivePending.value}
+          pending={categoryDeletionPending.value}
           onClose={() => (categoryToDelete.value = null)}
           onConfirm={async () => {
             const category = categoryToDelete.value;
             if (!category) return;
-            destructivePending.value = true;
+            categoryDeletionPending.value = true;
             try {
               if (await deleteCategory(category.id)) {
                 if (selected.value === category.id) selected.value = UNCAT;
                 categoryToDelete.value = null;
               } else showSnack("Couldn't delete that category — try again");
             } finally {
-              destructivePending.value = false;
+              categoryDeletionPending.value = false;
             }
           }}
         />

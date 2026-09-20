@@ -8,9 +8,10 @@ import { DestructiveConfirmationDialog } from "@/components/md3/DestructiveConfi
 interface CardPresentProps {
   card: LoyaltyCardInterface;
   canDelete: boolean;
+  deletePending: boolean;
   onClose: () => void;
   onEdit: (card: LoyaltyCardInterface) => void;
-  onDelete: (id: string) => void;
+  onDelete: (id: string) => Promise<boolean>;
 }
 
 /**
@@ -19,7 +20,8 @@ interface CardPresentProps {
  * confirm-guarded edit/remove actions.
  */
 export function CardPresent(
-  { card, canDelete, onClose, onEdit, onDelete }: CardPresentProps,
+  { card, canDelete, deletePending, onClose, onEdit, onDelete }:
+    CardPresentProps,
 ) {
   const confirming = useSignal(false);
   const isQr = card.format === "qrcode";
@@ -76,8 +78,11 @@ export function CardPresent(
           headline="Remove this card?"
           supportingText={`“${card.label}” will be removed for everyone.`}
           confirmLabel="Remove card"
+          pending={deletePending}
           onClose={() => (confirming.value = false)}
-          onConfirm={() => onDelete(card.id)}
+          onConfirm={async () => {
+            if (!(await onDelete(card.id))) confirming.value = false;
+          }}
         />
       )}
     </div>

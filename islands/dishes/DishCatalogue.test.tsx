@@ -1,7 +1,22 @@
 import { assertEquals, assertStringIncludes } from "jsr:@std/assert@^1.0.19";
 import { render } from "npm:preact-render-to-string@^6.6.3";
 import { h } from "preact";
-import DishCatalogue from "./DishCatalogue.tsx";
+import DishCatalogue, { confirmDishRemoval } from "./DishCatalogue.tsx";
+
+Deno.test("DishCatalogue — failed removal keeps the dialog open and reports failure", async () => {
+  let closed = false;
+  let message = "";
+
+  await confirmDishRemoval(
+    "dish-1",
+    () => Promise.resolve(false),
+    () => (closed = true),
+    (next) => (message = next),
+  );
+
+  assertEquals(closed, false);
+  assertEquals(message, "Couldn't remove that dish — try again");
+});
 
 Deno.test("DishCatalogue — renders dishes, search, and the add FAB", () => {
   const html = render(h(DishCatalogue, {
