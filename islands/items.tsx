@@ -20,7 +20,9 @@ import { Stepper } from "@/components/md3/Stepper.tsx";
 import { ShoppingAmountDialog } from "@/components/shopping/ShoppingAmountDialog.tsx";
 import { formatShoppingAmount } from "@/utils/shopping-amount.ts";
 import { Button } from "@/components/md3/Button.tsx";
+import { Dialog } from "@/components/md3/Dialog.tsx";
 import { ListItem } from "@/components/md3/ListItem.tsx";
+import { TextField } from "@/components/md3/TextField.tsx";
 import { Icon } from "@/components/md3/Icon.tsx";
 import { appBarAction } from "@/utils/app-bar.ts";
 import { Pressable } from "@/components/md3/Pressable.tsx";
@@ -141,8 +143,17 @@ export default function Items(
 
   // ── list management sheet ────────────────────────────────────────────────
   const mgmtOpen = useSignal(false);
+  const renameOpen = useSignal(false);
   const renameValue = useSignal("");
   const { snack: snackData, showSnack } = useSnack();
+
+  const commitRename = async () => {
+    const name = renameValue.value.trim();
+    if (!name) return;
+    await api.shoppingLists.rename(listId, name);
+    renameOpen.value = false;
+    reloadPage();
+  };
 
   useEffect(() => {
     if (saveError.value) showSnack("Couldn't save your changes — try again");
@@ -161,7 +172,6 @@ export default function Items(
       label: "List options",
       onClick: () => {
         if (moveBusy.value || selecting.value) return;
-        renameValue.value = listName;
         mgmtOpen.value = true;
       },
     };
@@ -559,140 +569,160 @@ export default function Items(
 
       {/* ══════════════════════ List-management sheet ══════════════════════ */}
       {
-        /* Gated on !addOpen: <Sheet> renders its children even when closed, so
-          this rename <input> would otherwise stay in the DOM while the add-items
-          overlay is open. That extra form field makes iOS add a prev/next field
-          navigator to the keyboard accessory bar; unmounting the sheet leaves the
-          overlay's search box as the only field. */
+        /* Gated on !addOpen: <Sheet> and <Dialog> render their children even
+          when closed, so the rename field would otherwise stay in the DOM while
+          the add-items overlay is open. That extra form field makes iOS add a
+          prev/next field navigator to the keyboard accessory bar; unmounting the
+          management overlays leaves the overlay's search box as the only field. */
       }
       {!addOpen.value && !selecting.value && (
-        <Sheet
-          open={mgmtOpen.value}
-          onClose={() => {
-            mgmtOpen.value = false;
-          }}
-          title="List options"
-        >
-          <div class="flex flex-col gap-1 pb-1">
-            <Button
-              variant="text"
-              full
-              disabled={list.value.length + checkedItems.value.length === 0 ||
-                moveBusy.value || pendingCount.value > 0 ||
-                pendingItemIds.value.size > 0}
-              onClick={() => {
-                mgmtOpen.value = false;
-                mode.value = "plan";
-                selecting.value = true;
-              }}
-            >
-              Select items to move
-            </Button>
-            {/* Rename */}
-            <div class="px-1 py-2">
-              <div class="md-body-large text-on-surface mb-2">Rename list</div>
-              <div class="flex gap-2">
-                <input
-                  value={renameValue.value}
-                  onInput={(e) => {
-                    renameValue.value = (e.target as HTMLInputElement).value;
-                  }}
-                  onKeyDown={async (e) => {
-                    if (e.key === "Enter" && renameValue.value.trim()) {
-                      await api.shoppingLists.rename(
-                        listId,
-                        renameValue.value.trim(),
-                      );
-                      mgmtOpen.value = false;
-                      // The route SSR renders the list name into the shell TopAppBar;
-                      // reload to reflect the new name there.
-                      reloadPage();
+        <>
+          <Sheet
+            open={mgmtOpen.value}
+            onClose={() => {
+              mgmtOpen.value = false;
+              renameOpen.value = false;
+            }}
+            title="List options"
+          >
+            <div class="flex flex-col gap-1 pb-1">
+              <Button
+                variant="text"
+                full
+                disabled={list.value.length + checkedItems.value.length === 0 ||
+                  moveBusy.value || pendingCount.value > 0 ||
+                  pendingItemIds.value.size > 0}
+                onClick={() => {
+                  mgmtOpen.value = false;
+                  mode.value = "plan";
+                  selecting.value = true;
+                }}
+              >
+                Select items to move
+              </Button>
+              {/* Rename */}
+              <ListItem
+                headline="Rename list"
+                supporting={listName}
+                leading={
+                  <span class="w-10 h-10 rounded-full bg-surface-chigh text-on-surface-variant grid place-items-center">
+                    <Icon name="edit" size={20} />
+                  </span>
+                }
+                onClick={() => {
+                  renameValue.value = listName;
+                  renameOpen.value = true;
+                }}
+              />
+
+              <div class="h-px bg-surface-chigh mx-1 my-1" />
+
+              {/* Share — coming soon */}
+              <ListItem
+                headline="Share list"
+                supporting="Invite household members"
+                leading={
+                  <span class="w-10 h-10 rounded-full bg-surface-chigh text-on-surface-variant grid place-items-center">
+                    <Icon name="share" size={20} />
+                  </span>
+                }
+                onClick={() => {
+                  showSnack("Sharing is coming soon");
+                }}
+              />
+
+              {/* Clear checked */}
+              <ListItem
+                headline="Clear checked items"
+                supporting={checkedItems.value.length
+                  ? `${checkedItems.value.length} checked off`
+                  : "Nothing checked yet"}
+                leading={
+                  <span class="w-10 h-10 rounded-full bg-surface-chigh text-on-surface-variant grid place-items-center">
+                    <Icon name="check" size={20} />
+                  </span>
+                }
+                onClick={async () => {
+                  mgmtOpen.value = false;
+                  const ok = await clearCheckedItems();
+                  if (!ok) {
+                    showSnack("Couldn't clear checked items — try again");
+                  }
+                }}
+              />
+
+              {canDelete && (
+                <>
+                  <div class="h-px bg-surface-chigh mx-1 my-1" />
+
+                  {/* Delete list */}
+                  <ListItem
+                    headline={<span class="text-error">Delete list</span>}
+                    leading={
+                      <span class="w-10 h-10 rounded-full bg-error-container text-error grid place-items-center">
+                        <Icon name="trash" size={20} />
+                      </span>
                     }
-                  }}
-                  placeholder="List name"
-                  class="flex-1 md-body-large text-on-surface bg-surface-chigh border-0 rounded-[var(--md-shape-full)] py-3 px-4 outline-none"
-                />
+                    onClick={async () => {
+                      mgmtOpen.value = false;
+                      beginBusy();
+                      try {
+                        if (await api.shoppingLists.delete(listId)) {
+                          navigateTo("/shopping");
+                        } else {
+                          showSnack(
+                            "Couldn't delete this shopping list — try again",
+                          );
+                        }
+                      } finally {
+                        endBusy();
+                      }
+                    }}
+                  />
+                </>
+              )}
+            </div>
+          </Sheet>
+
+          {/* Mounted after the portalled sheet so it paints above it. */}
+          <Dialog
+            open={renameOpen.value}
+            onClose={() => renameOpen.value = false}
+            headline="Rename list"
+            actions={
+              <>
                 <Button
-                  variant="filled"
-                  onClick={async () => {
-                    const name = renameValue.value.trim();
-                    if (!name) return;
-                    await api.shoppingLists.rename(listId, name);
-                    mgmtOpen.value = false;
-                    reloadPage();
-                  }}
+                  variant="text"
+                  onClick={() => renameOpen.value = false}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="text"
+                  disabled={!renameValue.value.trim()}
+                  onClick={commitRename}
                 >
                   Save
                 </Button>
-              </div>
-            </div>
-
-            <div class="h-px bg-surface-chigh mx-1 my-1" />
-
-            {/* Share — coming soon */}
-            <ListItem
-              headline="Share list"
-              supporting="Invite household members"
-              leading={
-                <span class="w-10 h-10 rounded-full bg-surface-chigh text-on-surface-variant grid place-items-center">
-                  <Icon name="share" size={20} />
-                </span>
-              }
-              onClick={() => {
-                showSnack("Sharing is coming soon");
-              }}
-            />
-
-            {/* Clear checked */}
-            <ListItem
-              headline="Clear checked items"
-              supporting={checkedItems.value.length
-                ? `${checkedItems.value.length} checked off`
-                : "Nothing checked yet"}
-              leading={
-                <span class="w-10 h-10 rounded-full bg-surface-chigh text-on-surface-variant grid place-items-center">
-                  <Icon name="check" size={20} />
-                </span>
-              }
-              onClick={async () => {
-                mgmtOpen.value = false;
-                const ok = await clearCheckedItems();
-                if (!ok) showSnack("Couldn't clear checked items — try again");
-              }}
-            />
-
-            {canDelete && (
-              <>
-                <div class="h-px bg-surface-chigh mx-1 my-1" />
-
-                {/* Delete list */}
-                <ListItem
-                  headline={<span class="text-error">Delete list</span>}
-                  leading={
-                    <span class="w-10 h-10 rounded-full bg-error-container text-error grid place-items-center">
-                      <Icon name="trash" size={20} />
-                    </span>
-                  }
-                  onClick={async () => {
-                    mgmtOpen.value = false;
-                    beginBusy();
-                    try {
-                      if (await api.shoppingLists.delete(listId)) {
-                        navigateTo("/shopping");
-                      } else {
-                        showSnack(
-                          "Couldn't delete this shopping list — try again",
-                        );
-                      }
-                    } finally {
-                      endBusy();
-                    }
-                  }}
-                />
               </>
-            )}
-          </div>
-        </Sheet>
+            }
+          >
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                commitRename();
+              }}
+            >
+              <TextField
+                id="list-name"
+                label="List name"
+                value={renameValue.value}
+                onInput={(value) => renameValue.value = value}
+              />
+              <button type="submit" class="hidden" tabindex={-1}>Save</button>
+            </form>
+          </Dialog>
+        </>
       )}
 
       {/* ══════════════════════ Item-editor sheet ══════════════════════ */}

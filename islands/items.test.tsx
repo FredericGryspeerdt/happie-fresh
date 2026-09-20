@@ -36,3 +36,30 @@ Deno.test("Items — canDelete: false hides the Delete list affordance", () => {
   const html = render(h(Items, { ...base, canDelete: false }));
   assertFalse(html.includes("Delete list"));
 });
+
+Deno.test("Items — list options keeps rename input out of the sheet", () => {
+  const html = render(h(Items, base));
+  const sheetStart = html.indexOf('aria-label="List options"');
+  const renameDialogStart = html.indexOf('aria-label="Rename list"');
+
+  assert(sheetStart >= 0);
+  assert(renameDialogStart > sheetStart);
+  assertStringIncludes(
+    html.slice(sheetStart, renameDialogStart),
+    "Rename list",
+  );
+  assertFalse(html.slice(sheetStart, renameDialogStart).includes("<input"));
+});
+
+Deno.test("Items — rename dialog uses a text field and form submit", () => {
+  const html = render(h(Items, base));
+  const renameDialogStart = html.indexOf('aria-label="Rename list"');
+  const renameDialog = html.slice(renameDialogStart);
+
+  assert(renameDialogStart >= 0);
+  assertStringIncludes(renameDialog, "<form");
+  assertStringIncludes(renameDialog, 'id="list-name"');
+  assertStringIncludes(renameDialog, 'type="submit"');
+  assertStringIncludes(renameDialog, ">Cancel</");
+  assertStringIncludes(renameDialog, ">Save</");
+});
