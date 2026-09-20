@@ -1,5 +1,5 @@
 import { DishTagGroupRepo } from "@/database/dish-tag-group.repo.ts";
-import { define } from "@/utils/index.ts";
+import { badRequest, define, json, notFound } from "@/utils/index.ts";
 
 export const handler = define.handlers({
   async GET(ctx) {
@@ -7,24 +7,21 @@ export const handler = define.handlers({
     if (!householdId) return new Response("Unauthorized", { status: 401 });
     await DishTagGroupRepo.ensureDefaults(householdId);
     const groups = await DishTagGroupRepo.getAll(householdId);
-    return new Response(JSON.stringify(groups), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
+    return json(groups);
   },
   async POST(ctx) {
     const householdId = ctx.state.householdId;
     if (!householdId) return new Response("Unauthorized", { status: 401 });
     const { groupId, label } = await ctx.req.json();
     if (!groupId || !label?.trim()) {
-      return new Response("groupId and label are required", { status: 400 });
+      return badRequest("groupId and label are required");
     }
     const value = await DishTagGroupRepo.addValue(
       householdId,
       groupId,
       label.trim(),
     );
-    if (!value) return new Response("Group not found", { status: 404 });
-    return new Response(JSON.stringify(value), { status: 201 });
+    if (!value) return notFound("Group not found");
+    return json(value, 201);
   },
 });

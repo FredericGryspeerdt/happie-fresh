@@ -1,5 +1,11 @@
 import { ShoppingListItemRepo } from "@/database/index.ts";
-import { badRequest, define } from "@/utils/index.ts";
+import {
+  badRequest,
+  define,
+  json,
+  noContent,
+  notFound,
+} from "@/utils/index.ts";
 import {
   isShoppingUnit,
   parseShoppingAmount,
@@ -11,22 +17,16 @@ export const handler = define.handlers({
     const list = await authorizeList(ctx, ctx.params.id);
     if (!list) return new Response("Forbidden", { status: 403 });
     const items = await ShoppingListItemRepo.getAll(list.id);
-    return new Response(JSON.stringify(items), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
+    return json(items);
   },
 
   async POST(ctx) {
     const list = await authorizeList(ctx, ctx.params.id);
     if (!list) return new Response("Forbidden", { status: 403 });
     const { itemId } = await ctx.req.json();
-    if (!itemId) return new Response("itemId required", { status: 400 });
+    if (!itemId) return badRequest("itemId required");
     const entry = await ShoppingListItemRepo.add(list.id, itemId);
-    return new Response(JSON.stringify(entry), {
-      status: 201,
-      headers: { "Content-Type": "application/json" },
-    });
+    return json(entry, 201);
   },
 
   async PATCH(ctx) {
@@ -63,19 +63,16 @@ export const handler = define.handlers({
       note,
       checked,
     });
-    if (!updated) return new Response("Not found", { status: 404 });
-    return new Response(JSON.stringify(updated), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
+    if (!updated) return notFound();
+    return json(updated);
   },
 
   async DELETE(ctx) {
     const list = await authorizeList(ctx, ctx.params.id);
     if (!list) return new Response("Forbidden", { status: 403 });
     const { id } = await ctx.req.json();
-    if (!id) return new Response("id required", { status: 400 });
+    if (!id) return badRequest("id required");
     await ShoppingListItemRepo.delete(list.id, id);
-    return new Response(null, { status: 204 });
+    return noContent();
   },
 });

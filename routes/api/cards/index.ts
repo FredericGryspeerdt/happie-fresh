@@ -1,4 +1,11 @@
-import { define, requireManager } from "@/utils/index.ts";
+import {
+  badRequest,
+  define,
+  json,
+  noContent,
+  notFound,
+  requireManager,
+} from "@/utils/index.ts";
 import { LoyaltyCardRepo } from "@/database/index.ts";
 import type { BarcodeFormat } from "@/models/index.ts";
 import { validateBarcode } from "@/utils/barcode.ts";
@@ -11,12 +18,6 @@ const FORMATS = new Set<BarcodeFormat>([
   "code39",
   "qrcode",
 ]);
-
-const json = (data: unknown, status: number) =>
-  new Response(JSON.stringify(data), {
-    status,
-    headers: { "Content-Type": "application/json" },
-  });
 
 export const handler = define.handlers({
   async GET(ctx) {
@@ -37,13 +38,13 @@ export const handler = define.handlers({
     const format = body.format as BarcodeFormat;
     const color = body.color ? String(body.color) : undefined;
 
-    if (!label) return new Response("label required", { status: 400 });
+    if (!label) return badRequest("label required");
     if (!FORMATS.has(format)) {
-      return new Response("invalid format", { status: 400 });
+      return badRequest("invalid format");
     }
     if (format === "code39") value = value.toUpperCase();
     const check = validateBarcode(value, format);
-    if (!check.ok) return new Response(check.message, { status: 400 });
+    if (!check.ok) return badRequest(check.message);
 
     const card = await LoyaltyCardRepo.create({
       householdId,
@@ -62,20 +63,20 @@ export const handler = define.handlers({
     if (!householdId) return new Response("Unauthorized", { status: 401 });
     const body = await ctx.req.json();
     const id = body.id ? String(body.id) : "";
-    if (!id) return new Response("ID is required", { status: 400 });
+    if (!id) return badRequest("ID is required");
 
     const label = String(body.label ?? "").trim();
     let value = String(body.value ?? "").trim();
     const format = body.format as BarcodeFormat;
     const color = body.color ? String(body.color) : undefined;
 
-    if (!label) return new Response("label required", { status: 400 });
+    if (!label) return badRequest("label required");
     if (!FORMATS.has(format)) {
-      return new Response("invalid format", { status: 400 });
+      return badRequest("invalid format");
     }
     if (format === "code39") value = value.toUpperCase();
     const check = validateBarcode(value, format);
-    if (!check.ok) return new Response(check.message, { status: 400 });
+    if (!check.ok) return badRequest(check.message);
 
     const updated = await LoyaltyCardRepo.update(householdId, id, {
       label,
@@ -83,7 +84,7 @@ export const handler = define.handlers({
       format,
       color,
     });
-    if (!updated) return new Response("Card not found", { status: 404 });
+    if (!updated) return notFound("Card not found");
     return json(updated, 200);
   },
 
@@ -94,8 +95,8 @@ export const handler = define.handlers({
     const forbidden = requireManager(ctx);
     if (forbidden) return forbidden;
     const { id } = await ctx.req.json();
-    if (!id) return new Response("ID is required", { status: 400 });
+    if (!id) return badRequest("ID is required");
     await LoyaltyCardRepo.delete(householdId, id);
-    return new Response(null, { status: 204 });
+    return noContent();
   },
 });
