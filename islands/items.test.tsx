@@ -63,3 +63,13 @@ Deno.test("Items — rename dialog uses a text field and form submit", () => {
   assertStringIncludes(renameDialog, ">Cancel</");
   assertStringIncludes(renameDialog, ">Save</");
 });
+
+Deno.test("Items — item editor is a closed dialog without a note field", () => {
+  const html = render(h(Items, base));
+
+  assert(
+    html.match(/fixed inset-0 z-\[210\] grid place-items-center/g)?.length ===
+      2,
+  );
+  assertFalse(html.includes("<textarea"));
+});

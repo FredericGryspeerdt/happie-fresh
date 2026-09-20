@@ -1,4 +1,8 @@
-import { assert, assertStringIncludes } from "jsr:@std/assert@^1.0.19";
+import {
+  assert,
+  assertFalse,
+  assertStringIncludes,
+} from "jsr:@std/assert@^1.0.19";
 import { render } from "npm:preact-render-to-string@^6.6.3";
 import { h } from "preact";
 import AddItems from "./add-items.tsx";
@@ -50,4 +54,11 @@ Deno.test("AddItems — no-match query shows the full Create card", () => {
   // preact-render-to-string HTML-escapes the literal quotes in Create "{q}".
   assertStringIncludes(html, "Create &quot;Tofu&quot;");
   assertStringIncludes(html, "New item"); // no matches → the prominent card
+});
+
+Deno.test("AddItems — item editor is a closed dialog without a note field", () => {
+  const html = render(h(AddItems, { ...base, initialQuery: "" }));
+
+  assertStringIncludes(html, "fixed inset-0 z-[210] grid place-items-center");
+  assertFalse(html.includes("<textarea"));
 });

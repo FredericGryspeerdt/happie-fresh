@@ -9,8 +9,9 @@ import { useSearchBox, useShoppingList, useSnack } from "@/hooks/index.ts";
 import { Icon } from "@/components/md3/Icon.tsx";
 import { Button } from "@/components/md3/Button.tsx";
 import { Pressable } from "@/components/md3/Pressable.tsx";
-import { Sheet } from "@/components/md3/Sheet.tsx";
+import { Dialog } from "@/components/md3/Dialog.tsx";
 import { Stepper } from "@/components/md3/Stepper.tsx";
+import { TextField } from "@/components/md3/TextField.tsx";
 import { CategoryPickerList } from "@/components/md3/CategoryPickerList.tsx";
 import { CatalogueAddRow } from "@/components/md3/CatalogueAddRow.tsx";
 import { Snackbar } from "@/components/md3/Snackbar.tsx";
@@ -77,7 +78,7 @@ export default function AddItems(
   const addedThisVisit = useSignal<string[]>([]);
   // Create-flow category picker sub-screen.
   const catPicking = useSignal(false);
-  // Compact editor sheet — holds the list-item id being edited (qty + note).
+  // Compact editor dialog — holds the list-item id being edited (qty + note).
   const editingId = useSignal<string | null>(null);
   // "Added (N)" section collapse state (collapsed by default).
   const addedOpen = useSignal(false);
@@ -415,11 +416,11 @@ export default function AddItems(
           )}
       </div>
 
-      {/* Compact editor sheet — quantity + note */}
-      <Sheet
+      {/* Compact editor dialog — quantity + note */}
+      <Dialog
         open={editingId.value !== null}
         onClose={closeEditor}
-        title={editingLi ? getItemName(editingLi.itemId) : ""}
+        headline={editingLi ? getItemName(editingLi.itemId) : ""}
       >
         {editingLi && (
           <div class="flex flex-col gap-1.5 pb-1">
@@ -433,15 +434,15 @@ export default function AddItems(
             <div class="h-px bg-surface-chigh mx-1" />
             <div class="px-1 py-1.5">
               <div class="md-body-large text-on-surface mb-2">Note</div>
-              <textarea
+              <TextField
                 value={editingLi.note ?? ""}
-                onInput={(e) =>
+                onInput={(note) =>
                   updateListItem(editingLi.id!, {
-                    note: (e.target as HTMLTextAreaElement).value,
+                    note,
                   })}
+                multiline
                 rows={2}
                 placeholder="e.g. the red ones, big pack, any brand…"
-                class="w-full md-body-large text-on-surface bg-surface-chigh border-0 rounded-[var(--md-shape-lg)] py-3 px-4 outline-none resize-none"
               />
             </div>
             <Button variant="filled" full onClick={closeEditor} class="mt-2.5">
@@ -457,7 +458,7 @@ export default function AddItems(
             </Button>
           </div>
         )}
-      </Sheet>
+      </Dialog>
 
       <Snackbar data={snackData.value} />
     </div>
