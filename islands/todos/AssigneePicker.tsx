@@ -26,13 +26,16 @@ export default function AssigneePicker(
     );
   return (
     <div class="flex flex-col gap-2">
-      <div class="md-label-medium uppercase text-on-surface-variant px-1">
+      <div
+        id="assignee-picker-label"
+        class="md-label-medium uppercase text-on-surface-variant px-1"
+      >
         Assigned to
       </div>
       <div
         class="flex flex-wrap gap-2"
         role="radiogroup"
-        aria-label="Assigned to"
+        aria-labelledby="assignee-picker-label"
       >
         <button
           type="button"

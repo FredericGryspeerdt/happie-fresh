@@ -465,7 +465,7 @@ solve this either: browsers only honor it during initial document parse, so
 it's inert on an element that mounts dynamically afterwards. This repo has
 been bitten twice by skipping the hand-off: PR #45 fixed a regression where
 the primer unmounted before the real field confirmed focus, dropping focus to
-`<body>` and dismissing the keyboard; and the to-dos create sheet originally
+`<body>` and dismissing the keyboard; and the to-dos create dialog originally
 shipped with a bare `autofocus` on its title input that never fired, until it
 was replaced with this pattern.
 
@@ -517,8 +517,9 @@ its keep when the real field doesn't exist yet at tap-time.
 **See:** `islands/items.tsx` — `primerRef`/`handoff`/`openAdd`/`closeAdd`
 (~lines 81–100) and the primer element (~lines 704–726), which hands off via
 `AddItems`'s `onSearchFocus` callback. `islands/todos/TodoBacklog.tsx` — the
-same shape for the create sheet: `primerRef`/`handoff`/`openCreate`/
-`closeCreate` (~lines 54–78) and the primer element (~lines 222–237).
+same shape for the create `FullScreenDialog`: `primerRef`/`handoff`/
+`openCreate`/`closeCreate` (~lines 157–200) and the primer element
+(~lines 518–533).
 
 ---
 

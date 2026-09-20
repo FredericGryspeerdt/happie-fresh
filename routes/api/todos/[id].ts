@@ -6,9 +6,10 @@ import {
   notFound,
   requireManager,
 } from "@/utils/index.ts";
-import { MemberRepo, TodoRepo } from "@/database/index.ts";
+import { TodoRepo } from "@/database/index.ts";
 import type { UpdateTodoDto } from "@/models/index.ts";
 import { parseDueAt } from "@/utils/todo-due.ts";
+import { resolveAssignee } from "@/utils/todo-assignee.ts";
 
 export const handler = define.handlers({
   async PATCH(ctx) {
@@ -62,18 +63,13 @@ export const handler = define.handlers({
       patch.dueAt = parsed;
     }
     if (body.assignedTo !== undefined) {
-      if (body.assignedTo === null) {
-        patch.assignedTo = null;
-      } else if (
-        typeof body.assignedTo !== "string" ||
-        !(await MemberRepo.getById(householdId, body.assignedTo))
-      ) {
+      const assignedTo = await resolveAssignee(householdId, body.assignedTo);
+      if (assignedTo === undefined) {
         return badRequest(
           "assignedTo must be null or a member of the household",
         );
-      } else {
-        patch.assignedTo = body.assignedTo;
       }
+      patch.assignedTo = assignedTo;
     }
 
     const updated = await TodoRepo.update(householdId, ctx.params.id, patch);

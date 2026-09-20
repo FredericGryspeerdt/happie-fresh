@@ -28,6 +28,15 @@ interface Props {
   canDelete: boolean;
 }
 
+export function createdTodoIsHiddenByMineFilter(
+  filter: "all" | "mine",
+  assignedTo: string | null,
+  actingMemberId: string | null,
+): boolean {
+  return filter === "mine" &&
+    (assignedTo === null || assignedTo !== actingMemberId);
+}
+
 interface TodoEditorTextFieldsProps {
   title: string;
   notes: string;
@@ -145,19 +154,19 @@ export default function TodoBacklog(
   const filter = useSignal<"all" | "mine">("all");
   const memberById = new Map(members.map((m) => [m.id, m]));
 
-  // ── create-sheet focus handoff ───────────────────────────────────────────
+  // ── create-dialog focus handoff ──────────────────────────────────────────
   // `autofocus` doesn't work on the title input below because it's dynamically
-  // mounted (gated on createOpen.value — see the comment above the sheet), and
+  // mounted (gated on createOpen.value — see the comment above the dialog), and
   // browsers only honor `autofocus` during initial document parse.
   //
-  // Focusing it from an effect after the sheet opens fixes that on desktop,
+  // Focusing it from an effect after the dialog opens fixes that on desktop,
   // but on mobile a programmatic .focus() called after an async signal-driven
   // re-render runs outside the tap's user-activation window, so the soft
   // keyboard won't raise (see the primer comment near the FAB in
   // islands/items.tsx — this is the same "autofocus regression" PR #45 fixed).
   // So we reuse that primer pattern here: the FAB tap focuses `primerRef`
   // synchronously (within the tap), keeping the keyboard up across the async
-  // re-render that mounts the sheet body, then hands focus to the real title
+  // re-render that mounts the dialog body, then hands focus to the real title
   // field once it exists.
   const primerRef = useRef<HTMLInputElement>(null);
   const titleRef = useRef<HTMLInputElement>(null);
@@ -238,6 +247,15 @@ export default function TodoBacklog(
     if (!created) {
       say("Couldn't add that to-do. Try again?");
       return;
+    }
+    if (
+      createdTodoIsHiddenByMineFilter(
+        filter.value,
+        created.assignedTo,
+        actingMemberId,
+      )
+    ) {
+      say("Added — switch to All to see it.");
     }
     closeCreate();
   };
@@ -498,8 +516,8 @@ export default function TodoBacklog(
       </div>
 
       {
-        /* Primer — see the "create-sheet focus handoff" comment above. Present
-          whenever the sheet is closed (so it's focusable synchronously inside
+        /* Primer — see the "create-dialog focus handoff" comment above. Present
+          whenever the dialog is closed (so it's focusable synchronously inside
           the FAB tap) or still waiting on the hand-off; unmounts once the real
           title field takes focus. */
       }
