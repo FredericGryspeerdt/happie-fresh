@@ -5,7 +5,10 @@ import {
 } from "jsr:@std/assert@^1.0.19";
 import { render } from "npm:preact-render-to-string@^6.6.3";
 import { h } from "preact";
-import TodoBacklog, { TodoEditorTextFields } from "./TodoBacklog.tsx";
+import TodoBacklog, {
+  TodoDateTimeInput,
+  TodoEditorTextFields,
+} from "./TodoBacklog.tsx";
 import type { MemberInterface, TodoInterface } from "@/models/index.ts";
 
 function todo(over: Partial<TodoInterface>): TodoInterface {
@@ -52,6 +55,17 @@ Deno.test("TodoEditorTextFields — uses house TextFields for title and notes", 
   assertStringIncludes(html, "<textarea");
   assertStringIncludes(html, "Ask about Saturday");
   assertStringIncludes(html, "bg-surface-chighest");
+});
+
+Deno.test("TodoDateTimeInput — can shrink within a narrow mobile dialog", () => {
+  const html = render(h(TodoDateTimeInput, {
+    value: "",
+    ariaLabel: "Due date and time",
+  }));
+
+  assertStringIncludes(html, 'type="datetime-local"');
+  assertStringIncludes(html, "min-w-0");
+  assertStringIncludes(html, "max-w-full");
 });
 
 Deno.test("TodoBacklog — renders open and done to-dos, and the FAB", () => {

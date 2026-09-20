@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from "preact/hooks";
 import { useSignal } from "@preact/signals";
-import type { Ref } from "preact";
+import type { JSX, Ref } from "preact";
 import type { MemberInterface, TodoInterface } from "@/models/index.ts";
 import { EXIT_MS, useTodos } from "@/hooks/useTodos.ts";
 import { PullToRefresh } from "@/components/md3/PullToRefresh.tsx";
@@ -72,6 +72,28 @@ export function TodoEditorTextFields(
         placeholder="Notes (optional)"
       />
     </>
+  );
+}
+
+interface TodoDateTimeInputProps {
+  value: string;
+  ariaLabel: string;
+  onChange?: JSX.GenericEventHandler<HTMLInputElement>;
+  onInput?: JSX.GenericEventHandler<HTMLInputElement>;
+}
+
+export function TodoDateTimeInput(
+  { value, ariaLabel, onChange, onInput }: TodoDateTimeInputProps,
+) {
+  return (
+    <input
+      type="datetime-local"
+      value={value}
+      onChange={onChange}
+      onInput={onInput}
+      aria-label={ariaLabel}
+      class="w-full min-w-0 max-w-full md-body-large text-on-surface bg-surface-chigh border-0 rounded-[var(--md-shape-lg)] py-3 px-4 outline-none"
+    />
   );
 }
 
@@ -525,12 +547,10 @@ export default function TodoBacklog(
                 }
               }}
             />
-            <input
-              type="datetime-local"
+            <TodoDateTimeInput
               value={newDue.value}
               onChange={(e) => (newDue.value = e.currentTarget.value)}
-              aria-label="Due date and time (optional)"
-              class="w-full md-body-large text-on-surface bg-surface-chigh border-0 rounded-[var(--md-shape-lg)] py-3 px-4 outline-none"
+              ariaLabel="Due date and time (optional)"
             />
             <AssigneePicker
               members={members}
@@ -560,8 +580,7 @@ export default function TodoBacklog(
                 onTitleInput={(value) => editTodo(t.id, { title: value })}
                 onNotesInput={(value) => editTodo(t.id, { notes: value })}
               />
-              <input
-                type="datetime-local"
+              <TodoDateTimeInput
                 value={t.dueAt ? toLocalInputValue(t.dueAt) : ""}
                 onChange={async (e) => {
                   const v = e.currentTarget.value;
@@ -571,8 +590,7 @@ export default function TodoBacklog(
                   );
                   if (!ok) say("Couldn't save that due date. Try again?");
                 }}
-                aria-label="Due date and time"
-                class="w-full md-body-large text-on-surface bg-surface-chigh border-0 rounded-[var(--md-shape-lg)] py-3 px-4 outline-none"
+                ariaLabel="Due date and time"
               />
               <AssigneePicker
                 members={members}
@@ -647,12 +665,10 @@ export default function TodoBacklog(
       >
         {dueEditingId.value !== null && (
           <div class="flex flex-col gap-3 pb-1">
-            <input
-              type="datetime-local"
+            <TodoDateTimeInput
               value={dueDraft.value}
               onInput={(e) => (dueDraft.value = e.currentTarget.value)}
-              aria-label="Due date and time"
-              class="w-full md-body-large text-on-surface bg-surface-chigh border-0 rounded-[var(--md-shape-lg)] py-3 px-4 outline-none"
+              ariaLabel="Due date and time"
             />
             <Button variant="filled" full onClick={commitDue}>Save</Button>
             <Button variant="text" full onClick={clearDue}>
