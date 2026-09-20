@@ -3,10 +3,11 @@ import { ShoppingListInterface } from "@/models/index.ts";
 import { api } from "@/services/api.ts";
 import { Card } from "@/components/md3/Card.tsx";
 import { Progress } from "@/components/md3/Progress.tsx";
-import { Sheet } from "@/components/md3/Sheet.tsx";
+import { Dialog } from "@/components/md3/Dialog.tsx";
 import { Button } from "@/components/md3/Button.tsx";
 import { Icon } from "@/components/md3/Icon.tsx";
 import { Segmented } from "@/components/md3/Segmented.tsx";
+import { TextField } from "@/components/md3/TextField.tsx";
 import Fab from "@/islands/shell/Fab.tsx";
 import { PullToRefresh } from "@/components/md3/PullToRefresh.tsx";
 import { navigateTo } from "@/utils/loading.ts";
@@ -172,38 +173,55 @@ export default function ShoppingLists({ initialLists }: ShoppingListsProps) {
         />
       </div>
 
-      {/* New list sheet */}
-      <Sheet
+      {/* New list dialog */}
+      <Dialog
         open={newOpen.value}
         onClose={() => {
           newOpen.value = false;
           newName.value = "";
         }}
-        title="New list"
+        headline="New list"
+        actions={
+          <>
+            <Button
+              variant="text"
+              disabled={loading.value}
+              onClick={() => {
+                newOpen.value = false;
+                newName.value = "";
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="text"
+              disabled={!newName.value.trim()}
+              loading={loading.value}
+              onClick={createList}
+            >
+              Add
+            </Button>
+          </>
+        }
       >
-        <div class="flex flex-col gap-4 pb-2">
-          <input
-            type="text"
-            placeholder="List name"
-            class="border border-outline-variant rounded-[var(--md-shape-md)] px-4 py-3 md-body-large text-on-surface bg-surface focus:outline-none focus:ring-2 focus:ring-primary"
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            createList();
+          }}
+        >
+          <TextField
+            id="new-list-name"
+            label="List name"
+            disabled={loading.value}
             value={newName.value}
-            onInput={(e) => {
-              newName.value = e.currentTarget.value;
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") createList();
+            onInput={(value) => {
+              newName.value = value;
             }}
           />
-          <Button
-            variant="filled"
-            full
-            onClick={createList}
-            loading={loading.value}
-          >
-            Add
-          </Button>
-        </div>
-      </Sheet>
+          <button type="submit" class="hidden" tabindex={-1}>Add</button>
+        </form>
+      </Dialog>
     </PullToRefresh>
   );
 }
