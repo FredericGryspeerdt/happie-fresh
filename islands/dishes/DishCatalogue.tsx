@@ -13,6 +13,8 @@ import { Pressable } from "@/components/md3/Pressable.tsx";
 import { Button } from "@/components/md3/Button.tsx";
 import Fab from "@/islands/shell/Fab.tsx";
 import { navigateTo } from "@/utils/loading.ts";
+import { useSignal } from "@preact/signals";
+import { DestructiveConfirmationDialog } from "@/components/md3/DestructiveConfirmationDialog.tsx";
 
 interface Props {
   initialDishes: DishInterface[];
@@ -36,6 +38,7 @@ export default function DishCatalogue(
     [],
   );
   const planned = plannedDishIds.value;
+  const dishToRemove = useSignal<DishInterface | null>(null);
 
   const list = filtered.value;
 
@@ -116,7 +119,7 @@ export default function DishCatalogue(
                           variant="tonal"
                           icon="check"
                           full
-                          onClick={() => removeDishFromPlan(d.id)}
+                          onClick={() => (dishToRemove.value = d)}
                         >
                           Added
                         </Button>
@@ -137,6 +140,21 @@ export default function DishCatalogue(
             </div>
           )}
       </div>
+      <DestructiveConfirmationDialog
+        open={dishToRemove.value !== null}
+        headline="Remove from this week?"
+        supportingText={`“${
+          dishToRemove.value?.name ?? "This dish"
+        }” will stay in your dishes.`}
+        confirmLabel="Remove dish"
+        onClose={() => (dishToRemove.value = null)}
+        onConfirm={async () => {
+          const dish = dishToRemove.value;
+          if (!dish) return;
+          await removeDishFromPlan(dish.id);
+          dishToRemove.value = null;
+        }}
+      />
 
       {/* Add-dish FAB — shared component, fixed below the nav chrome */}
       <div

@@ -26,6 +26,7 @@ import { IngredientPreviewDialog } from "@/components/menu/IngredientPreviewDial
 import { ChooseShoppingDishesDialog } from "@/components/menu/ChooseShoppingDishesDialog.tsx";
 import { navigateTo } from "@/utils/loading.ts";
 import { DishPicker } from "@/components/menu/DishPicker.tsx";
+import { DestructiveConfirmationDialog } from "@/components/md3/DestructiveConfirmationDialog.tsx";
 
 interface Props {
   initialCategories?: CategoryInterface[];
@@ -75,6 +76,9 @@ export default function WeeklyMenu(
   }, []);
 
   const dayPickEntryId = useSignal<string | null>(null);
+  const entryToRemove = useSignal<string | null>(null);
+  const clearOpen = useSignal(false);
+  const destructivePending = useSignal(false);
   const { snack, showSnack: showWithMs } = useSnack();
   // Every snack here lives 4s, Undo affordances included. The per-call override
   // is load-bearing: `useSnack(4000)` alone would not pin them, because the
@@ -88,17 +92,22 @@ export default function WeeklyMenu(
   // Undo for Clear: re-add each dish, then re-apply its weekday pin. The snack
   // (and its Undo action) only appears once Clear has settled, so Undo can
   // never race an in-flight wipe.
-  const onClear = () => {
+  const onClear = async () => {
     const prev = menu.value.entries;
-    void clear().then((ok) =>
+    destructivePending.value = true;
+    try {
+      const ok = await clear();
+      clearOpen.value = false;
       ok
         ? showSnack(
           "Cleared this week",
           "Undo",
           () => void restoreEntries(prev),
         )
-        : showSnack("Couldn't clear this week")
-    );
+        : showSnack("Couldn't clear this week");
+    } finally {
+      destructivePending.value = false;
+    }
   };
 
   // Pessimistic bulk write; the preview stays open on failure so nothing is
@@ -162,7 +171,7 @@ export default function WeeklyMenu(
           </div>
           {entries.length > 0 && (
             <Pressable
-              onClick={onClear}
+              onClick={() => (clearOpen.value = true)}
               disabled={shopping.loading.value ||
                 weeklyMenu.pendingCount.value > 0}
               class="md-label-large text-on-surface-variant px-2 py-1 rounded-[var(--md-shape-full)]"
@@ -247,13 +256,7 @@ export default function WeeklyMenu(
                         aria-label={`Remove ${
                           dish?.name ?? "dish"
                         } from this week`}
-                        onClick={() => {
-                          void removeEntry(e.id).then((ok) =>
-                            ok
-                              ? showSnack("Removed from this week")
-                              : showSnack("Couldn't remove it")
-                          );
-                        }}
+                        onClick={() => (entryToRemove.value = e.id)}
                       />
                     </div>
                   </Card>
@@ -377,6 +380,41 @@ export default function WeeklyMenu(
             return false;
           })}
         onClose={shopping.cancel}
+      />
+
+      <DestructiveConfirmationDialog
+        open={entryToRemove.value !== null}
+        headline="Remove from this week?"
+        supportingText={`“${
+          dishById.get(
+            entries.find((entry) => entry.id === entryToRemove.value)?.dishId ??
+              "",
+          )?.name ?? "This dish"
+        }” will stay in your dishes.`}
+        confirmLabel="Remove dish"
+        pending={destructivePending.value}
+        onClose={() => (entryToRemove.value = null)}
+        onConfirm={async () => {
+          const id = entryToRemove.value;
+          if (!id) return;
+          destructivePending.value = true;
+          try {
+            const ok = await removeEntry(id);
+            entryToRemove.value = null;
+            showSnack(ok ? "Removed from this week" : "Couldn't remove it");
+          } finally {
+            destructivePending.value = false;
+          }
+        }}
+      />
+      <DestructiveConfirmationDialog
+        open={clearOpen.value}
+        headline="Clear this week?"
+        supportingText="Every planned dish will be removed. You can undo this afterwards."
+        confirmLabel="Clear week"
+        pending={destructivePending.value}
+        onClose={() => (clearOpen.value = false)}
+        onConfirm={onClear}
       />
 
       <Snackbar data={snack.value} />

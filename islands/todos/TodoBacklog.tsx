@@ -11,6 +11,7 @@ import { RoundCheck } from "@/components/md3/RoundCheck.tsx";
 import { Icon } from "@/components/md3/Icon.tsx";
 import { Segmented } from "@/components/md3/Segmented.tsx";
 import { Snackbar } from "@/components/md3/Snackbar.tsx";
+import { DestructiveConfirmationDialog } from "@/components/md3/DestructiveConfirmationDialog.tsx";
 import { useSnack } from "@/hooks/useSnack.ts";
 import { Pressable } from "@/components/md3/Pressable.tsx";
 import { TextField } from "@/components/md3/TextField.tsx";
@@ -146,6 +147,7 @@ export default function TodoBacklog(
   const newAssignee = useSignal<string | null>(null);
   const editingId = useSignal<string | null>(null);
   const confirmingId = useSignal<string | null>(null);
+  const deleting = useSignal(false);
   const dueEditingId = useSignal<string | null>(null);
   const dueDraft = useSignal("");
   const showEarlierDone = useSignal(false);
@@ -636,39 +638,28 @@ export default function TodoBacklog(
         })()}
       </FullScreenDialog>
 
-      {/* Delete confirmation — the house pattern is a sheet, not a dialog */}
-      <Sheet
-        open={confirmingId.value !== null}
-        onClose={() => (confirmingId.value = null)}
-        title="Delete this to-do?"
-      >
-        <div class="flex flex-col gap-3 pb-1">
-          <div class="md-body-medium text-on-surface-variant">
-            This removes it for everyone. Use it when the to-do never needed
-            doing — ticking it off is how you say it's done.
-          </div>
-          <Button
-            variant="error"
-            full
-            onClick={async () => {
-              const id = confirmingId.value;
-              confirmingId.value = null;
-              if (!id) return;
+      {canDelete && (
+        <DestructiveConfirmationDialog
+          open={confirmingId.value !== null}
+          headline="Delete this to-do?"
+          supportingText="This removes it for everyone. Use it when the to-do never needed doing — ticking it off is how you say it's done."
+          confirmLabel="Delete"
+          pending={deleting.value}
+          onClose={() => (confirmingId.value = null)}
+          onConfirm={async () => {
+            const id = confirmingId.value;
+            if (!id) return;
+            deleting.value = true;
+            try {
               const ok = await removeTodo(id);
+              confirmingId.value = null;
               if (!ok) say("Couldn't delete that. Try again?");
-            }}
-          >
-            Delete
-          </Button>
-          <Button
-            variant="text"
-            full
-            onClick={() => (confirmingId.value = null)}
-          >
-            Keep it
-          </Button>
-        </div>
-      </Sheet>
+            } finally {
+              deleting.value = false;
+            }
+          }}
+        />
+      )}
 
       {
         /* Due-date picker. Native <input type="datetime-local"> rather than a

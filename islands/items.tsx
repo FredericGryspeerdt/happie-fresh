@@ -34,6 +34,7 @@ import AddItems from "@/islands/add-items.tsx";
 import { PullToRefresh } from "@/components/md3/PullToRefresh.tsx";
 import { beginBusy, endBusy, navigateTo, reloadPage } from "@/utils/loading.ts";
 import { submitListRename } from "@/utils/list-rename.ts";
+import { DestructiveConfirmationDialog } from "@/components/md3/DestructiveConfirmationDialog.tsx";
 
 interface ItemsProps {
   listId: string;
@@ -147,6 +148,10 @@ export default function Items(
   const renameOpen = useSignal(false);
   const renamePending = useSignal(false);
   const renameValue = useSignal("");
+  const deleteListOpen = useSignal(false);
+  const clearCheckedOpen = useSignal(false);
+  const itemToRemove = useSignal<{ id: string; name: string } | null>(null);
+  const destructivePending = useSignal(false);
   const { snack: snackData, showSnack } = useSnack();
 
   const commitRename = async () => {
@@ -651,12 +656,9 @@ export default function Items(
                     <Icon name="check" size={20} />
                   </span>
                 }
-                onClick={async () => {
+                onClick={() => {
                   mgmtOpen.value = false;
-                  const ok = await clearCheckedItems();
-                  if (!ok) {
-                    showSnack("Couldn't clear checked items — try again");
-                  }
+                  clearCheckedOpen.value = true;
                 }}
               />
 
@@ -672,20 +674,9 @@ export default function Items(
                         <Icon name="trash" size={20} />
                       </span>
                     }
-                    onClick={async () => {
+                    onClick={() => {
                       mgmtOpen.value = false;
-                      beginBusy();
-                      try {
-                        if (await api.shoppingLists.delete(listId)) {
-                          navigateTo("/shopping");
-                        } else {
-                          showSnack(
-                            "Couldn't delete this shopping list — try again",
-                          );
-                        }
-                      } finally {
-                        endBusy();
-                      }
+                      deleteListOpen.value = true;
                     }}
                   />
                 </>
@@ -863,12 +854,10 @@ export default function Items(
                 <Button
                   variant="error"
                   full
-                  onClick={async () => {
+                  onClick={() => {
                     const id = li.id!;
+                    itemToRemove.value = { id, name: getItemName(li.itemId) };
                     editingId.value = null;
-                    if (!(await removeListItem(id))) {
-                      showSnack("Couldn't remove that item — try again");
-                    }
                   }}
                   class="mt-2"
                 >
@@ -878,6 +867,74 @@ export default function Items(
             );
           })()}
         </Dialog>
+      )}
+
+      <DestructiveConfirmationDialog
+        open={itemToRemove.value !== null}
+        headline="Remove from this list?"
+        supportingText={`“${
+          itemToRemove.value?.name ?? "This item"
+        }” will stay in the catalogue.`}
+        confirmLabel="Remove item"
+        pending={destructivePending.value}
+        onClose={() => (itemToRemove.value = null)}
+        onConfirm={async () => {
+          const target = itemToRemove.value;
+          if (!target) return;
+          destructivePending.value = true;
+          try {
+            if (await removeListItem(target.id)) itemToRemove.value = null;
+            else showSnack("Couldn't remove that item — try again");
+          } finally {
+            destructivePending.value = false;
+          }
+        }}
+      />
+      <DestructiveConfirmationDialog
+        open={clearCheckedOpen.value}
+        headline="Clear checked items?"
+        supportingText={`${checkedItems.value.length} checked item${
+          checkedItems.value.length === 1 ? "" : "s"
+        } will be removed from this list.`}
+        confirmLabel="Clear items"
+        pending={destructivePending.value}
+        onClose={() => (clearCheckedOpen.value = false)}
+        onConfirm={async () => {
+          destructivePending.value = true;
+          try {
+            const ok = await clearCheckedItems();
+            clearCheckedOpen.value = false;
+            if (!ok) showSnack("Couldn't clear checked items — try again");
+          } finally {
+            destructivePending.value = false;
+          }
+        }}
+      />
+      {canDelete && (
+        <DestructiveConfirmationDialog
+          open={deleteListOpen.value}
+          headline="Delete this shopping list?"
+          supportingText={`“${listName}” and everything on it will be removed for everyone.`}
+          confirmLabel="Delete list"
+          pending={destructivePending.value}
+          onClose={() => (deleteListOpen.value = false)}
+          onConfirm={async () => {
+            destructivePending.value = true;
+            beginBusy();
+            try {
+              if (await api.shoppingLists.delete(listId)) {
+                navigateTo("/shopping");
+              } else {
+                showSnack(
+                  "Couldn't delete this shopping list — try again",
+                );
+              }
+            } finally {
+              endBusy();
+              destructivePending.value = false;
+            }
+          }}
+        />
       )}
 
       {amountEditing.value && (

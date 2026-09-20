@@ -41,6 +41,8 @@ Deno.test("DishEditor — existing dish prefills name, shows ingredient chip + d
   assertStringIncludes(html, 'aria-label="Remove Onion"');
   assertStringIncludes(html, "Save changes");
   assertStringIncludes(html, "Delete dish");
+  assertStringIncludes(html, "Delete this dish?");
+  assertStringIncludes(html, "Remove this ingredient?");
 });
 
 Deno.test("DishEditor — canDelete: false hides Delete dish even for an existing dish", () => {

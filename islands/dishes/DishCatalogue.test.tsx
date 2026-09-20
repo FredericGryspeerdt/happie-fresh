@@ -63,4 +63,5 @@ Deno.test("DishCatalogue — shows Added for a dish already in the week", () => 
   // to prove dish 2 renders the un-planned "Add" label.
   assertEquals((html.match(/>Added</g) || []).length, 1);
   assertEquals((html.match(/>Add</g) || []).length, 1);
+  assertStringIncludes(html, "Remove from this week?");
 });

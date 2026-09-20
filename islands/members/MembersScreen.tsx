@@ -14,6 +14,7 @@ import { ListItem } from "@/components/md3/ListItem.tsx";
 import { Button } from "@/components/md3/Button.tsx";
 import { Snackbar } from "@/components/md3/Snackbar.tsx";
 import { useSnack } from "@/hooks/useSnack.ts";
+import { DestructiveConfirmationDialog } from "@/components/md3/DestructiveConfirmationDialog.tsx";
 
 interface Props {
   initialMembers: MemberInterface[];
@@ -39,6 +40,7 @@ export default function MembersScreen(
   const draftEmoji = useSignal<string>(DEFAULT_AVATAR_EMOJI);
   const draftManager = useSignal(false);
   const saving = useSignal(false);
+  const removing = useSignal(false);
 
   const { snack, showSnack: say } = useSnack();
 
@@ -105,10 +107,15 @@ export default function MembersScreen(
 
   const confirmRemove = async () => {
     const id = confirmingId.value;
-    confirmingId.value = null;
     if (!id) return;
-    const ok = await removeMember(id);
-    if (!ok) say("Couldn't remove that member. Try again?");
+    removing.value = true;
+    try {
+      const ok = await removeMember(id);
+      confirmingId.value = null;
+      if (!ok) say("Couldn't remove that member. Try again?");
+    } finally {
+      removing.value = false;
+    }
   };
 
   const canEdit = (m: MemberInterface) =>
@@ -236,26 +243,17 @@ export default function MembersScreen(
         </div>
       </Sheet>
 
-      {/* Confirmation is a sibling sheet — sheets never stack (house rule). */}
-      <Sheet
-        open={confirmingId.value !== null}
-        onClose={() => (confirmingId.value = null)}
-        title="Remove this member?"
-      >
-        <div class="flex flex-col gap-3 pb-2">
-          <div class="md-body-medium text-on-surface-variant">
-            Their name and avatar are gone for good. Things they added stay.
-          </div>
-          <Button variant="error" full onClick={confirmRemove}>Remove</Button>
-          <Button
-            variant="text"
-            full
-            onClick={() => (confirmingId.value = null)}
-          >
-            Keep them
-          </Button>
-        </div>
-      </Sheet>
+      {canManage && (
+        <DestructiveConfirmationDialog
+          open={confirmingId.value !== null}
+          onClose={() => (confirmingId.value = null)}
+          headline="Remove this member?"
+          supportingText="Their name and avatar are gone for good. Things they added stay."
+          confirmLabel="Remove member"
+          pending={removing.value}
+          onConfirm={confirmRemove}
+        />
+      )}
 
       <Snackbar data={snack.value} />
     </>

@@ -344,14 +344,26 @@ like the same product.
 
 **Overlay boundary (Sheet vs Dialog):**
 
-- **`Sheet`** is the default for keyboard-less overlays: confirmations
-  (always), action lists, pickers, informational content. Never a browser
-  `confirm()`.
+- **`Sheet`** is the default for keyboard-less action lists, pickers and
+  informational content.
 - **`Dialog`** (basic, centered) is for short typed input — one or two
-  fields — or an urgent decision that needs typing. Centered keeps it clear of
-  the soft keyboard, which a bottom sheet fights.
+  fields — and focused decisions. Centered keeps typed input clear of the soft
+  keyboard, which a bottom sheet fights.
 - **`FullScreenDialog`** is for multi-field create/edit flows on mobile; on
   larger screens it renders as a centered dialog.
+
+**Destructive confirmation:** every user action that deletes persisted
+household data, clears a collection, removes a persisted association, or
+discards a selected dish ingredient must pass through
+`DestructiveConfirmationDialog`. It is backed by `Dialog`; never use a browser
+`confirm()`, an inline confirmation panel, or a confirmation `Sheet`. Name the
+target or consequence in the supporting text, use an explicit destructive
+action label (such as “Delete dish” or “Clear week”), and keep Cancel available.
+The first destructive tap only opens the dialog: preserve the existing
+mutation, rollback, snackbar and navigation behavior behind its confirm action.
+While an async destructive mutation is pending, set `pending` so both actions
+and backdrop/Escape dismissal are blocked and the confirm button shows loading.
+Keep permission-gated dialogs behind the same manager check as their trigger.
 
 `FullScreenDialog` can take a `footer` outside its scrolling body for persistent
 selection summaries and completion actions. The menu dish picker derives its
@@ -361,7 +373,7 @@ saves immediately, so its completion button says “Back to this week”. Disabl
 an ancestor `PullToRefresh` while this picker is open so it cannot intercept
 scrolling inside the dialog. See `components/menu/DishPicker.tsx`.
 
-Both dialogs share `useModal` (`components/md3/useModal.ts`): while open they
+All dialogs share `useModal` (`components/md3/useModal.ts`): while open they
 lock background scrolling, trap `Tab` focus inside the surface, focus the first
 control on open, and restore focus to the trigger on close. `Sheet` does not
 yet do this — treat that as a known gap, not a pattern to copy.
@@ -375,7 +387,8 @@ separate. This is a picker within a create/edit flow, not a stays-open dish
 creation form (§13). See `components/dishes/IngredientPicker.tsx` and
 `islands/dishes/DishEditor.tsx`.
 
-**See:** `components/md3/` (component set), `components/md3/tokens.ts` (tokens +
+**See:** `components/md3/DestructiveConfirmationDialog.tsx`,
+`components/md3/` (component set), `components/md3/tokens.ts` (tokens +
 `cn` helper), `/design` (dev-only showcase of every component and state — 404s
 in production; use it to verify component changes live).
 
