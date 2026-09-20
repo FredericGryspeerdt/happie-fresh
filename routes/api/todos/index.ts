@@ -1,6 +1,7 @@
 import { badRequest, define, json } from "@/utils/index.ts";
-import { MemberRepo, TodoRepo } from "@/database/index.ts";
+import { TodoRepo } from "@/database/index.ts";
 import { parseDueAt } from "@/utils/todo-due.ts";
+import { resolveAssignee } from "@/utils/todo-assignee.ts";
 
 export const handler = define.handlers({
   async GET(ctx) {
@@ -29,17 +30,11 @@ export const handler = define.handlers({
       dueAt = parsed;
     }
 
-    let assignedTo: string | null = null;
-    if (body.assignedTo !== undefined && body.assignedTo !== null) {
-      if (
-        typeof body.assignedTo !== "string" ||
-        !(await MemberRepo.getById(householdId, body.assignedTo))
-      ) {
-        return badRequest(
-          "assignedTo must be null or a member of the household",
-        );
-      }
-      assignedTo = body.assignedTo;
+    const assignedTo = await resolveAssignee(householdId, body.assignedTo);
+    if (assignedTo === undefined) {
+      return badRequest(
+        "assignedTo must be null or a member of the household",
+      );
     }
 
     const todo = await TodoRepo.create({

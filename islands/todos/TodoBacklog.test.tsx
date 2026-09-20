@@ -6,6 +6,7 @@ import {
 import { render } from "npm:preact-render-to-string@^6.6.3";
 import { h } from "preact";
 import TodoBacklog, {
+  createdTodoIsHiddenByMineFilter,
   TodoDateTimeInput,
   TodoEditorTextFields,
 } from "./TodoBacklog.tsx";
@@ -40,6 +41,25 @@ function member(
     isManager: false,
   };
 }
+
+Deno.test("createdTodoIsHiddenByMineFilter — detects creates outside Mine", () => {
+  assertEquals(
+    createdTodoIsHiddenByMineFilter("mine", "m-bo", "m-alex"),
+    true,
+  );
+  assertEquals(
+    createdTodoIsHiddenByMineFilter("mine", null, "m-alex"),
+    true,
+  );
+  assertEquals(
+    createdTodoIsHiddenByMineFilter("mine", "m-alex", "m-alex"),
+    false,
+  );
+  assertEquals(
+    createdTodoIsHiddenByMineFilter("all", "m-bo", "m-alex"),
+    false,
+  );
+});
 
 Deno.test("TodoEditorTextFields — uses house TextFields for title and notes", () => {
   const html = render(h(TodoEditorTextFields, {
@@ -125,7 +145,7 @@ Deno.test("TodoBacklog — no Done heading when nothing is done yet", () => {
   assertEquals(doneCount, 1); // edit dialog's header action only
 });
 
-Deno.test("TodoBacklog — create sheet's title input does not rely on the bare autofocus attribute", () => {
+Deno.test("TodoBacklog — create dialog's title input does not rely on the bare autofocus attribute", () => {
   const html = render(h(TodoBacklog, {
     members: [],
     actingMemberId: null,
@@ -134,9 +154,9 @@ Deno.test("TodoBacklog — create sheet's title input does not rely on the bare 
   }));
 
   // `autofocus` is only honoured by browsers during initial document parse;
-  // it's inert for the create sheet's title input, which mounts dynamically
-  // when the sheet opens (gated on createOpen.value). Focus is instead set
-  // programmatically — see the "create-sheet focus handoff" comment in
+  // it's inert for the create dialog's title input, which mounts dynamically
+  // when the dialog opens (gated on createOpen.value). Focus is instead set
+  // programmatically — see the "create-dialog focus handoff" comment in
   // TodoBacklog.tsx — so the attribute must not appear anywhere in the SSR
   // output.
   assertFalse(html.includes("autofocus"));
