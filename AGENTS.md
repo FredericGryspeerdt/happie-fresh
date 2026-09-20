@@ -66,3 +66,19 @@ the task calls for them rather than duplicating their contents here.
 - On-device testing over LAN needs HTTPS (PWA secure context + `Secure` session
   cookie): `deno task dev:mobile` with mkcert certs in `certs/` — see
   [`docs/mobile-testing.md`](docs/mobile-testing.md).
+
+## Working style
+
+- Keep changes tightly scoped to the requested outcome. Touch adjacent files
+  only when they are required for correctness or verification.
+- Prefer the simplest complete implementation. Add abstractions, flexibility,
+  dependencies, and cleanup only when the current task needs them.
+- Start with targeted file and symbol searches. Broaden investigation when the
+  available evidence is insufficient or reveals a wider dependency.
+- Make focused edits that preserve unchanged surrounding code. For repetitive
+  work, automate safe mechanical changes or implement only the cases the task
+  requires.
+- Keep progress updates and the final handoff concise. Report relevant failures
+  and verification results without repeating successful command output.
+- Finish after the requested outcome and its required tests, checks, review, and
+  commit are complete. Leave optional follow-up work for a separate request.
