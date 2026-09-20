@@ -1,5 +1,6 @@
 import { ItemInterface } from "../models/index.ts";
 import { getKv } from "./db.ts";
+import { deleteKvValue, getKvValue, listKvValues, setKvValue } from "./kv.ts";
 export class ItemRepo {
   constructor() {}
 
@@ -15,33 +16,17 @@ export class ItemRepo {
   }
 
   static async readAll(householdId: string) {
-    const kv = await getKv();
-
-    const entries = kv.list<Required<ItemInterface>>({
-      prefix: ["items", householdId],
-    });
-    const items = [];
-    for await (const entry of entries) {
-      const item = entry.value;
-      items.push(item);
-    }
-    return items;
+    return await listKvValues<Required<ItemInterface>>(["items", householdId]);
   }
 
   static async getById(householdId: string, id: string) {
-    const kv = await getKv();
-    const item = await kv.get<ItemInterface>(["items", householdId, id]);
-    return item.value;
+    return await getKvValue<ItemInterface>(["items", householdId, id]);
   }
 
   static async update(householdId: string, id: string, item: ItemInterface) {
-    const kv = await getKv();
-
-    return kv.set(["items", householdId, id], item);
+    return await setKvValue(["items", householdId, id], item);
   }
   static async delete(householdId: string, id: string) {
-    const kv = await getKv();
-
-    return kv.delete(["items", householdId, id]);
+    return await deleteKvValue(["items", householdId, id]);
   }
 }
