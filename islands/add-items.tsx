@@ -15,6 +15,7 @@ import { TextField } from "@/components/md3/TextField.tsx";
 import { CategoryPickerList } from "@/components/md3/CategoryPickerList.tsx";
 import { CatalogueAddRow } from "@/components/md3/CatalogueAddRow.tsx";
 import { Snackbar } from "@/components/md3/Snackbar.tsx";
+import { DestructiveConfirmationDialog } from "@/components/md3/DestructiveConfirmationDialog.tsx";
 
 interface AddItemsProps {
   listId: string;
@@ -80,6 +81,8 @@ export default function AddItems(
   const catPicking = useSignal(false);
   // Compact editor dialog — holds the list-item id being edited (qty + note).
   const editingId = useSignal<string | null>(null);
+  const itemToRemove = useSignal<{ id: string; name: string } | null>(null);
+  const removing = useSignal(false);
   // "Added (N)" section collapse state (collapsed by default).
   const addedOpen = useSignal(false);
   // Create-new affordance: a slim row while matches exist; tapping it expands to
@@ -133,12 +136,28 @@ export default function AddItems(
     inputRef.current?.focus();
   };
 
-  const handleRemove = async (liId: string) => {
+  const requestRemove = (liId: string) => {
+    const li = list.value.find((entry) => entry.id === liId);
+    itemToRemove.value = {
+      id: liId,
+      name: li ? getItemName(li.itemId) : "This item",
+    };
     if (editingId.value === liId) editingId.value = null;
-    if (await removeListItem(liId)) {
-      addedThisVisit.value = addedThisVisit.value.filter((id) => id !== liId);
-    } else {
-      showSnack("Couldn't remove that item — try again");
+  };
+
+  const confirmRemove = async () => {
+    const target = itemToRemove.value;
+    if (!target) return;
+    removing.value = true;
+    try {
+      if (await removeListItem(target.id)) {
+        addedThisVisit.value = addedThisVisit.value.filter((id) =>
+          id !== target.id
+        );
+        itemToRemove.value = null;
+      } else showSnack("Couldn't remove that item — try again");
+    } finally {
+      removing.value = false;
     }
   };
 
@@ -178,7 +197,9 @@ export default function AddItems(
         onEdit={() => {
           if (li?.id) editingId.value = li.id;
         }}
-        onRemove={withRemove && li?.id ? () => handleRemove(li.id!) : undefined}
+        onRemove={withRemove && li?.id
+          ? () => requestRemove(li.id!)
+          : undefined}
       />
     );
   };
@@ -451,7 +472,7 @@ export default function AddItems(
             <Button
               variant="error"
               full
-              onClick={() => handleRemove(editingLi.id!)}
+              onClick={() => requestRemove(editingLi.id!)}
               class="mt-2"
             >
               Remove from list
@@ -459,6 +480,18 @@ export default function AddItems(
           </div>
         )}
       </Dialog>
+
+      <DestructiveConfirmationDialog
+        open={itemToRemove.value !== null}
+        headline="Remove from this list?"
+        supportingText={`“${
+          itemToRemove.value?.name ?? "This item"
+        }” will stay in the catalogue.`}
+        confirmLabel="Remove item"
+        pending={removing.value}
+        onClose={() => (itemToRemove.value = null)}
+        onConfirm={confirmRemove}
+      />
 
       <Snackbar data={snackData.value} />
     </div>

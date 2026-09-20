@@ -305,14 +305,10 @@ Deno.test("TodoBacklog — no nudge when nothing has a due date", () => {
   assertFalse(html.includes("Get reminded when a to-do is due"));
 });
 
-Deno.test("TodoBacklog — canDelete: false never contributes a Delete button", () => {
-  // The editor sheet's own Delete trigger (gated on `canDelete`, see
-  // TodoBacklog.tsx) only mounts once a to-do is being edited, which never
-  // happens in a cold SSR render (editingId starts null) — so this can't
-  // observe it flipping from present to absent directly. What it does lock
-  // in: the only ">Delete<" button in the output is the confirm sheet's own
-  // (always-present-but-unreachable) action button, never a second one from
-  // the editor trigger, regardless of `canDelete`.
+Deno.test("TodoBacklog — canDelete: false hides the editor delete trigger", () => {
+  // The editor's own Delete trigger only mounts once a to-do is being edited.
+  // The confirmation dialog remains behind the same manager gate, so neither
+  // destructive surface contributes delete copy to a non-manager SSR render.
   const html = render(h(TodoBacklog, {
     members: [],
     actingMemberId: null,
@@ -321,8 +317,8 @@ Deno.test("TodoBacklog — canDelete: false never contributes a Delete button", 
   }));
 
   assertStringIncludes(html, "Take out the bins");
-  const deleteButtonCount = (html.match(/>Delete</g) ?? []).length;
-  assertEquals(deleteButtonCount, 1); // confirm sheet's button only
+  assertFalse(html.includes(">Delete</"));
+  assertFalse(html.includes("Delete this to-do?"));
 });
 
 Deno.test("TodoBacklog — create and edit surfaces are dialogs, not sheets", () => {

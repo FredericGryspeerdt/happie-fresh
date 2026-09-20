@@ -14,6 +14,7 @@ import { Button } from "@/components/md3/Button.tsx";
 import { IconButton } from "@/components/md3/IconButton.tsx";
 import { FullScreenDialog } from "@/components/md3/FullScreenDialog.tsx";
 import { Snackbar } from "@/components/md3/Snackbar.tsx";
+import { DestructiveConfirmationDialog } from "@/components/md3/DestructiveConfirmationDialog.tsx";
 import { navigateTo } from "@/utils/loading.ts";
 
 const fieldClass =
@@ -74,6 +75,8 @@ export default function DishEditor(
   const newValueLabel = useSignal("");
   const saving = useSignal(false);
   const deleting = useSignal(false);
+  const deleteOpen = useSignal(false);
+  const ingredientToRemove = useSignal<string | null>(null);
 
   const itemById = (id: string) => localItems.value.find((i) => i.id === id);
 
@@ -92,11 +95,17 @@ export default function DishEditor(
     reset();
   };
   const removeIngredient = (itemId: string) => {
+    ingredientToRemove.value = itemId;
+  };
+  const confirmIngredientRemoval = () => {
+    const itemId = ingredientToRemove.value;
+    if (!itemId) return;
     ingredientIds.value = ingredientIds.value.filter((i) => i !== itemId);
     ingredientStatus.value = `${
       itemById(itemId)?.name ?? "Ingredient"
     } removed`;
     if (pickerOpen.value) inputRef.current?.focus();
+    ingredientToRemove.value = null;
   };
   const createCatalogueItem = async () => {
     const label = ingredientQuery.value.trim();
@@ -291,7 +300,7 @@ export default function DishEditor(
           <Button
             variant="error"
             icon="trash"
-            onClick={remove}
+            onClick={() => (deleteOpen.value = true)}
             loading={deleting.value}
             disabled={saving.value}
           >
@@ -346,6 +355,27 @@ export default function DishEditor(
           </>
         )}
       </FullScreenDialog>
+      <DestructiveConfirmationDialog
+        open={ingredientToRemove.value !== null}
+        headline="Remove this ingredient?"
+        supportingText={`${
+          itemById(ingredientToRemove.value ?? "")?.name ?? "This ingredient"
+        } will be removed from the dish draft.`}
+        confirmLabel="Remove ingredient"
+        onClose={() => (ingredientToRemove.value = null)}
+        onConfirm={confirmIngredientRemoval}
+      />
+      {dish && canDelete && (
+        <DestructiveConfirmationDialog
+          open={deleteOpen.value}
+          headline="Delete this dish?"
+          supportingText={`“${dish.name}” will be removed for everyone.`}
+          confirmLabel="Delete dish"
+          pending={deleting.value}
+          onClose={() => (deleteOpen.value = false)}
+          onConfirm={remove}
+        />
+      )}
       <Snackbar data={snack.value} />
     </div>
   );

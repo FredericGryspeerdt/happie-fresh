@@ -22,6 +22,8 @@ Deno.test("Catalogue — renders segmented, categories, selected items, add tile
   assertStringIncludes(html, "Add item");
   assertStringIncludes(html, "Add item or category"); // FAB speed-dial primary
   assertStringIncludes(html, "Delete category"); // canDelete: true exposes it
+  assertStringIncludes(html, "Remove from the catalogue?");
+  assertStringIncludes(html, "Delete this category?");
 });
 
 Deno.test("Catalogue — shows an Uncategorized chip when uncategorized items exist", () => {

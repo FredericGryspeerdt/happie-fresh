@@ -61,4 +61,5 @@ Deno.test("AddItems — item editor is a closed dialog without a note field", ()
 
   assertStringIncludes(html, "fixed inset-0 z-[210] grid place-items-center");
   assertFalse(html.includes("<textarea"));
+  assertStringIncludes(html, "Remove from this list?");
 });

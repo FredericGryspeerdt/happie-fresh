@@ -18,8 +18,7 @@ interface DialogProps {
   class?: string;
 }
 
-/** MD3 basic dialog: centered, so short typed input stays clear of the soft
- *  keyboard. Keyboard-less confirmations stay on `Sheet` (patterns doc §9). */
+/** MD3 basic dialog for short input and focused decisions. */
 export function Dialog(
   {
     open,

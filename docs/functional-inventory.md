@@ -17,6 +17,7 @@ capability.
 - A **member** is a person, not a login. Most members (children) never sign in.
 - Each device acts **as one member**. Everything created or completed is attributed to that member. The choice persists on the device until changed.
 - **Managers** may do the destructive things: delete lists, categories, dishes, cards and to-dos, clear collections, and manage members. Everyone else may not. The server enforces this; the interface hides what the member cannot do.
+- Destructive actions ask for confirmation before changing household data.
 - A household always has at least one manager.
 - Changes made by one member are visible to the others on their next load or refresh. Every collection screen can be refreshed on demand.
 - Failed saves are reported to the user and never leave the screen showing something the server does not have.
@@ -52,7 +53,7 @@ A user can:
 - See all the household's shopping lists with name, how many items are checked off out of the total, and when the list was created (relative time).
 - Create a list with a name. Blank names are not accepted.
 - Rename a list.
-- Delete a list (manager only).
+- Delete a list (manager only), after confirmation.
 - Open a list.
 - Refresh the overview.
 - "Share list" is a placeholder.
@@ -68,12 +69,12 @@ A user can:
 - Set an item's quantity.
 - Add a free-text note to an item on the list (e.g. "the red ones, big pack").
 - Change an item's category (this changes the catalogue item, so it applies to every list).
-- Remove an item from the list.
+- Remove an item from the list, after confirmation.
 - Switch to a **shopping mode** that shows what is still to be picked up, grouped by aisle with a "N left" count per aisle, and a running "N of M in cart" progress.
 - Check an item off. Checked items move to an "in cart" group that can be shown or hidden.
 - Un-check an item.
 - See a celebration when everything is in the cart.
-- Clear all checked items from the list at once.
+- Clear all checked items from the list at once, after confirmation.
 - Have the screen stay awake while in shopping mode with items remaining, where the device allows it.
 
 ---
@@ -87,10 +88,10 @@ The catalogue is the household's reusable set of things it buys. A user can:
 - Add an item to the catalogue with a category, and keep adding several in a row quickly.
 - Rename a catalogue item. Two items cannot share a name (case-insensitive).
 - Move an item to another category.
-- Remove an item from the catalogue (manager only).
+- Remove an item from the catalogue (manager only), after confirmation.
 - Create a category.
 - Rename a category.
-- Delete a category (manager only). Its items become uncategorised.
+- Delete a category (manager only), after confirmation. Its items become uncategorised.
 - Set the **aisle order** of categories: the order the household walks the store. This drives grouping in shopping mode.
 
 ---
@@ -150,8 +151,8 @@ A user can:
 - See this week's planned dishes, ordered by weekday Monday to Sunday, with unpinned ("any day") dishes last.
 - Add a dish to the week from the dish catalogue. Adding the same dish twice does nothing.
 - Pin a planned dish to a weekday, or leave it as "any day".
-- Remove a dish from the week.
-- Clear the whole week, with the ability to undo immediately after.
+- Remove a dish from the week, after confirmation.
+- Clear the whole week after confirmation, with the ability to undo immediately after.
 - See how many dishes are planned.
 
 ### Dishes
@@ -159,10 +160,10 @@ A user can:
 A user can:
 
 - Browse and search the household's dishes, seeing each dish's ingredient count and whether it is on this week's menu.
-- Add or remove a dish from this week directly from the dish overview.
+- Add a dish to this week directly from the dish overview, or remove it after confirmation.
 - Create a dish with a name (required), ingredients picked from the shopping catalogue (creating new catalogue items on the spot when needed), and tags per tag group (e.g. cuisine, type). New tag values can be created inline.
-- Edit a dish's name, ingredients and tags.
-- Delete a dish (manager only). There is currently no confirmation step.
+- Edit a dish's name, ingredients and tags. Removing an ingredient from the draft requires confirmation.
+- Delete a dish (manager only), after confirmation.
 
 Tag-based filtering of dishes exists in the data model but has no interface.
 
@@ -190,7 +191,7 @@ A user can:
 
 - See the household's members, sorted by name, with avatar (colour + emoji) and whether they are a manager.
 - Edit their own member (name, colour from 8 presets, emoji from 16 presets).
-- As a manager: add a member, edit any member, promote or demote a manager, remove a member.
+- As a manager: add a member, edit any member, promote or demote a manager, and remove a member after confirmation.
 - The last remaining manager cannot be demoted or removed; the app explains why.
 - Removing a member unassigns their open to-dos; done to-dos keep recording them as the doer.
 

@@ -33,4 +33,5 @@ Deno.test("DishPicker — summary excludes unplanned dishes and counts overflow"
   assertStringIncludes(footer, "+1 more");
   assert(!footer.includes("Roast chicken"));
   assertStringIncludes(footer, "View all");
+  assertStringIncludes(html, "Remove from this week?");
 });
