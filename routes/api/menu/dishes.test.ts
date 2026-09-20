@@ -63,6 +63,7 @@ Deno.test({
       ctx(post({ name: "Curry", ingredientIds: [], tagValueIds: [] })),
     );
     assertEquals(createRes.status, 201);
+    assertEquals(createRes.headers.get("Content-Type"), "application/json");
     const created = await createRes.json();
 
     const listRes = await handler.GET(
@@ -76,6 +77,7 @@ Deno.test({
       ctx(post({ id: created.id, name: "Veggie Curry" })),
     );
     assertEquals(updateRes.status, 200);
+    assertEquals(updateRes.headers.get("Content-Type"), "application/json");
     assertEquals((await updateRes.json()).name, "Veggie Curry");
   },
 });

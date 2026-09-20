@@ -1,6 +1,7 @@
 import { CategoryInterface } from "../models/index.ts";
 import { getKv } from "./db.ts";
 import { mergeDefinedPatch } from "./merge-patch.ts";
+import { deleteKvValue, getKvValue, listKvValues, setKvValue } from "./kv.ts";
 
 export class CategoryRepo {
   constructor() {}
@@ -33,28 +34,21 @@ export class CategoryRepo {
   }
 
   static async getAll(householdId: string) {
-    const kv = await getKv();
-
-    const entries = kv.list<CategoryInterface>({
-      prefix: ["categories", householdId],
-    });
-    const categories = [];
-    for await (const entry of entries) {
-      categories.push(entry.value);
-    }
+    const categories = await listKvValues<CategoryInterface>([
+      "categories",
+      householdId,
+    ]);
 
     // Sort by order field
     return categories.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
   }
 
   static async getById(householdId: string, id: string) {
-    const kv = await getKv();
-    const category = await kv.get<CategoryInterface>([
+    return await getKvValue<CategoryInterface>([
       "categories",
       householdId,
       id,
     ]);
-    return category.value;
   }
 
   static async update(
@@ -62,19 +56,16 @@ export class CategoryRepo {
     id: string,
     patch: Partial<CategoryInterface>,
   ) {
-    const kv = await getKv();
-
     const existing = await this.getById(householdId, id);
     if (!existing) return null;
 
     const updated = mergeDefinedPatch(existing, patch);
-    await kv.set(["categories", householdId, id], updated);
+    await setKvValue(["categories", householdId, id], updated);
     return updated;
   }
 
   static async delete(householdId: string, id: string) {
-    const kv = await getKv();
-    return kv.delete(["categories", householdId, id]);
+    return await deleteKvValue(["categories", householdId, id]);
   }
 
   static async reorder(

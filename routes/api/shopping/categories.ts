@@ -1,5 +1,12 @@
 import { CategoryRepo } from "@/database/category.repo.ts";
-import { define, requireManager } from "@/utils/index.ts";
+import {
+  badRequest,
+  define,
+  json,
+  noContent,
+  notFound,
+  requireManager,
+} from "@/utils/index.ts";
 
 export const handler = define.handlers({
   async GET(ctx) {
@@ -8,10 +15,7 @@ export const handler = define.handlers({
       return new Response("Unauthorized", { status: 401 });
     }
     const categories = await CategoryRepo.getAll(householdId);
-    return new Response(
-      JSON.stringify(categories),
-      { status: 200, headers: { "Content-Type": "application/json" } },
-    );
+    return json(categories);
   },
 
   async POST(ctx) {
@@ -21,14 +25,14 @@ export const handler = define.handlers({
     }
     const { label } = await ctx.req.json();
     if (!label || typeof label !== "string" || label.trim() === "") {
-      return new Response("Label is required", { status: 400 });
+      return badRequest("Label is required");
     }
     const category = await CategoryRepo.create(
       householdId,
       label.trim(),
       userId,
     );
-    return new Response(JSON.stringify(category), { status: 201 });
+    return json(category, 201);
   },
 
   async PATCH(ctx) {
@@ -40,7 +44,7 @@ export const handler = define.handlers({
     if (Array.isArray(body)) {
       try {
         await CategoryRepo.reorder(householdId, body);
-        return new Response(null, { status: 204 });
+        return noContent();
       } catch (error: unknown) {
         const message = error instanceof Error
           ? error.message
@@ -50,16 +54,16 @@ export const handler = define.handlers({
     }
     const { id, label, order } = body;
     if (!id) {
-      return new Response("ID is required", { status: 400 });
+      return badRequest("ID is required");
     }
     const patch: Partial<{ label: string; order: number }> = {};
     if (label !== undefined) patch.label = label;
     if (order !== undefined) patch.order = order;
     const updated = await CategoryRepo.update(householdId, id, patch);
     if (!updated) {
-      return new Response("Category not found", { status: 404 });
+      return notFound("Category not found");
     }
-    return new Response(JSON.stringify(updated), { status: 200 });
+    return json(updated);
   },
 
   async DELETE(ctx) {
@@ -72,9 +76,9 @@ export const handler = define.handlers({
     if (forbidden) return forbidden;
     const { id } = await ctx.req.json();
     if (!id) {
-      return new Response("ID is required", { status: 400 });
+      return badRequest("ID is required");
     }
     await CategoryRepo.delete(householdId, id);
-    return new Response(null, { status: 204 });
+    return noContent();
   },
 });

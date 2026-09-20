@@ -1,5 +1,12 @@
 import { ItemRepo } from "@/database/item.repo.ts";
-import { define, requireManager } from "@/utils/index.ts";
+import {
+  badRequest,
+  define,
+  json,
+  noContent,
+  notFound,
+  requireManager,
+} from "@/utils/index.ts";
 
 export const handler = define.handlers({
   async POST(ctx) {
@@ -9,24 +16,19 @@ export const handler = define.handlers({
     if (item.id) {
       const existingItem = await ItemRepo.getById(householdId, item.id);
       if (!existingItem) {
-        return new Response("Item not found", { status: 404 });
+        return notFound("Item not found");
       }
       await ItemRepo.update(householdId, item.id, item);
-      return new Response(JSON.stringify({ ...existingItem, ...item }), {
-        status: 200,
-      });
+      return json({ ...existingItem, ...item });
     }
     const saved = await ItemRepo.create(householdId, item);
-    return new Response(JSON.stringify(saved), { status: 201 });
+    return json(saved, 201);
   },
   async GET(ctx) {
     const householdId = ctx.state.householdId;
     if (!householdId) return new Response("Unauthorized", { status: 401 });
     const items = await ItemRepo.readAll(householdId);
-    return new Response(
-      JSON.stringify(items),
-      { status: 200, headers: { "Content-Type": "application/json" } },
-    );
+    return json(items);
   },
   async DELETE(ctx) {
     const householdId = ctx.state.householdId;
@@ -36,9 +38,9 @@ export const handler = define.handlers({
     if (forbidden) return forbidden;
     const { id } = await ctx.req.json();
     if (!id) {
-      return new Response("ID is required", { status: 400 });
+      return badRequest("ID is required");
     }
     await ItemRepo.delete(householdId, id);
-    return new Response(null, { status: 204 });
+    return noContent();
   },
 });
