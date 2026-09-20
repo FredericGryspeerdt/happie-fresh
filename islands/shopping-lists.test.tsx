@@ -22,3 +22,21 @@ Deno.test("ShoppingLists — renders list name and done/total", () => {
   assertStringIncludes(html, "3/9 done");
   assertNotMatch(html, /NaN/);
 });
+
+Deno.test("ShoppingLists — creates a list from a basic dialog TextField", () => {
+  const html = render(h(ShoppingLists, { initialLists: [] }));
+  const dialogStart = html.indexOf(
+    'role="dialog" aria-modal="true" aria-label="New list"',
+  );
+  const dialog = html.slice(dialogStart);
+
+  assertStringIncludes(dialog, 'role="dialog"');
+  assertStringIncludes(dialog, "md-headline-small");
+  assertStringIncludes(dialog, "<form");
+  assertStringIncludes(dialog, 'id="new-list-name"');
+  assertStringIncludes(dialog, 'for="new-list-name"');
+  assertStringIncludes(dialog, 'type="submit"');
+  assertStringIncludes(dialog, ">Cancel</");
+  assertStringIncludes(dialog, ">Add</");
+  assertNotMatch(dialog, /translateY\(110%\)/);
+});
