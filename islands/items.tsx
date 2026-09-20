@@ -151,7 +151,9 @@ export default function Items(
   const deleteListOpen = useSignal(false);
   const clearCheckedOpen = useSignal(false);
   const itemToRemove = useSignal<{ id: string; name: string } | null>(null);
-  const destructivePending = useSignal(false);
+  const itemRemovalPending = useSignal(false);
+  const clearCheckedPending = useSignal(false);
+  const listDeletionPending = useSignal(false);
   const { snack: snackData, showSnack } = useSnack();
 
   const commitRename = async () => {
@@ -876,17 +878,17 @@ export default function Items(
           itemToRemove.value?.name ?? "This item"
         }” will stay in the catalogue.`}
         confirmLabel="Remove item"
-        pending={destructivePending.value}
+        pending={itemRemovalPending.value}
         onClose={() => (itemToRemove.value = null)}
         onConfirm={async () => {
           const target = itemToRemove.value;
           if (!target) return;
-          destructivePending.value = true;
+          itemRemovalPending.value = true;
           try {
             if (await removeListItem(target.id)) itemToRemove.value = null;
             else showSnack("Couldn't remove that item — try again");
           } finally {
-            destructivePending.value = false;
+            itemRemovalPending.value = false;
           }
         }}
       />
@@ -897,16 +899,16 @@ export default function Items(
           checkedItems.value.length === 1 ? "" : "s"
         } will be removed from this list.`}
         confirmLabel="Clear items"
-        pending={destructivePending.value}
+        pending={clearCheckedPending.value}
         onClose={() => (clearCheckedOpen.value = false)}
         onConfirm={async () => {
-          destructivePending.value = true;
+          clearCheckedPending.value = true;
           try {
             const ok = await clearCheckedItems();
             clearCheckedOpen.value = false;
             if (!ok) showSnack("Couldn't clear checked items — try again");
           } finally {
-            destructivePending.value = false;
+            clearCheckedPending.value = false;
           }
         }}
       />
@@ -916,10 +918,10 @@ export default function Items(
           headline="Delete this shopping list?"
           supportingText={`“${listName}” and everything on it will be removed for everyone.`}
           confirmLabel="Delete list"
-          pending={destructivePending.value}
+          pending={listDeletionPending.value}
           onClose={() => (deleteListOpen.value = false)}
           onConfirm={async () => {
-            destructivePending.value = true;
+            listDeletionPending.value = true;
             beginBusy();
             try {
               if (await api.shoppingLists.delete(listId)) {
@@ -931,7 +933,7 @@ export default function Items(
               }
             } finally {
               endBusy();
-              destructivePending.value = false;
+              listDeletionPending.value = false;
             }
           }}
         />
