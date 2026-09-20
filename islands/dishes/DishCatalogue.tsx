@@ -13,11 +13,25 @@ import { Pressable } from "@/components/md3/Pressable.tsx";
 import { Button } from "@/components/md3/Button.tsx";
 import Fab from "@/islands/shell/Fab.tsx";
 import { navigateTo } from "@/utils/loading.ts";
+import { useSignal } from "@preact/signals";
+import { DestructiveConfirmationDialog } from "@/components/md3/DestructiveConfirmationDialog.tsx";
+import { Snackbar } from "@/components/md3/Snackbar.tsx";
+import { useSnack } from "@/hooks/useSnack.ts";
 
 interface Props {
   initialDishes: DishInterface[];
   initialTagGroups: DishTagGroupInterface[];
   initialMenu?: WeeklyMenuInterface;
+}
+
+export async function confirmDishRemoval(
+  dishId: string,
+  removeDishFromPlan: (id: string) => Promise<boolean>,
+  onSuccess: () => void,
+  onFailure: (message: string) => void,
+): Promise<void> {
+  if (await removeDishFromPlan(dishId)) onSuccess();
+  else onFailure("Couldn't remove that dish — try again");
 }
 
 export default function DishCatalogue(
@@ -36,6 +50,9 @@ export default function DishCatalogue(
     [],
   );
   const planned = plannedDishIds.value;
+  const dishToRemove = useSignal<DishInterface | null>(null);
+  const dishRemovalPending = useSignal(false);
+  const { snack, showSnack } = useSnack();
 
   const list = filtered.value;
 
@@ -116,7 +133,7 @@ export default function DishCatalogue(
                           variant="tonal"
                           icon="check"
                           full
-                          onClick={() => removeDishFromPlan(d.id)}
+                          onClick={() => (dishToRemove.value = d)}
                         >
                           Added
                         </Button>
@@ -137,6 +154,32 @@ export default function DishCatalogue(
             </div>
           )}
       </div>
+      <DestructiveConfirmationDialog
+        open={dishToRemove.value !== null}
+        headline="Remove from this week?"
+        supportingText={`“${
+          dishToRemove.value?.name ?? "This dish"
+        }” will stay in your dishes.`}
+        confirmLabel="Remove dish"
+        pending={dishRemovalPending.value}
+        onClose={() => (dishToRemove.value = null)}
+        onConfirm={async () => {
+          const dish = dishToRemove.value;
+          if (!dish) return;
+          dishRemovalPending.value = true;
+          try {
+            await confirmDishRemoval(
+              dish.id,
+              removeDishFromPlan,
+              () => (dishToRemove.value = null),
+              showSnack,
+            );
+          } finally {
+            dishRemovalPending.value = false;
+          }
+        }}
+      />
+      <Snackbar data={snack.value} />
 
       {/* Add-dish FAB — shared component, fixed below the nav chrome */}
       <div

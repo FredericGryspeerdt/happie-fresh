@@ -15,6 +15,7 @@ import { Icon } from "@/components/md3/Icon.tsx";
 import { Pressable } from "@/components/md3/Pressable.tsx";
 import { FabMenu } from "@/components/md3/FabMenu.tsx";
 import { navigateTo } from "@/utils/loading.ts";
+import { DestructiveConfirmationDialog } from "@/components/md3/DestructiveConfirmationDialog.tsx";
 
 const SEGMENTED_OPTIONS: [string, "cart" | "tag", string][] = [
   ["lists", "cart", "Lists"],
@@ -72,6 +73,10 @@ export default function Catalogue(
   const addOpen = useSignal(false);
   const pickerOpen = useSignal(false);
   const menuCat = useSignal<CategoryInterface | null>(null);
+  const itemToRemove = useSignal<ItemInterface | null>(null);
+  const categoryToDelete = useSignal<CategoryInterface | null>(null);
+  const itemRemovalPending = useSignal(false);
+  const categoryDeletionPending = useSignal(false);
   // When true, the add sheet opens directly in "new category" mode (FAB action).
   const addNewCat = useSignal(false);
 
@@ -277,12 +282,9 @@ export default function Catalogue(
           if (editing.value) moveItem(editing.value.id, categoryId);
           editing.value = null;
         }}
-        onRemove={async () => {
-          const id = editing.value?.id;
+        onRemove={() => {
+          itemToRemove.value = editing.value;
           editing.value = null;
-          if (id && !(await removeItem(id))) {
-            showSnack("Couldn't remove that item — try again");
-          }
         }}
       />
 
@@ -331,17 +333,60 @@ export default function Catalogue(
           if (menuCat.value) renameCategory(menuCat.value.id, label);
           menuCat.value = null;
         }}
-        onDelete={async () => {
-          const id = menuCat.value?.id;
+        onDelete={() => {
+          categoryToDelete.value = menuCat.value;
           menuCat.value = null;
-          if (!id) return;
-          if (await deleteCategory(id)) {
-            if (selected.value === id) selected.value = UNCAT;
-          } else {
-            showSnack("Couldn't delete that category — try again");
-          }
         }}
       />
+
+      {canDelete && (
+        <DestructiveConfirmationDialog
+          open={itemToRemove.value !== null}
+          headline="Remove from the catalogue?"
+          supportingText={`“${
+            itemToRemove.value?.name ?? "This item"
+          }” will no longer be available to add to lists.`}
+          confirmLabel="Remove item"
+          pending={itemRemovalPending.value}
+          onClose={() => (itemToRemove.value = null)}
+          onConfirm={async () => {
+            const item = itemToRemove.value;
+            if (!item) return;
+            itemRemovalPending.value = true;
+            try {
+              if (await removeItem(item.id)) itemToRemove.value = null;
+              else showSnack("Couldn't remove that item — try again");
+            } finally {
+              itemRemovalPending.value = false;
+            }
+          }}
+        />
+      )}
+      {canDelete && (
+        <DestructiveConfirmationDialog
+          open={categoryToDelete.value !== null}
+          headline="Delete this category?"
+          supportingText={`Items in “${
+            categoryToDelete.value?.label ?? "this category"
+          }” will become uncategorized.`}
+          confirmLabel="Delete category"
+          pending={categoryDeletionPending.value}
+          onClose={() => (categoryToDelete.value = null)}
+          onConfirm={async () => {
+            const category = categoryToDelete.value;
+            if (!category) return;
+            categoryDeletionPending.value = true;
+            try {
+              if (await deleteCategory(category.id)) {
+                if (selected.value === category.id) selected.value = UNCAT;
+                categoryToDelete.value = null;
+              } else showSnack("Couldn't delete that category — try again");
+            } finally {
+              categoryDeletionPending.value = false;
+            }
+          }}
+        />
+      )}
 
       <Snackbar data={snack.value} />
 

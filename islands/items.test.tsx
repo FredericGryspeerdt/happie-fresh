@@ -69,7 +69,10 @@ Deno.test("Items — item editor is a closed dialog without a note field", () =>
 
   assert(
     html.match(/fixed inset-0 z-\[210\] grid place-items-center/g)?.length ===
-      2,
+      5,
   );
   assertFalse(html.includes("<textarea"));
+  assertStringIncludes(html, "Delete this shopping list?");
+  assertStringIncludes(html, "Clear checked items?");
+  assertStringIncludes(html, "Remove from this list?");
 });

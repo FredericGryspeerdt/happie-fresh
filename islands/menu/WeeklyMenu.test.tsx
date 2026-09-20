@@ -35,6 +35,8 @@ Deno.test("WeeklyMenu — empty state prompts adding dishes", () => {
   assertStringIncludes(html, "This week");
   assertStringIncludes(html, "No dishes yet");
   assertStringIncludes(html, "Add dishes");
+  assertStringIncludes(html, "Clear this week?");
+  assertStringIncludes(html, "Remove from this week?");
 });
 
 Deno.test("WeeklyMenu — renders an entry with its dish name, tag, and day chip", () => {

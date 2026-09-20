@@ -48,6 +48,7 @@ export default function LoyaltyWallet({ initialCards, canDelete }: Props) {
   const scannerOpen = useSignal(false);
   const present = useSignal<LoyaltyCardInterface | null>(null);
   const saving = useSignal(false);
+  const cardRemovalPending = useSignal(false);
   const scannerAvailable = useSignal(false);
   const { snack, showSnack } = useSnack(2400);
 
@@ -116,10 +117,18 @@ export default function LoyaltyWallet({ initialCards, canDelete }: Props) {
     sheetOpen.value = false;
   };
 
-  const handleDelete = async (id: string) => {
-    present.value = null;
-    const ok = await removeCard(id);
-    showSnack(ok ? "Card removed." : "Couldn't remove that card — try again.");
+  const handleDelete = async (id: string): Promise<boolean> => {
+    cardRemovalPending.value = true;
+    try {
+      const ok = await removeCard(id);
+      if (ok) present.value = null;
+      showSnack(
+        ok ? "Card removed." : "Couldn't remove that card — try again.",
+      );
+      return ok;
+    } finally {
+      cardRemovalPending.value = false;
+    }
   };
 
   const list = sorted.value;
@@ -226,6 +235,7 @@ export default function LoyaltyWallet({ initialCards, canDelete }: Props) {
         <CardPresent
           card={present.value}
           canDelete={canDelete}
+          deletePending={cardRemovalPending.value}
           onClose={() => (present.value = null)}
           onEdit={openEdit}
           onDelete={handleDelete}

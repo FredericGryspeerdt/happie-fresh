@@ -1,16 +1,17 @@
 import { useSignal } from "@preact/signals";
 import type { LoyaltyCardInterface } from "@/models/index.ts";
 import { Barcode } from "@/components/md3/Barcode.tsx";
-import { Button } from "@/components/md3/Button.tsx";
 import { IconButton } from "@/components/md3/IconButton.tsx";
 import { formatLabel } from "@/utils/barcode.ts";
+import { DestructiveConfirmationDialog } from "@/components/md3/DestructiveConfirmationDialog.tsx";
 
 interface CardPresentProps {
   card: LoyaltyCardInterface;
   canDelete: boolean;
+  deletePending: boolean;
   onClose: () => void;
   onEdit: (card: LoyaltyCardInterface) => void;
-  onDelete: (id: string) => void;
+  onDelete: (id: string) => Promise<boolean>;
 }
 
 /**
@@ -19,7 +20,8 @@ interface CardPresentProps {
  * confirm-guarded edit/remove actions.
  */
 export function CardPresent(
-  { card, canDelete, onClose, onEdit, onDelete }: CardPresentProps,
+  { card, canDelete, deletePending, onClose, onEdit, onDelete }:
+    CardPresentProps,
 ) {
   const confirming = useSignal(false);
   const isQr = card.format === "qrcode";
@@ -70,29 +72,18 @@ export function CardPresent(
         )}
       </div>
 
-      {confirming.value && (
-        <div class="px-6 pb-8 pt-2 flex flex-col gap-3 border-t border-outline-variant">
-          <span class="md-body-medium text-on-surface-variant text-center">
-            Remove “{card.label}” from your cards?
-          </span>
-          <div class="flex gap-3">
-            <Button
-              variant="text"
-              full
-              onClick={() => (confirming.value = false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="error"
-              full
-              icon="trash"
-              onClick={() => onDelete(card.id)}
-            >
-              Remove
-            </Button>
-          </div>
-        </div>
+      {canDelete && (
+        <DestructiveConfirmationDialog
+          open={confirming.value}
+          headline="Remove this card?"
+          supportingText={`“${card.label}” will be removed for everyone.`}
+          confirmLabel="Remove card"
+          pending={deletePending}
+          onClose={() => (confirming.value = false)}
+          onConfirm={async () => {
+            if (!(await onDelete(card.id))) confirming.value = false;
+          }}
+        />
       )}
     </div>
   );
