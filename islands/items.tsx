@@ -33,6 +33,7 @@ import Fab from "@/islands/shell/Fab.tsx";
 import AddItems from "@/islands/add-items.tsx";
 import { PullToRefresh } from "@/components/md3/PullToRefresh.tsx";
 import { beginBusy, endBusy, navigateTo, reloadPage } from "@/utils/loading.ts";
+import { submitListRename } from "@/utils/list-rename.ts";
 
 interface ItemsProps {
   listId: string;
@@ -144,15 +145,23 @@ export default function Items(
   // ── list management sheet ────────────────────────────────────────────────
   const mgmtOpen = useSignal(false);
   const renameOpen = useSignal(false);
+  const renamePending = useSignal(false);
   const renameValue = useSignal("");
   const { snack: snackData, showSnack } = useSnack();
 
   const commitRename = async () => {
-    const name = renameValue.value.trim();
-    if (!name) return;
-    await api.shoppingLists.rename(listId, name);
-    renameOpen.value = false;
-    reloadPage();
+    const saved = await submitListRename({
+      name: renameValue.value,
+      pending: renamePending,
+      rename: (name) => api.shoppingLists.rename(listId, name),
+      beginBusy,
+      endBusy,
+      onFailure: () => showSnack("Couldn't rename this list — try again"),
+    });
+    if (saved) {
+      renameOpen.value = false;
+      reloadPage();
+    }
   };
 
   useEffect(() => {
@@ -684,22 +693,26 @@ export default function Items(
             </div>
           </Sheet>
 
-          {/* Mounted after the portalled sheet so it paints above it. */}
+          {/* Dialog's higher overlay layer keeps it above the portalled sheet. */}
           <Dialog
             open={renameOpen.value}
-            onClose={() => renameOpen.value = false}
+            onClose={() => {
+              if (!renamePending.value) renameOpen.value = false;
+            }}
             headline="Rename list"
             actions={
               <>
                 <Button
                   variant="text"
+                  disabled={renamePending.value}
                   onClick={() => renameOpen.value = false}
                 >
                   Cancel
                 </Button>
                 <Button
                   variant="text"
-                  disabled={!renameValue.value.trim()}
+                  disabled={!renameValue.value.trim() || renamePending.value}
+                  loading={renamePending.value}
                   onClick={commitRename}
                 >
                   Save
@@ -716,6 +729,7 @@ export default function Items(
               <TextField
                 id="list-name"
                 label="List name"
+                disabled={renamePending.value}
                 value={renameValue.value}
                 onInput={(value) => renameValue.value = value}
               />
