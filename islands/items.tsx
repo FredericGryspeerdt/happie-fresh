@@ -364,7 +364,7 @@ export default function Items(
                   ) => (
                     <div key={li.id}>
                       <div class="flex items-center gap-3 px-4 py-3">
-                        {/* Pressable name/note area opens item-editor sheet */}
+                        {/* Pressable name/note area opens item-editor dialog */}
                         <Pressable
                           as="div"
                           onClick={() => {
@@ -739,9 +739,9 @@ export default function Items(
         </>
       )}
 
-      {/* ══════════════════════ Item-editor sheet ══════════════════════ */}
+      {/* ══════════════════════ Item-editor dialog ══════════════════════ */}
       {!amountEditing.value && (
-        <Sheet
+        <Dialog
           open={editingId.value !== null}
           onClose={() => {
             const id = editingId.value;
@@ -749,7 +749,7 @@ export default function Items(
             editingId.value = null;
             editCatPicking.value = false;
           }}
-          title={editCatPicking.value
+          headline={editCatPicking.value
             ? "Choose category"
             : (editingId.value ? getItemName(editingListItem()?.itemId) : "")}
         >
@@ -833,15 +833,15 @@ export default function Items(
                 {/* Note */}
                 <div class="px-1 py-1.5">
                   <div class="md-body-large text-on-surface mb-2">Note</div>
-                  <textarea
+                  <TextField
                     value={li.note ?? ""}
-                    onInput={(e) =>
+                    onInput={(note) =>
                       updateListItem(li.id!, {
-                        note: (e.target as HTMLTextAreaElement).value,
+                        note,
                       })}
+                    multiline
                     rows={2}
                     placeholder="e.g. the red ones, big pack, any brand…"
-                    class="w-full md-body-large text-on-surface bg-surface-chigh border-0 rounded-[var(--md-shape-lg)] py-3 px-4 outline-none resize-none"
                   />
                 </div>
 
@@ -877,7 +877,7 @@ export default function Items(
               </div>
             );
           })()}
-        </Sheet>
+        </Dialog>
       )}
 
       {amountEditing.value && (
