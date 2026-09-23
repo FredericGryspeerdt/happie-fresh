@@ -27,6 +27,14 @@ Deno.test("app head — theme-color meta matches the manifest color", () => {
   assertStringIncludes(html, 'name="theme-color" content="#fdfcf9"');
 });
 
+Deno.test("app head — enables Apple's Home Screen launch-image mode", () => {
+  const html = renderApp();
+  assertStringIncludes(
+    html,
+    'name="apple-mobile-web-app-capable" content="yes"',
+  );
+});
+
 Deno.test("app head — apple-touch-icon linked explicitly and file exists", async () => {
   const html = renderApp();
   assertStringIncludes(

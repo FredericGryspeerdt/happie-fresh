@@ -34,6 +34,7 @@ export default function App(
         />
         {/* Kept in sync with manifest theme_color and --md-surface (assets/styles.css) */}
         <meta name="theme-color" content="#fdfcf9" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
         <title>Happie</title>
         <link
           crossorigin="use-credentials"
