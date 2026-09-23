@@ -5,11 +5,13 @@ import { useComputed, useSignal } from "@preact/signals";
 import { For } from "@preact/signals/utils";
 import {
   CategoryInterface,
+  DishInterface,
   ItemInterface,
   type LoyaltyCardInterface,
   type ShoppingAmount,
   ShoppingListInterface,
   ShoppingListItemInterface,
+  WeeklyMenuInterface,
 } from "@/models/index.ts";
 import { useShoppingList, useSnack, useWakeLock } from "@/hooks/index.ts";
 import { api } from "@/services/api.ts";
@@ -41,6 +43,7 @@ import { DestructiveConfirmationDialog } from "@/components/md3/DestructiveConfi
 interface ItemsProps {
   listId: string;
   listName: string;
+  targetList?: ShoppingListInterface;
   items: Required<ItemInterface>[];
   shoppingList: ShoppingListItemInterface[];
   categories: CategoryInterface[];
@@ -48,6 +51,8 @@ interface ItemsProps {
   otherLists?: ShoppingListInterface[];
   loyaltyCards: LoyaltyCardInterface[];
   initialMode?: "plan" | "shop";
+  initialMenu?: WeeklyMenuInterface;
+  initialDishes?: DishInterface[];
 }
 
 export function shouldHoldShopWakeLock(
@@ -61,6 +66,7 @@ export default function Items(
   {
     listId,
     listName,
+    targetList,
     items: catalog,
     shoppingList,
     categories: initialCategories,
@@ -68,6 +74,8 @@ export default function Items(
     otherLists = [],
     loyaltyCards,
     initialMode,
+    initialMenu,
+    initialDishes,
   }: ItemsProps,
 ) {
   // useMemo with [] ensures useShoppingList is called only once.
@@ -1060,10 +1068,13 @@ export default function Items(
           <AddItems
             listId={listId}
             listName={listName}
+            targetList={targetList}
             items={items.value as Required<ItemInterface>[]}
             shoppingList={[...list.value, ...checkedItems.value]}
             categories={categories.value}
             initialQuery=""
+            initialMenu={initialMenu}
+            initialDishes={initialDishes}
             onClose={closeAdd}
             onSearchFocus={() => (handoff.value = true)}
           />

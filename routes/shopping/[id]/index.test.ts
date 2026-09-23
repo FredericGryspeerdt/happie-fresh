@@ -1,5 +1,10 @@
 import { assert, assertEquals } from "jsr:@std/assert@^1.0.19";
-import { LoyaltyCardRepo, ShoppingListRepo } from "@/database/index.ts";
+import {
+  DishRepo,
+  LoyaltyCardRepo,
+  ShoppingListRepo,
+  WeeklyMenuRepo,
+} from "@/database/index.ts";
 import { render } from "npm:preact-render-to-string@^6.6.3";
 import { h, options } from "preact";
 import type { Context } from "fresh";
@@ -46,6 +51,12 @@ Deno.test({
       value: "87654321",
       format: "code128",
     });
+    const dish = await DishRepo.create(householdId, {
+      name: "Lasagne",
+      ingredientIds: [],
+      tagValueIds: [],
+    });
+    await WeeklyMenuRepo.addDish(householdId, dish.id);
 
     const response = await handler.GET(ctx(list.id, householdId));
     assert(!(response instanceof Response));
@@ -68,6 +79,17 @@ Deno.test({
         card.id
       ),
       [currentCard.id],
+    );
+    assertEquals(
+      (itemProps?.initialDishes as { id: string }[] | undefined)?.map((d) =>
+        d.id
+      ),
+      [dish.id],
+    );
+    assertEquals(
+      (itemProps?.initialMenu as { entries: { dishId: string }[] } | undefined)
+        ?.entries.map((entry) => entry.dishId),
+      [dish.id],
     );
   },
 });

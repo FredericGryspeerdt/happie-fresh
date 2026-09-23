@@ -160,6 +160,26 @@ export function useMenuShopping(
     return true;
   };
 
+  const startForList = (list: ShoppingListInterface): boolean => {
+    if (adding.value || loading.value) return false;
+    if (pendingSubmission.value) {
+      step.value = "preview";
+      return true;
+    }
+    submissionMessage.value = null;
+    generation++;
+    lists.value = [];
+    chosenList.value = list;
+    rows.value = [];
+    amounts.value = {};
+    previousAmounts.value = {};
+    emptyDishes.value = [];
+    unticked.value = new Set();
+    selectedDishes.value = new Set(plannedDishes.value.map((d) => d.id));
+    step.value = "dishes";
+    return true;
+  };
+
   const review = async (): Promise<boolean> => {
     if (loading.value || draftLocked.value || !selectedDishes.value.size) {
       return false;
@@ -305,6 +325,7 @@ export function useMenuShopping(
     selectedCount,
     isSelected,
     start,
+    startForList,
     chooseList,
     changeList,
     createList,

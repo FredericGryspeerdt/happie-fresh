@@ -6,6 +6,7 @@ import {
 import { render } from "npm:preact-render-to-string@^6.6.3";
 import { h } from "preact";
 import AddItems from "./add-items.tsx";
+import type { ShoppingListInterface } from "@/models/index.ts";
 
 const base = {
   listId: "l1",
@@ -16,6 +17,14 @@ const base = {
     { id: "d", label: "Dairy", order: 0 },
     { id: "b", label: "Bakery", order: 1 },
   ],
+};
+
+const targetList: ShoppingListInterface = {
+  id: "l1",
+  householdId: "h1",
+  name: "Groceries",
+  createdBy: "m1",
+  createdAt: "2026-09-23T00:00:00.000Z",
 };
 
 Deno.test("AddItems — idle: search-first hint, no chips, no rows", () => {
@@ -62,4 +71,37 @@ Deno.test("AddItems — item editor is a closed dialog without a note field", ()
   assertStringIncludes(html, "fixed inset-0 z-[210] grid place-items-center");
   assertFalse(html.includes("<textarea"));
   assertStringIncludes(html, "Remove from this list?");
+});
+
+Deno.test("AddItems — a planned week offers dish selection for the current list", () => {
+  const html = render(h(AddItems, {
+    ...base,
+    initialQuery: "",
+    targetList,
+    initialMenu: {
+      householdId: "h1",
+      entries: [{ id: "e1", dishId: "d1", day: null }],
+    },
+    initialDishes: [{
+      id: "d1",
+      name: "Lasagne",
+      ingredientIds: ["i1"],
+      tagValueIds: [],
+    }],
+  }));
+
+  assertStringIncludes(html, "Add this week’s ingredients");
+  assertStringIncludes(html, "Shop for dishes");
+});
+
+Deno.test("AddItems — an empty week does not offer weekly ingredients", () => {
+  const html = render(h(AddItems, {
+    ...base,
+    initialQuery: "",
+    targetList,
+    initialMenu: { householdId: "h1", entries: [] },
+    initialDishes: [],
+  }));
+
+  assertFalse(html.includes("Add this week’s ingredients"));
 });

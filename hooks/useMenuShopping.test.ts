@@ -82,6 +82,37 @@ Deno.test("review — one list continues from dish selection and remembers it", 
   }
 });
 
+Deno.test("current-list start — selects dishes before reviewing ingredients for the fixed list", async () => {
+  const getAllOrNull = stub(
+    api.shoppingLists,
+    "getAllOrNull",
+    () => Promise.resolve([list("B")]),
+  );
+  const getItems = stub(
+    api.shoppingList,
+    "getItemsOrNull",
+    () => Promise.resolve([]),
+  );
+  const hook = useMenuShopping(menuOf(), dishes, items);
+  try {
+    assertEquals(hook.startForList(list("A")), true);
+    assertEquals(hook.step.value, "dishes");
+    assertEquals(hook.chosenList.value?.id, "A");
+    hook.toggleDish("d1");
+    assertEquals(await hook.review(), false);
+    assertEquals(getItems.calls.length, 0);
+    hook.toggleDish("d1");
+    assertEquals(await hook.review(), true);
+    assertEquals(hook.step.value, "preview");
+    assertEquals(hook.chosenList.value?.id, "A");
+    assertEquals(getItems.calls[0].args, ["A"]);
+    assertEquals(getAllOrNull.calls.length, 0);
+  } finally {
+    getAllOrNull.restore();
+    getItems.restore();
+  }
+});
+
 Deno.test("review — remembered list continues from dish selection", async () => {
   const menu = menuOf("B");
   const getAllOrNull = stub(

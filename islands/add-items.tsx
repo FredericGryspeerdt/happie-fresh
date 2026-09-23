@@ -2,8 +2,11 @@ import { useEffect, useMemo } from "preact/hooks";
 import { useComputed, useSignal } from "@preact/signals";
 import {
   CategoryInterface,
+  DishInterface,
   ItemInterface,
+  ShoppingListInterface,
   ShoppingListItemInterface,
+  WeeklyMenuInterface,
 } from "@/models/index.ts";
 import { useSearchBox, useShoppingList, useSnack } from "@/hooks/index.ts";
 import { Icon } from "@/components/md3/Icon.tsx";
@@ -16,6 +19,10 @@ import { CategoryPickerList } from "@/components/md3/CategoryPickerList.tsx";
 import { CatalogueAddRow } from "@/components/md3/CatalogueAddRow.tsx";
 import { Snackbar } from "@/components/md3/Snackbar.tsx";
 import { DestructiveConfirmationDialog } from "@/components/md3/DestructiveConfirmationDialog.tsx";
+import { useMenuShopping as createMenuShopping } from "@/hooks/useMenuShopping.ts";
+import { ChooseShoppingDishesDialog } from "@/components/menu/ChooseShoppingDishesDialog.tsx";
+import { IngredientPreviewDialog } from "@/components/menu/IngredientPreviewDialog.tsx";
+import { navigateTo } from "@/utils/loading.ts";
 
 interface AddItemsProps {
   listId: string;
@@ -24,6 +31,9 @@ interface AddItemsProps {
   shoppingList: ShoppingListItemInterface[];
   categories: CategoryInterface[];
   initialQuery: string;
+  targetList?: ShoppingListInterface;
+  initialMenu?: WeeklyMenuInterface;
+  initialDishes?: DishInterface[];
   // When rendered as an in-page overlay (rather than the standalone /add route),
   // the host passes onClose so the back control dismisses the overlay instead of
   // navigating. Its presence is what switches the back control from a link to a
@@ -43,6 +53,9 @@ export default function AddItems(
     shoppingList,
     categories: initialCategories,
     initialQuery,
+    targetList,
+    initialMenu = { householdId: "", entries: [] },
+    initialDishes = [],
     onClose,
     onSearchFocus,
   }: AddItemsProps,
@@ -108,6 +121,28 @@ export default function AddItems(
   // Transient error feedback — a failed add/create must be visible, not silent
   // (see docs/ui-ux-patterns.md §3).
   const { snack: snackData, showSnack } = useSnack();
+  const menu = useSignal(initialMenu);
+  const menuShopping = useMemo(
+    () => createMenuShopping(menu, initialDishes, catalog),
+    [],
+  );
+
+  const startMenuShopping = () => {
+    if (targetList) menuShopping.startForList(targetList);
+  };
+
+  const confirmMenuShopping = () => {
+    void menuShopping.confirm().then((out) => {
+      if (!out) return;
+      showSnack(
+        out.count === 0
+          ? "Everything was already on the list"
+          : `Added ${out.count} to ${out.list.name}`,
+        "Open list",
+        () => navigateTo(`/shopping/${out.list.id}`),
+      );
+    }).catch(() => showSnack("Couldn't add to the list — try again"));
+  };
 
   const trackAdded = (liId: string | null) => {
     if (liId) addedThisVisit.value = [...addedThisVisit.value, liId];
@@ -318,6 +353,18 @@ export default function AddItems(
           Adding to {listName}
         </div>
 
+        {targetList && initialMenu.entries.length > 0 && (
+          <Button
+            variant="outlined"
+            full
+            icon="cart"
+            disabled={menuShopping.loading.value}
+            onClick={startMenuShopping}
+          >
+            Add this week’s ingredients
+          </Button>
+        )}
+
         {/* Added (N) — the building cart, collapsed by default */}
         {addedRows.length > 0 && (
           <div class="rounded-[var(--md-shape-lg)] bg-surface-chigh overflow-hidden">
@@ -491,6 +538,45 @@ export default function AddItems(
         pending={removing.value}
         onClose={() => (itemToRemove.value = null)}
         onConfirm={confirmRemove}
+      />
+
+      <ChooseShoppingDishesDialog
+        open={menuShopping.step.value === "dishes"}
+        dishes={menuShopping.plannedDishes.value}
+        selected={menuShopping.selectedDishes.value}
+        busy={menuShopping.loading.value}
+        onToggle={menuShopping.toggleDish}
+        onContinue={() =>
+          void menuShopping.review().then((ok) => {
+            if (!ok) showSnack("Couldn't load ingredients — try again");
+          })}
+        onClose={menuShopping.cancel}
+      />
+      <IngredientPreviewDialog
+        open={menuShopping.reviewOpen.value}
+        listName={targetList?.name ?? ""}
+        dishCount={menuShopping.selectedDishes.value.size}
+        categories={categories.value}
+        items={items.value}
+        amounts={menuShopping.reviewAmounts.value}
+        onAmount={menuShopping.setAmount}
+        onBack={menuShopping.back}
+        canChangeList={false}
+        onChangeList={() => {}}
+        rows={menuShopping.rows.value}
+        isSelected={menuShopping.isSelected}
+        emptyDishes={menuShopping.emptyDishes.value}
+        selectedCount={menuShopping.selectedCount.value}
+        adding={menuShopping.adding.value}
+        draftLocked={menuShopping.draftLocked.value}
+        retrying={menuShopping.retrying.value}
+        message={menuShopping.submissionMessage.value ??
+          menuShopping.amountError.value}
+        invalidAmount={!!menuShopping.amountError.value}
+        onToggle={menuShopping.toggle}
+        onConfirm={confirmMenuShopping}
+        onOpenDish={(dish) => navigateTo(`/menu/${dish.id}`)}
+        onClose={menuShopping.cancel}
       />
 
       <Snackbar data={snackData.value} />
