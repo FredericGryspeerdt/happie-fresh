@@ -1,4 +1,8 @@
-import { assertFalse, assertStringIncludes } from "jsr:@std/assert@^1.0.19";
+import {
+  assertFalse,
+  assertMatch,
+  assertStringIncludes,
+} from "jsr:@std/assert@^1.0.19";
 import { render } from "npm:preact-render-to-string@^6.6.3";
 import { h } from "preact";
 import Catalogue from "./catalogue.tsx";
@@ -36,8 +40,8 @@ Deno.test("Catalogue — shows an Uncategorized chip when uncategorized items ex
 });
 
 Deno.test("Catalogue — canDelete: false hides the category delete affordance", () => {
-  // The category menu sheet's body isn't gated on the sheet being open (see
-  // CategoryMenuSheet — Sheet always renders its children), so its Delete
+  // The category dialog's body isn't gated on the dialog being open (see
+  // CategoryMenuDialog — Dialog always renders its children), so its Delete
   // button is present in a cold SSR render whenever canDelete is true, and
   // this is the one island where the false case is directly observable.
   const html = render(h(Catalogue, {
@@ -52,8 +56,23 @@ Deno.test("Catalogue — canDelete: false hides the category delete affordance",
   assertFalse(html.includes("Delete category"));
 });
 
+Deno.test("Catalogue — edits a category in a dialog with a labelled field", () => {
+  const html = render(h(Catalogue, {
+    canDelete: true,
+    initialItems: [],
+    initialCategories: [{ id: "d", label: "Dairy", order: 0 }],
+  }));
+
+  assertMatch(
+    html,
+    /aria-label="Category"[^>]*class="[^"]*bg-surface-chigh/,
+  );
+  assertStringIncludes(html, 'for="category-name"');
+  assertStringIncludes(html, 'id="category-name"');
+});
+
 Deno.test("Catalogue — canDelete: false hides Remove from catalogue in the edit-item sheet", () => {
-  // EditItemSheet's body, like CategoryMenuSheet's, isn't gated on the sheet
+  // EditItemSheet's body, like CategoryMenuDialog's, isn't gated on the sheet
   // being open (Sheet always renders its children) or on `item` being
   // non-null, so "Remove from catalogue" is present in a cold SSR render
   // whenever canDelete is true — the false case is directly observable here too.
