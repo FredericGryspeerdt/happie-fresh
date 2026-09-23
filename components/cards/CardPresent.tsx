@@ -7,11 +7,11 @@ import { DestructiveConfirmationDialog } from "@/components/md3/DestructiveConfi
 
 interface CardPresentProps {
   card: LoyaltyCardInterface;
-  canDelete: boolean;
-  deletePending: boolean;
   onClose: () => void;
-  onEdit: (card: LoyaltyCardInterface) => void;
-  onDelete: (id: string) => Promise<boolean>;
+  canDelete?: boolean;
+  deletePending?: boolean;
+  onEdit?: (card: LoyaltyCardInterface) => void;
+  onDelete?: (id: string) => Promise<boolean>;
 }
 
 /**
@@ -20,7 +20,14 @@ interface CardPresentProps {
  * confirm-guarded edit/remove actions.
  */
 export function CardPresent(
-  { card, canDelete, deletePending, onClose, onEdit, onDelete }:
+  {
+    card,
+    canDelete,
+    deletePending = false,
+    onClose,
+    onEdit,
+    onDelete,
+  }:
     CardPresentProps,
 ) {
   const confirming = useSignal(false);
@@ -35,12 +42,14 @@ export function CardPresent(
         <IconButton name="back" aria-label="Close" onClick={onClose} />
         <span class="md-title-medium truncate px-2">{card.label}</span>
         <div class="flex items-center shrink-0">
-          <IconButton
-            name="edit"
-            aria-label="Edit card"
-            onClick={() => onEdit(card)}
-          />
-          {canDelete && (
+          {onEdit && (
+            <IconButton
+              name="edit"
+              aria-label="Edit card"
+              onClick={() => onEdit(card)}
+            />
+          )}
+          {canDelete && onDelete && (
             <IconButton
               name="trash"
               aria-label="Remove card"
@@ -72,7 +81,7 @@ export function CardPresent(
         )}
       </div>
 
-      {canDelete && (
+      {canDelete && onDelete && (
         <DestructiveConfirmationDialog
           open={confirming.value}
           headline="Remove this card?"

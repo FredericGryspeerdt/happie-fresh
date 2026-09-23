@@ -1,4 +1,4 @@
-import { assertStringIncludes } from "jsr:@std/assert@^1.0.19";
+import { assertFalse, assertStringIncludes } from "jsr:@std/assert@^1.0.19";
 import { render } from "npm:preact-render-to-string@^6.6.3";
 import { h } from "preact";
 import { CardPresent } from "./CardPresent.tsx";
@@ -42,4 +42,22 @@ Deno.test("CardPresent — blocks confirmation dismissal while removal is pendin
 
   assertStringIncludes(html, "Loading");
   assertStringIncludes(html, "disabled");
+});
+
+Deno.test("CardPresent — presentation-only mode hides management controls", () => {
+  const html = render(h(CardPresent, {
+    card: {
+      id: "c1",
+      householdId: "h1",
+      label: "Delhaize",
+      value: "12345678",
+      format: "code128",
+    },
+    onClose: () => {},
+  }));
+
+  assertStringIncludes(html, "Delhaize");
+  assertStringIncludes(html, 'aria-label="Close"');
+  assertFalse(html.includes('aria-label="Edit card"'));
+  assertFalse(html.includes('aria-label="Remove card"'));
 });
