@@ -138,6 +138,18 @@ export default function MoreSheet({ open, onClose }: MoreSheetProps) {
           onClick={() => soon("Switch household")}
         />
         <a
+          href="/launch-diagnostics"
+          class="block text-on-surface"
+          onClick={onClose}
+        >
+          <ListItem
+            leading={badge("bolt")}
+            headline="Launch diagnostics"
+            supporting="Temporary troubleshooting"
+            trailing={chevron()}
+          />
+        </a>
+        <a
           href="/logout"
           class="block text-center md-label-large text-error"
           style={{ padding: "16px" }}
