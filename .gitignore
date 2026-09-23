@@ -21,6 +21,7 @@ kv.db-wal
 
 
 .superpowers/
+.worktrees/
 
 # Local HTTPS dev certificates for on-device testing (machine-specific)
 certs/
