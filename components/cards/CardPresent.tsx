@@ -16,8 +16,8 @@ interface CardPresentProps {
 
 /**
  * Full-screen "show at the till" view: a large, high-contrast barcode on white
- * so in-store scanners read it reliably, plus the label, number and
- * confirm-guarded edit/remove actions.
+ * so in-store scanners read it reliably, plus the label and number. Optional
+ * management actions allow editing and confirmation-guarded removal.
  */
 export function CardPresent(
   {
@@ -27,8 +27,7 @@ export function CardPresent(
     onClose,
     onEdit,
     onDelete,
-  }:
-    CardPresentProps,
+  }: CardPresentProps,
 ) {
   const confirming = useSignal(false);
   const isQr = card.format === "qrcode";

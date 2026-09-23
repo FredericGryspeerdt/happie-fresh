@@ -74,6 +74,8 @@ A user can:
 - Check an item off. Checked items move to an "in cart" group that can be shown or hidden.
 - Un-check an item.
 - See a celebration when everything is in the cart.
+- Open the household's loyalty cards directly from shopping mode; one card opens immediately, while several open a recent-first picker.
+- When everything is in the cart, use the prominent loyalty-card action without the card opening automatically.
 - Clear all checked items from the list at once, after confirmation.
 - Have the screen stay awake while in shopping mode with items remaining, where the device allows it.
 
