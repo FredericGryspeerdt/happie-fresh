@@ -323,8 +323,8 @@ export default function Catalogue(
         />
       </Sheet>
 
-      {/* ── Category rename / delete sheet ── */}
-      <CategoryMenuSheet
+      {/* ── Category rename / delete dialog ── */}
+      <CategoryMenuDialog
         category={menuCat.value}
         itemCount={menuCat.value
           ? itemsForCategory(menuCat.value.id).length
@@ -728,7 +728,7 @@ function CategoryPicker(
 }
 
 /* ── Rename / delete a category ── */
-function CategoryMenuSheet(
+function CategoryMenuDialog(
   { category, itemCount, canDelete, onClose, onRename, onDelete }: {
     category: CategoryInterface | null;
     itemCount: number;
@@ -743,38 +743,47 @@ function CategoryMenuSheet(
     label.value = category?.label ?? "";
   }, [category?.id]);
   const v = label.value.trim();
+  const canSave = Boolean(v && v !== category?.label);
+  const save = () => {
+    if (canSave) onRename(v);
+  };
   return (
-    <Sheet open={category !== null} onClose={onClose} title="Category">
-      <div class="flex flex-col gap-5 pb-1">
-        <div>
-          <div class="md-label-medium uppercase text-on-surface-variant mb-2">
-            Name
-          </div>
-          <div class="flex gap-2 items-center">
-            <input
-              value={label.value}
-              onInput={(e) => (label.value = e.currentTarget.value)}
-              class={fieldClass}
-            />
-            <Button
-              variant="filled"
-              disabled={!v || v === category?.label}
-              onClick={() => onRename(v)}
-            >
-              Save
+    <Dialog
+      open={category !== null}
+      onClose={onClose}
+      headline="Category"
+      actions={
+        <>
+          <Button variant="text" onClick={onClose}>Cancel</Button>
+          {canDelete && (
+            <Button variant="text" class="text-error" onClick={onDelete}>
+              Delete category{itemCount > 0
+                ? ` · ${itemCount} item${
+                  itemCount === 1 ? "" : "s"
+                } become uncategorized`
+                : ""}
             </Button>
-          </div>
-        </div>
-        {canDelete && (
-          <Button variant="error" icon="trash" onClick={onDelete}>
-            Delete category{itemCount > 0
-              ? ` · ${itemCount} item${
-                itemCount === 1 ? "" : "s"
-              } become uncategorized`
-              : ""}
+          )}
+          <Button variant="text" disabled={!canSave} onClick={save}>
+            Save
           </Button>
-        )}
-      </div>
-    </Sheet>
+        </>
+      }
+    >
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          save();
+        }}
+      >
+        <TextField
+          id="category-name"
+          label="Name"
+          value={label.value}
+          onInput={(value) => (label.value = value)}
+        />
+        <button type="submit" class="hidden" tabindex={-1}>Save</button>
+      </form>
+    </Dialog>
   );
 }
