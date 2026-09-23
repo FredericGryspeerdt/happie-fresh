@@ -36,9 +36,9 @@ Deno.test("manifest — standalone display (fullscreen hides the status bar)", (
   assertEquals(manifest.display, "standalone");
 });
 
-Deno.test("manifest — MD3 surface color for theme and splash background", () => {
+Deno.test("manifest — app theme and artwork-matched splash colors", () => {
   assertEquals(manifest.theme_color, "#fdfcf9");
-  assertEquals(manifest.background_color, "#fdfcf9");
+  assertEquals(manifest.background_color, "#f7f4e8");
 });
 
 Deno.test("manifest — stable identity and install metadata", () => {
@@ -55,6 +55,20 @@ Deno.test("manifest — icons cover 192, 512 and maskable, all files exist", asy
   assert(
     manifest.icons.some((icon) => icon.purpose === "maskable"),
     "maskable icon missing",
+  );
+  assertEquals(
+    manifest.icons.find((icon) => icon.sizes === "192x192")?.src,
+    "/happie-icon-192.png",
+  );
+  assertEquals(
+    manifest.icons.find((icon) =>
+      icon.sizes === "512x512" && icon.purpose === undefined
+    )?.src,
+    "/happie-icon-512.png",
+  );
+  assertEquals(
+    manifest.icons.find((icon) => icon.purpose === "maskable")?.src,
+    "/happie-icon-maskable-512.png",
   );
   const all = [
     ...manifest.icons,

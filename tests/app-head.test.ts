@@ -37,6 +37,36 @@ Deno.test("app head — apple-touch-icon linked explicitly and file exists", asy
   assert(stat.isFile, "apple-touch-icon.png missing from static/");
 });
 
+Deno.test("app head — iOS launch images cover phone and tablet portrait sizes", async () => {
+  const html = renderApp();
+  const sizes = [
+    "640x1136",
+    "750x1334",
+    "828x1792",
+    "1125x2436",
+    "1170x2532",
+    "1179x2556",
+    "1284x2778",
+    "1290x2796",
+    "1536x2048",
+    "1668x2224",
+    "1668x2388",
+    "2048x2732",
+  ];
+
+  for (const size of sizes) {
+    const href = `/apple-splash-${size}.png`;
+    assertStringIncludes(
+      html,
+      `rel="apple-touch-startup-image" href="${href}"`,
+    );
+    const stat = await Deno.stat(`static${href}`);
+    assert(stat.isFile, `${href} missing from static/`);
+  }
+
+  assertStringIncludes(html, "orientation: portrait");
+});
+
 Deno.test("app head — install prompt stash script, unescaped", () => {
   const html = renderApp();
   assertStringIncludes(html, "__happieInstallPrompt");

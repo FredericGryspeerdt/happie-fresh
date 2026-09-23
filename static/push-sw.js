@@ -21,7 +21,7 @@ self.addEventListener("push", (event) => {
       // stacking. A shared tag would collapse them all into one.
       tag: payload.tag ?? "happie",
       data: { url: payload.url ?? "/todos" },
-      icon: "/web-app-manifest-192x192.png",
+      icon: "/happie-icon-192.png",
       badge: "/favicon-96x96.png",
     }),
   );
