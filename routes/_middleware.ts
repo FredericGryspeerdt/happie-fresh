@@ -21,6 +21,7 @@ export async function handler(
   // 1. Public Allowlist
   if (
     path === "/login" ||
+    path === "/launch-diagnostics" ||
     path.startsWith("/_fresh") ||
     path.startsWith("/static") ||
     path.startsWith("/assets") ||

@@ -99,6 +99,18 @@ Deno.test({
 });
 
 Deno.test({
+  name: "middleware — launch diagnostics are public",
+  sanitizeResources: false,
+  async fn() {
+    const response = await handler(
+      fakeCtx(new Request("http://localhost:8000/launch-diagnostics")),
+    );
+
+    assertEquals(response.status, 200);
+  },
+});
+
+Deno.test({
   name:
     "middleware — invalid session cookie gets cleared on the /login redirect",
   sanitizeResources: false,
