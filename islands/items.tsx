@@ -1,10 +1,12 @@
 import { MoveItems } from "@/components/shopping/MoveItems.tsx";
+import { QuickLoyaltyCards } from "@/components/cards/QuickLoyaltyCards.tsx";
 import { useEffect, useMemo, useRef } from "preact/hooks";
 import { useComputed, useSignal } from "@preact/signals";
 import { For } from "@preact/signals/utils";
 import {
   CategoryInterface,
   ItemInterface,
+  type LoyaltyCardInterface,
   type ShoppingAmount,
   ShoppingListInterface,
   ShoppingListItemInterface,
@@ -44,6 +46,8 @@ interface ItemsProps {
   categories: CategoryInterface[];
   canDelete: boolean;
   otherLists?: ShoppingListInterface[];
+  loyaltyCards: LoyaltyCardInterface[];
+  initialMode?: "plan" | "shop";
 }
 
 export default function Items(
@@ -55,6 +59,8 @@ export default function Items(
     categories: initialCategories,
     canDelete,
     otherLists = [],
+    loyaltyCards,
+    initialMode,
   }: ItemsProps,
 ) {
   // useMemo with [] ensures useShoppingList is called only once.
@@ -90,12 +96,19 @@ export default function Items(
   // is done, the tab hides, or the island unmounts. The chip below follows
   // the hook's `held` signal, i.e. the real lock state, not this intent.
   const hasOpenItems = useComputed(() => list.value.length > 0);
+  const shoppingTotal = useComputed(() =>
+    list.value.length + checkedItems.value.length
+  );
+  const shoppingAllDone = useComputed(() =>
+    shoppingTotal.value > 0 && checkedItems.value.length === shoppingTotal.value
+  );
   const { held: screenAwake } = useWakeLock(hasOpenItems);
 
   // ── mode toggle ──────────────────────────────────────────────────────────
   const selecting = useSignal(false);
   const moveBusy = useSignal(false);
-  const mode = useSignal<"plan" | "shop">("plan");
+  const mode = useSignal<"plan" | "shop">(initialMode ?? "plan");
+  const loyaltyCardsOpen = useSignal(false);
 
   // ── add-items overlay ────────────────────────────────────────────────────
   // The add surface is rendered here as a full-screen in-page overlay rather
@@ -351,6 +364,11 @@ export default function Items(
           ];
         }}
       />
+      <QuickLoyaltyCards
+        cards={loyaltyCards}
+        open={loyaltyCardsOpen.value}
+        onClose={() => (loyaltyCardsOpen.value = false)}
+      />
       {/* ── Plan mode ── */}
       {mode.value === "plan" && !selecting.value && (
         <div class="flex flex-col gap-4">
@@ -419,8 +437,6 @@ export default function Items(
       {/* ── Shop mode ── */}
       {mode.value === "shop" && (() => {
         const done = checkedItems.value.length;
-        const total = list.value.length + checkedItems.value.length;
-        const allDone = done === total && total > 0;
 
         return (
           <div class="flex flex-col gap-3">
@@ -428,7 +444,7 @@ export default function Items(
             <Card variant="filled" pad={16}>
               <div class="flex items-baseline justify-between gap-2 mb-2.5">
                 <span class="md-title-medium text-on-surface whitespace-nowrap">
-                  {done} / {total} in cart
+                  {done} / {shoppingTotal.value} in cart
                 </span>
                 {
                   /* Mirrors the wake lock actually held by useWakeLock above:
@@ -441,11 +457,11 @@ export default function Items(
                   </span>
                 )}
               </div>
-              <Progress value={done} total={total} height={8} />
+              <Progress value={done} total={shoppingTotal.value} height={8} />
             </Card>
 
             {/* All-done celebration */}
-            {allDone && (
+            {shoppingAllDone.value && (
               <Card
                 variant="filled"
                 pad={20}
@@ -458,11 +474,19 @@ export default function Items(
                 <div class="md-body-medium text-on-tertiary-container opacity-85 mt-1">
                   Everything's in the cart.
                 </div>
+                <Button
+                  variant="filled"
+                  icon="card"
+                  class="mt-4"
+                  onClick={() => (loyaltyCardsOpen.value = true)}
+                >
+                  Show loyalty card
+                </Button>
               </Card>
             )}
 
             {/* Remaining items grouped by aisle */}
-            {!allDone && (
+            {!shoppingAllDone.value && (
               <For each={groupedList}>
                 {(group) => (
                   <div class="flex flex-col gap-2">
@@ -574,7 +598,7 @@ export default function Items(
               </div>
             )}
 
-            {total === 0 && (
+            {shoppingTotal.value === 0 && (
               <p class="md-body-large text-on-surface-variant text-center py-8">
                 Switch to Plan to add items.
               </p>
@@ -975,6 +999,20 @@ export default function Items(
             label="Add items"
             aria-label="Add items"
             onClick={openAdd}
+          />
+        </div>
+      )}
+
+      {mode.value === "shop" && !selecting.value && !shoppingAllDone.value && (
+        <div
+          class="fixed right-4 z-30"
+          style={{ bottom: "calc(96px + env(safe-area-inset-bottom))" }}
+        >
+          <Fab
+            icon="card"
+            label="Loyalty cards"
+            aria-label="Loyalty cards"
+            onClick={() => (loyaltyCardsOpen.value = true)}
           />
         </div>
       )}

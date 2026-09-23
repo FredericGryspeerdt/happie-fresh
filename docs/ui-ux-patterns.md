@@ -409,6 +409,7 @@ and must feel native on a phone.
   screen edge (see `Snackbar`, `GlobalLoadingBar`).
 - **Bottom-anchored actions:** primary navigation is a bottom `NavigationBar`;
   the create action is a `Fab`; overlays slide up as bottom `Sheet`s.
+- **Contextual Shop actions:** actions needed at the till belong in Shop mode. Keep them bottom-reachable while shopping, promote them inline at the relevant completion moment, and never interrupt the shopper by opening an overlay automatically.
 - **Pull-to-refresh:** wrap a scroll view in `PullToRefresh` (driven by
   `usePullToRefresh`); a failed refresh surfaces the error snackbar.
 - **Full-screen flows on mobile:** heavy tasks (adding items) can render as a

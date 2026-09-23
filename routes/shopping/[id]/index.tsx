@@ -2,11 +2,34 @@ import { page } from "fresh";
 import {
   CategoryRepo,
   ItemRepo,
+  LoyaltyCardRepo,
   ShoppingListItemRepo,
   ShoppingListRepo,
 } from "@/database/index.ts";
 import ItemsIsland from "@/islands/items.tsx";
 import { define } from "@/utils/index.ts";
+
+export async function loadShoppingListPageData(
+  householdId: string,
+  listId: string,
+) {
+  const [items, shoppingList, categories, lists, loyaltyCards] = await Promise
+    .all([
+      ItemRepo.readAll(householdId),
+      ShoppingListItemRepo.getAll(listId),
+      CategoryRepo.getAll(householdId),
+      ShoppingListRepo.getAll(householdId),
+      LoyaltyCardRepo.getAll(householdId),
+    ]);
+
+  return {
+    items,
+    shoppingList,
+    categories,
+    loyaltyCards,
+    otherLists: lists.filter((l) => l.id !== listId),
+  };
+}
 
 export const handler = define.handlers({
   async GET(ctx) {
@@ -21,18 +44,10 @@ export const handler = define.handlers({
       title: list.name,
       backUrl: "/shopping",
     };
-    const [items, shoppingList, categories, lists] = await Promise.all([
-      ItemRepo.readAll(householdId),
-      ShoppingListItemRepo.getAll(listId),
-      CategoryRepo.getAll(householdId),
-      ShoppingListRepo.getAll(householdId),
-    ]);
+    const data = await loadShoppingListPageData(householdId, listId);
     return page({
       list,
-      items,
-      shoppingList,
-      categories,
-      otherLists: lists.filter((l) => l.id !== listId),
+      ...data,
       canDelete: ctx.state.actingMember?.isManager === true,
     });
   },
@@ -47,6 +62,7 @@ export default define.page<typeof handler>(function ListDetail({ data }) {
         items={data.items}
         shoppingList={data.shoppingList}
         categories={data.categories}
+        loyaltyCards={data.loyaltyCards}
         canDelete={data.canDelete}
         otherLists={data.otherLists}
       />
