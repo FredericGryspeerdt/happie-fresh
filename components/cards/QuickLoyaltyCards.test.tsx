@@ -9,6 +9,7 @@ import type { LoyaltyCardInterface } from "@/models/index.ts";
 import {
   orderQuickLoyaltyCards,
   QuickLoyaltyCards,
+  resetPresentedQuickLoyaltyCardWhenClosed,
 } from "./QuickLoyaltyCards.tsx";
 
 const alpha: LoyaltyCardInterface = {
@@ -73,4 +74,14 @@ Deno.test("QuickLoyaltyCards — several cards render the picker", () => {
   assertStringIncludes(html, 'aria-label="Choose a loyalty card"');
   assertStringIncludes(html, "Alpha");
   assertStringIncludes(html, "Beta");
+});
+
+Deno.test("QuickLoyaltyCards — closing clears the card before reopening", () => {
+  const afterClose = resetPresentedQuickLoyaltyCardWhenClosed(false, beta);
+  const afterReopen = resetPresentedQuickLoyaltyCardWhenClosed(
+    true,
+    afterClose,
+  );
+
+  assertEquals(afterReopen, null);
 });

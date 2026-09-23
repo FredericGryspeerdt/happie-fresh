@@ -29,6 +29,13 @@ export function orderQuickLoyaltyCards(
   });
 }
 
+export function resetPresentedQuickLoyaltyCardWhenClosed(
+  open: boolean,
+  presented: LoyaltyCardInterface | null,
+): LoyaltyCardInterface | null {
+  return open ? presented : null;
+}
+
 export function QuickLoyaltyCards(
   { cards, open, onClose }: QuickLoyaltyCardsProps,
 ) {
@@ -67,6 +74,13 @@ export function QuickLoyaltyCards(
     if (open && cards.length === 1 && !presented.value) remember(cards[0].id);
   }, [open, cards]);
 
+  useEffect(() => {
+    presented.value = resetPresentedQuickLoyaltyCardWhenClosed(
+      open,
+      presented.value,
+    );
+  }, [open]);
+
   const presentCard = (card: LoyaltyCardInterface) => {
     remember(card.id);
     presented.value = card;
@@ -76,10 +90,14 @@ export function QuickLoyaltyCards(
     onClose();
   };
   const ordered = orderQuickLoyaltyCards(cards, recentIds.value);
+  const visiblePresented = resetPresentedQuickLoyaltyCardWhenClosed(
+    open,
+    presented.value,
+  );
 
   if (!open) return null;
-  if (presented.value || cards.length === 1) {
-    const card = presented.value ?? cards[0];
+  if (visiblePresented || cards.length === 1) {
+    const card = visiblePresented ?? cards[0];
     return <CardPresent card={card} onClose={closeAll} />;
   }
 
