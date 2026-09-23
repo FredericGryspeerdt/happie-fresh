@@ -2,6 +2,7 @@ import { page } from "fresh";
 import {
   CategoryRepo,
   ItemRepo,
+  LoyaltyCardRepo,
   ShoppingListItemRepo,
   ShoppingListRepo,
 } from "@/database/index.ts";
@@ -21,17 +22,20 @@ export const handler = define.handlers({
       title: list.name,
       backUrl: "/shopping",
     };
-    const [items, shoppingList, categories, lists] = await Promise.all([
-      ItemRepo.readAll(householdId),
-      ShoppingListItemRepo.getAll(listId),
-      CategoryRepo.getAll(householdId),
-      ShoppingListRepo.getAll(householdId),
-    ]);
+    const [items, shoppingList, categories, lists, loyaltyCards] = await Promise
+      .all([
+        ItemRepo.readAll(householdId),
+        ShoppingListItemRepo.getAll(listId),
+        CategoryRepo.getAll(householdId),
+        ShoppingListRepo.getAll(householdId),
+        LoyaltyCardRepo.getAll(householdId),
+      ]);
     return page({
       list,
       items,
       shoppingList,
       categories,
+      loyaltyCards,
       otherLists: lists.filter((l) => l.id !== listId),
       canDelete: ctx.state.actingMember?.isManager === true,
     });
@@ -47,6 +51,7 @@ export default define.page<typeof handler>(function ListDetail({ data }) {
         items={data.items}
         shoppingList={data.shoppingList}
         categories={data.categories}
+        loyaltyCards={data.loyaltyCards}
         canDelete={data.canDelete}
         otherLists={data.otherLists}
       />

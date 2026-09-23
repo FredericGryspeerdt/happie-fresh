@@ -14,6 +14,7 @@ const base = {
   shoppingList: [],
   categories: [],
   canDelete: true,
+  loyaltyCards: [],
 };
 
 Deno.test("Items — renders Plan and Shop mode toggle", () => {
@@ -26,6 +27,22 @@ Deno.test("Items — Plan mode shows the Add items FAB, no quick-add sheet", () 
   const html = render(h(Items, base));
   assertStringIncludes(html, "Add items"); // FAB label
   assert(!html.includes("Search your catalogue")); // old quick-add sheet gone
+});
+
+Deno.test("Items — wires loyalty cards into a closed quick-card surface", () => {
+  const html = render(h(Items, {
+    ...base,
+    loyaltyCards: [{
+      id: "c1",
+      householdId: "h1",
+      label: "Delhaize",
+      value: "12345678",
+      format: "code128",
+    }],
+  }));
+
+  assertStringIncludes(html, "Add items");
+  assertFalse(html.includes('aria-label="Choose a loyalty card"'));
 });
 
 Deno.test("Items — canDelete: false hides the Delete list affordance", () => {

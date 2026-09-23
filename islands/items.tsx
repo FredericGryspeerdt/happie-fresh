@@ -1,10 +1,12 @@
 import { MoveItems } from "@/components/shopping/MoveItems.tsx";
+import { QuickLoyaltyCards } from "@/components/cards/QuickLoyaltyCards.tsx";
 import { useEffect, useMemo, useRef } from "preact/hooks";
 import { useComputed, useSignal } from "@preact/signals";
 import { For } from "@preact/signals/utils";
 import {
   CategoryInterface,
   ItemInterface,
+  type LoyaltyCardInterface,
   type ShoppingAmount,
   ShoppingListInterface,
   ShoppingListItemInterface,
@@ -44,6 +46,7 @@ interface ItemsProps {
   categories: CategoryInterface[];
   canDelete: boolean;
   otherLists?: ShoppingListInterface[];
+  loyaltyCards: LoyaltyCardInterface[];
 }
 
 export default function Items(
@@ -55,6 +58,7 @@ export default function Items(
     categories: initialCategories,
     canDelete,
     otherLists = [],
+    loyaltyCards,
   }: ItemsProps,
 ) {
   // useMemo with [] ensures useShoppingList is called only once.
@@ -96,6 +100,7 @@ export default function Items(
   const selecting = useSignal(false);
   const moveBusy = useSignal(false);
   const mode = useSignal<"plan" | "shop">("plan");
+  const loyaltyCardsOpen = useSignal(false);
 
   // ── add-items overlay ────────────────────────────────────────────────────
   // The add surface is rendered here as a full-screen in-page overlay rather
@@ -350,6 +355,11 @@ export default function Items(
             ...entries.filter((e) => e.checked && !present.has(e.id)),
           ];
         }}
+      />
+      <QuickLoyaltyCards
+        cards={loyaltyCards}
+        open={loyaltyCardsOpen.value}
+        onClose={() => (loyaltyCardsOpen.value = false)}
       />
       {/* ── Plan mode ── */}
       {mode.value === "plan" && !selecting.value && (
