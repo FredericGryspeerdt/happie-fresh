@@ -9,6 +9,28 @@ import {
 import ItemsIsland from "@/islands/items.tsx";
 import { define } from "@/utils/index.ts";
 
+export async function loadShoppingListPageData(
+  householdId: string,
+  listId: string,
+) {
+  const [items, shoppingList, categories, lists, loyaltyCards] = await Promise
+    .all([
+      ItemRepo.readAll(householdId),
+      ShoppingListItemRepo.getAll(listId),
+      CategoryRepo.getAll(householdId),
+      ShoppingListRepo.getAll(householdId),
+      LoyaltyCardRepo.getAll(householdId),
+    ]);
+
+  return {
+    items,
+    shoppingList,
+    categories,
+    loyaltyCards,
+    otherLists: lists.filter((l) => l.id !== listId),
+  };
+}
+
 export const handler = define.handlers({
   async GET(ctx) {
     const householdId = ctx.state.householdId!;
@@ -22,21 +44,10 @@ export const handler = define.handlers({
       title: list.name,
       backUrl: "/shopping",
     };
-    const [items, shoppingList, categories, lists, loyaltyCards] = await Promise
-      .all([
-        ItemRepo.readAll(householdId),
-        ShoppingListItemRepo.getAll(listId),
-        CategoryRepo.getAll(householdId),
-        ShoppingListRepo.getAll(householdId),
-        LoyaltyCardRepo.getAll(householdId),
-      ]);
+    const data = await loadShoppingListPageData(householdId, listId);
     return page({
       list,
-      items,
-      shoppingList,
-      categories,
-      loyaltyCards,
-      otherLists: lists.filter((l) => l.id !== listId),
+      ...data,
       canDelete: ctx.state.actingMember?.isManager === true,
     });
   },

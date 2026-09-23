@@ -1,10 +1,12 @@
 import {
   assert,
+  assertEquals,
   assertFalse,
   assertStringIncludes,
 } from "jsr:@std/assert@^1.0.19";
 import { render } from "npm:preact-render-to-string@^6.6.3";
-import { h } from "preact";
+import { h, options } from "preact";
+import { QuickLoyaltyCards } from "@/components/cards/QuickLoyaltyCards.tsx";
 import Items from "./items.tsx";
 
 const base = {
@@ -29,20 +31,30 @@ Deno.test("Items — Plan mode shows the Add items FAB, no quick-add sheet", () 
   assert(!html.includes("Search your catalogue")); // old quick-add sheet gone
 });
 
-Deno.test("Items — wires loyalty cards into a closed quick-card surface", () => {
-  const html = render(h(Items, {
-    ...base,
-    loyaltyCards: [{
-      id: "c1",
-      householdId: "h1",
-      label: "Delhaize",
-      value: "12345678",
-      format: "code128",
-    }],
-  }));
+Deno.test("Items — mounts the closed quick-card surface with household cards", () => {
+  const loyaltyCards = [{
+    id: "c1",
+    householdId: "h1",
+    label: "Delhaize",
+    value: "12345678",
+    format: "code128" as const,
+  }];
+  let quickCardProps: Record<string, unknown> | undefined;
+  const previousVnode = options.vnode;
+  options.vnode = (vnode) => {
+    previousVnode?.(vnode);
+    if (vnode.type === QuickLoyaltyCards) quickCardProps = vnode.props;
+  };
 
-  assertStringIncludes(html, "Add items");
-  assertFalse(html.includes('aria-label="Choose a loyalty card"'));
+  try {
+    render(h(Items, { ...base, loyaltyCards }));
+  } finally {
+    options.vnode = previousVnode;
+  }
+
+  assertEquals(quickCardProps?.cards, loyaltyCards);
+  assertEquals(quickCardProps?.open, false);
+  assertEquals(typeof quickCardProps?.onClose, "function");
 });
 
 Deno.test("Items — canDelete: false hides the Delete list affordance", () => {
