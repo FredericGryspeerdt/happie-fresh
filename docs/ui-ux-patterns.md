@@ -725,7 +725,10 @@ export function useWakeLock(
 
 ```ts
 // islands/items.tsx
-const { held: screenAwake } = useWakeLock(hasOpenItems);
+const wantsWakeLock = useComputed(() =>
+  mode.value === "shop" && list.value.length > 0
+);
+const { held: screenAwake } = useWakeLock(wantsWakeLock);
 // …
 {screenAwake.value && <span>… Screen awake</span>}
 ```

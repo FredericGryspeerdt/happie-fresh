@@ -50,6 +50,13 @@ interface ItemsProps {
   initialMode?: "plan" | "shop";
 }
 
+export function shouldHoldShopWakeLock(
+  mode: "plan" | "shop",
+  openItemCount: number,
+): boolean {
+  return mode === "shop" && openItemCount > 0;
+}
+
 export default function Items(
   {
     listId,
@@ -91,23 +98,24 @@ export default function Items(
     [], // intentionally empty — signals are initialized once from SSR data
   );
 
-  // Keep the screen awake mid-shop (#73): held while this list still has
-  // unchecked items — `list` holds the open ones — released when the trip
-  // is done, the tab hides, or the island unmounts. The chip below follows
-  // the hook's `held` signal, i.e. the real lock state, not this intent.
-  const hasOpenItems = useComputed(() => list.value.length > 0);
+  const mode = useSignal<"plan" | "shop">(initialMode ?? "plan");
+
+  // Changing `mode` from the Shop tap synchronously notifies useWakeLock, so
+  // Safari sees the request inside its required user-activation window.
+  const wantsWakeLock = useComputed(() =>
+    shouldHoldShopWakeLock(mode.value, list.value.length)
+  );
   const shoppingTotal = useComputed(() =>
     list.value.length + checkedItems.value.length
   );
   const shoppingAllDone = useComputed(() =>
     shoppingTotal.value > 0 && checkedItems.value.length === shoppingTotal.value
   );
-  const { held: screenAwake } = useWakeLock(hasOpenItems);
+  const { held: screenAwake } = useWakeLock(wantsWakeLock);
 
   // ── mode toggle ──────────────────────────────────────────────────────────
   const selecting = useSignal(false);
   const moveBusy = useSignal(false);
-  const mode = useSignal<"plan" | "shop">(initialMode ?? "plan");
   const loyaltyCardsOpen = useSignal(false);
 
   // ── add-items overlay ────────────────────────────────────────────────────

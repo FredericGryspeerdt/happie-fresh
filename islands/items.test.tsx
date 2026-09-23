@@ -7,7 +7,7 @@ import {
 import { render } from "npm:preact-render-to-string@^6.6.3";
 import { h, options } from "preact";
 import { QuickLoyaltyCards } from "@/components/cards/QuickLoyaltyCards.tsx";
-import Items from "./items.tsx";
+import Items, { shouldHoldShopWakeLock } from "./items.tsx";
 
 const base = {
   listId: "l1",
@@ -18,6 +18,12 @@ const base = {
   canDelete: true,
   loyaltyCards: [],
 };
+
+Deno.test("Items — wake lock is wanted only in Shop mode with open entries", () => {
+  assertFalse(shouldHoldShopWakeLock("plan", 1));
+  assert(shouldHoldShopWakeLock("shop", 1));
+  assertFalse(shouldHoldShopWakeLock("shop", 0));
+});
 
 Deno.test("Items — renders Plan and Shop mode toggle", () => {
   const html = render(h(Items, base));
