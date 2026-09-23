@@ -1,4 +1,5 @@
 import {
+  assert,
   assertFalse,
   assertMatch,
   assertStringIncludes,
@@ -71,9 +72,9 @@ Deno.test("Catalogue — edits a category in a dialog with a labelled field", ()
   assertStringIncludes(html, 'id="category-name"');
 });
 
-Deno.test("Catalogue — canDelete: false hides Remove from catalogue in the edit-item sheet", () => {
-  // EditItemSheet's body, like CategoryMenuDialog's, isn't gated on the sheet
-  // being open (Sheet always renders its children) or on `item` being
+Deno.test("Catalogue — canDelete: false hides Remove from catalogue in the edit-item dialog", () => {
+  // EditItemDialog's body, like CategoryMenuDialog's, isn't gated on the dialog
+  // being open (Dialog always renders its children) or on `item` being
   // non-null, so "Remove from catalogue" is present in a cold SSR render
   // whenever canDelete is true — the false case is directly observable here too.
   const html = render(h(Catalogue, {
@@ -86,4 +87,25 @@ Deno.test("Catalogue — canDelete: false hides Remove from catalogue in the edi
     ],
   }));
   assertFalse(html.includes("Remove from catalogue"));
+});
+
+Deno.test("Catalogue — edits an item in a basic dialog with a TextField", () => {
+  const html = render(h(Catalogue, {
+    canDelete: true,
+    initialItems: [
+      { id: "i1", name: "Butter", categoryId: "d" },
+    ],
+    initialCategories: [
+      { id: "d", label: "Dairy", order: 0 },
+    ],
+  }));
+  const editDialogStart = html.indexOf('aria-label="Edit item"');
+
+  assert(editDialogStart >= 0);
+  const editDialog = html.slice(editDialogStart, editDialogStart + 2500);
+  assertStringIncludes(editDialog, "max-w-[560px]");
+  assertStringIncludes(editDialog, 'id="catalogue-item-name"');
+  assertStringIncludes(editDialog, ">Cancel</button>");
+  assertStringIncludes(editDialog, ">Save</button>");
+  assertFalse(editDialog.includes("translateY"));
 });
