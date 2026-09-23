@@ -16,6 +16,8 @@ import { Pressable } from "@/components/md3/Pressable.tsx";
 import { FabMenu } from "@/components/md3/FabMenu.tsx";
 import { navigateTo } from "@/utils/loading.ts";
 import { DestructiveConfirmationDialog } from "@/components/md3/DestructiveConfirmationDialog.tsx";
+import { Dialog } from "@/components/md3/Dialog.tsx";
+import { TextField } from "@/components/md3/TextField.tsx";
 
 const SEGMENTED_OPTIONS: [string, "cart" | "tag", string][] = [
   ["lists", "cart", "Lists"],
@@ -87,7 +89,7 @@ export default function Catalogue(
   const q = query.value.trim().toLowerCase();
   const searching = q.length > 0;
 
-  // Hide the FAB while any sheet is open — the sheet is then the active surface.
+  // Hide the FAB while any overlay is open — the overlay is the active surface.
   const anySheetOpen = editing.value !== null || addOpen.value ||
     pickerOpen.value || menuCat.value !== null;
 
@@ -267,8 +269,8 @@ export default function Catalogue(
           )}
       </div>
 
-      {/* ── Edit item sheet ── */}
-      <EditItemSheet
+      {/* ── Edit item dialog ── */}
+      <EditItemDialog
         item={editing.value}
         cats={cats}
         names={names}
@@ -419,7 +421,7 @@ export default function Catalogue(
 }
 
 /* ── Edit one catalogue item ── */
-function EditItemSheet(
+function EditItemDialog(
   { item, cats, names, canDelete, onClose, onRename, onMove, onRemove }: {
     item: ItemInterface | null;
     cats: CategoryInterface[];
@@ -438,33 +440,41 @@ function EditItemSheet(
   const v = name.value.trim();
   const dupe = !!v && item !== null &&
     v.toLowerCase() !== item.name.toLowerCase() && names.has(v.toLowerCase());
+  const save = () => {
+    if (v && !dupe && v !== item?.name) onRename(v);
+  };
   return (
-    <Sheet open={item !== null} onClose={onClose} title="Edit item">
-      <div class="flex flex-col gap-5 pb-1">
-        <div>
-          <div class="md-label-medium uppercase text-on-surface-variant mb-2">
-            Name
-          </div>
-          <div class="flex gap-2 items-center">
-            <input
-              value={name.value}
-              onInput={(e) => (name.value = e.currentTarget.value)}
-              class={fieldClass}
-            />
-            <Button
-              variant="filled"
-              disabled={!v || dupe || v === item?.name}
-              onClick={() => onRename(v)}
-            >
-              Save
-            </Button>
-          </div>
-          {dupe && (
-            <div class="md-body-small text-error mt-2">
-              “{v}” is already in your catalogue
-            </div>
-          )}
-        </div>
+    <Dialog
+      open={item !== null}
+      onClose={onClose}
+      headline="Edit item"
+      actions={
+        <>
+          <Button variant="text" onClick={onClose}>Cancel</Button>
+          <Button
+            variant="text"
+            disabled={!v || dupe || v === item?.name}
+            onClick={save}
+          >
+            Save
+          </Button>
+        </>
+      }
+    >
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          save();
+        }}
+        class="flex flex-col gap-5 pb-1"
+      >
+        <TextField
+          id="catalogue-item-name"
+          label="Name"
+          value={name.value}
+          onInput={(value) => (name.value = value)}
+          error={dupe ? `“${v}” is already in your catalogue` : undefined}
+        />
         <div>
           <div class="md-label-medium uppercase text-on-surface-variant mb-2">
             Category
@@ -487,8 +497,9 @@ function EditItemSheet(
             Remove from catalogue
           </Button>
         )}
-      </div>
-    </Sheet>
+        <button type="submit" class="hidden" tabindex={-1}>Save</button>
+      </form>
+    </Dialog>
   );
 }
 
