@@ -1,12 +1,29 @@
-import { assertEquals } from "jsr:@std/assert@^1.0.19";
+import { assert, assertEquals } from "jsr:@std/assert@^1.0.19";
 import { LoyaltyCardRepo, ShoppingListRepo } from "@/database/index.ts";
-import { loadShoppingListPageData } from "./index.tsx";
+import { render } from "npm:preact-render-to-string@^6.6.3";
+import { h, options } from "preact";
+import type { Context } from "fresh";
+import ItemsIsland from "@/islands/items.tsx";
+import ShoppingDetailPage, { handler } from "./index.tsx";
 
 Deno.env.set("KV_PATH", ":memory:");
 
+function ctx(
+  listId: string,
+  householdId: string,
+): Context<{
+  householdId: string;
+}> {
+  return {
+    req: new Request(`http://x/shopping/${listId}`),
+    params: { id: listId },
+    state: { householdId },
+  } as unknown as Context<{ householdId: string }>;
+}
+
 Deno.test({
   name:
-    "shopping detail page data includes only the current household's loyalty cards",
+    "shopping detail handler supplies only current-household cards to ItemsIsland",
   sanitizeResources: false,
   async fn() {
     const householdId = "h-shopping-detail-current";
@@ -30,8 +47,27 @@ Deno.test({
       format: "code128",
     });
 
-    const data = await loadShoppingListPageData(householdId, list.id);
+    const response = await handler.GET(ctx(list.id, householdId));
+    assert(!(response instanceof Response));
 
-    assertEquals(data.loyaltyCards.map((card) => card.id), [currentCard.id]);
+    let itemProps: Record<string, unknown> | undefined;
+    const previousVnode = options.vnode;
+    options.vnode = (vnode) => {
+      previousVnode?.(vnode);
+      if (vnode.type === ItemsIsland) itemProps = vnode.props;
+    };
+
+    try {
+      render(h(ShoppingDetailPage, { data: response.data } as never));
+    } finally {
+      options.vnode = previousVnode;
+    }
+
+    assertEquals(
+      (itemProps?.loyaltyCards as { id: string }[] | undefined)?.map((card) =>
+        card.id
+      ),
+      [currentCard.id],
+    );
   },
 });
