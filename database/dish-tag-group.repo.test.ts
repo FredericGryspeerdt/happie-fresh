@@ -18,11 +18,15 @@ Deno.test({
     await clearGroups();
     await DishTagGroupRepo.ensureDefaults("hh-a");
     const groups = await DishTagGroupRepo.getAll("hh-a");
-    assertEquals(groups.map((g) => g.label), ["Type", "Meal", "Side type"]);
+    assertEquals(groups.map((g) => g.label), [
+      "Soort",
+      "Maaltijd",
+      "Bijgerechtsoort",
+    ]);
     assertEquals(groups[0].values.map((v) => v.label), [
-      "Vegetarian",
-      "Fish",
-      "Meat",
+      "Vegetarisch",
+      "Vis",
+      "Vlees",
     ]);
     // every value has a non-empty id
     for (const g of groups) {

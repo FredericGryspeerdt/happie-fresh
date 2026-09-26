@@ -81,7 +81,7 @@ Deno.test("validateBarcode — code39 accepts uppercase A-Z 0-9 - . $ / + % and 
 Deno.test("formatLabel — human-readable names", () => {
   assertEquals(formatLabel("ean13"), "EAN-13");
   assertEquals(formatLabel("code39"), "Code 39");
-  assertEquals(formatLabel("qrcode"), "QR code");
+  assertEquals(formatLabel("qrcode"), "QR-code");
 });
 
 Deno.test("SUPPORTED_FORMATS — covers every supported symbology once", () => {

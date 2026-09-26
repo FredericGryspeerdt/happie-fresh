@@ -5,7 +5,7 @@ import { define } from "@/utils/index.ts";
 
 export const handler = define.handlers({
   async GET(ctx) {
-    ctx.state.appBar = { mode: "detail", title: "Members", backUrl: "/home" };
+    ctx.state.appBar = { mode: "detail", title: "Leden", backUrl: "/home" };
     const members = await MemberRepo.getAll(ctx.state.householdId!);
     return page({ members, actingMember: ctx.state.actingMember ?? null });
   },

@@ -158,7 +158,7 @@ export class ShoppingListItemRepo {
       if (receipt?.value) {
         if (receipt.value.fingerprint !== fingerprint) {
           throw new ShoppingAmountConflict(
-            "This request was already used for different amounts. Please review and try again.",
+            "Dit verzoek is al gebruikt voor andere hoeveelheden. Controleer de hoeveelheden en probeer opnieuw.",
           );
         }
         let serialized = "";
@@ -176,7 +176,7 @@ export class ShoppingListItemRepo {
         inputs.some((input) => !knownItemIds.has(input.itemId))
       ) {
         throw new ShoppingAmountConflict(
-          "An ingredient is no longer in the catalogue. Review your ingredients and try again.",
+          "Een ingrediënt staat niet meer in de catalogus. Controleer je ingrediënten en probeer opnieuw.",
         );
       }
       const rev = await kv.get<number>(revKey);
@@ -229,7 +229,7 @@ export class ShoppingListItemRepo {
           : null;
         if (options && !cur.checked && !amount) {
           throw new ShoppingAmountConflict(
-            "These amounts cannot be combined. Choose matching units and a total no greater than 99999.",
+            "Deze hoeveelheden kunnen niet samengeteld worden. Kies passende eenheden en een totaal van maximaal 99999.",
           );
         }
         const note = cur.note?.trim() ? cur.note : incomingNote;

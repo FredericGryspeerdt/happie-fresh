@@ -43,7 +43,7 @@ export default function NotificationSetting({ onOpen }: Props) {
     <>
       <ListItem
         leading={badge}
-        headline="Notifications"
+        headline="Meldingen"
         trailing={<Icon name="chevron" size={18} />}
         onClick={() => {
           onOpen?.();
@@ -62,21 +62,21 @@ export default function NotificationSetting({ onOpen }: Props) {
       <Sheet
         open={open.value}
         onClose={() => (open.value = false)}
-        title="Notifications"
+        title="Meldingen"
       >
         {open.value && (
           <div class="flex flex-col gap-3 pb-1">
             {state.value === "unsupported" && (
               <div class="md-body-medium text-on-surface-variant">
-                This browser can't show notifications.
+                Deze browser kan geen meldingen tonen.
               </div>
             )}
 
             {state.value === "needs-install" && (
               <>
                 <div class="md-body-medium text-on-surface-variant">
-                  Add Happie to your home screen first — on iPhone and iPad,
-                  notifications only work once the app is installed.
+                  Zet Happie eerst op je beginscherm. Op iPhone en iPad werken
+                  meldingen alleen als de app geïnstalleerd is.
                 </div>
                 <InstallGuidance variant="ios" />
               </>
@@ -84,15 +84,16 @@ export default function NotificationSetting({ onOpen }: Props) {
 
             {state.value === "denied" && (
               <div class="md-body-medium text-on-surface-variant">
-                Notifications are blocked. You'll need to allow them for Happie
-                in your browser settings.
+                Meldingen zijn geblokkeerd. Geef Happie toestemming in de
+                instellingen van je browser.
               </div>
             )}
 
             {(state.value === "default" || state.value === "disabled") && (
               <>
                 <div class="md-body-medium text-on-surface-variant">
-                  Get a nudge on this device when a to-do is due.
+                  Krijg op dit toestel een herinnering wanneer het tijd is om
+                  iets te doen.
                 </div>
                 <Button
                   variant="filled"
@@ -101,11 +102,11 @@ export default function NotificationSetting({ onOpen }: Props) {
                   onClick={async () => {
                     const ok = await enable();
                     message.value = ok
-                      ? "Reminders are on."
-                      : "That didn't work. Try again?";
+                      ? "Herinneringen zijn ingeschakeld."
+                      : "Dat is niet gelukt. Probeer opnieuw.";
                   }}
                 >
-                  Turn on reminders
+                  Herinneringen inschakelen
                 </Button>
               </>
             )}
@@ -113,7 +114,7 @@ export default function NotificationSetting({ onOpen }: Props) {
             {state.value === "granted" && (
               <>
                 <div class="md-body-medium text-on-surface-variant">
-                  Reminders are on for this device.
+                  Herinneringen zijn ingeschakeld op dit toestel.
                 </div>
                 <Button
                   variant="tonal"
@@ -122,11 +123,11 @@ export default function NotificationSetting({ onOpen }: Props) {
                   onClick={async () => {
                     const res = await sendTest();
                     message.value = res && res.sent > 0
-                      ? "Sent — it should arrive in a moment."
-                      : "Couldn't send it. Try again?";
+                      ? "Verstuurd — de melding komt zo aan."
+                      : "Versturen is niet gelukt. Probeer opnieuw.";
                   }}
                 >
-                  Send a test notification
+                  Testmelding versturen
                 </Button>
                 <Button
                   variant="text"
@@ -135,11 +136,11 @@ export default function NotificationSetting({ onOpen }: Props) {
                   onClick={async () => {
                     const ok = await disable();
                     message.value = ok
-                      ? "Reminders are off for this device."
-                      : "Couldn't turn off reminders. Try again?";
+                      ? "Herinneringen zijn uitgeschakeld op dit toestel."
+                      : "Herinneringen uitschakelen is niet gelukt. Probeer opnieuw.";
                   }}
                 >
-                  Turn off on this device
+                  Uitschakelen op dit toestel
                 </Button>
               </>
             )}

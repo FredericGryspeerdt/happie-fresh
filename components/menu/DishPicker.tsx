@@ -49,7 +49,7 @@ export function DishPicker({ dishes, menu, onClose }: Props) {
     hideSnack();
     const ok = await menu.addDish(dish.id);
     if (!ok) {
-      error.value = "Couldn't update this week. Try again.";
+      error.value = "Deze week bijwerken is niet gelukt. Probeer opnieuw.";
       showSnack(error.value);
     }
   };
@@ -58,8 +58,8 @@ export function DishPicker({ dishes, menu, onClose }: Props) {
     <>
       <FullScreenDialog
         open
-        title="Choose dishes"
-        subtitle="For this week"
+        title="Gerechten kiezen"
+        subtitle="Voor deze week"
         closeIcon="back"
         onClose={close}
         contentClass="px-4 pb-4"
@@ -67,14 +67,17 @@ export function DishPicker({ dishes, menu, onClose }: Props) {
           <div>
             <div class="flex items-center justify-between gap-2">
               <p class="md-title-large text-on-surface" aria-live="polite">
-                {planned.length} dish{planned.length === 1 ? "" : "es"} planned
+                {planned.length}{" "}
+                {planned.length === 1 ? "gerecht" : "gerechten"} gepland
               </p>
               {planned.length > 0 && (
                 <Button
                   variant="text"
                   onClick={() => (showPlanned.value = !showPlanned.value)}
                 >
-                  {showPlanned.value ? "Back to results" : "View all"}
+                  {showPlanned.value
+                    ? "Terug naar resultaten"
+                    : "Alles bekijken"}
                 </Button>
               )}
             </div>
@@ -84,11 +87,11 @@ export function DishPicker({ dishes, menu, onClose }: Props) {
             >
               {planned.length
                 ? planned.slice(0, 4).map((dish) => dish.name).join(" · ")
-                : "Choose dishes to plan your week."}
+                : "Kies gerechten voor je weekmenu."}
             </p>
             {planned.length > 4 && (
               <p class="md-body-small text-on-surface-variant">
-                +{planned.length - 4} more
+                +{planned.length - 4} meer
               </p>
             )}
             <p
@@ -99,13 +102,13 @@ export function DishPicker({ dishes, menu, onClose }: Props) {
               )}
             >
               {busy
-                ? "Saving…"
+                ? "Opslaan…"
                 : error.value
-                ? "Change not saved"
-                : "Changes saved"}
+                ? "Wijziging niet opgeslagen"
+                : "Wijzigingen opgeslagen"}
             </p>
             <Button full disabled={busy} onClick={close} style={{ height: 48 }}>
-              Back to this week
+              Terug naar deze week
             </Button>
           </div>
         }
@@ -114,7 +117,7 @@ export function DishPicker({ dishes, menu, onClose }: Props) {
           {showPlanned.value
             ? (
               <p class="md-title-small py-3 text-on-surface">
-                All planned dishes
+                Alle geplande gerechten
               </p>
             )
             : (
@@ -130,8 +133,8 @@ export function DishPicker({ dishes, menu, onClose }: Props) {
                   ref={search.inputRef}
                   type="search"
                   enterKeyHint="search"
-                  aria-label="Search dishes"
-                  placeholder="Search dishes"
+                  aria-label="Gerechten zoeken"
+                  placeholder="Gerechten zoeken"
                   value={search.query.value}
                   onInput={(e) => (search.query.value = e.currentTarget.value)}
                   class="flex-1 min-w-0 bg-transparent border-0 outline-none md-body-large text-on-surface [&::-webkit-search-cancel-button]:hidden"
@@ -139,7 +142,7 @@ export function DishPicker({ dishes, menu, onClose }: Props) {
                 {search.query.value && (
                   <IconButton
                     name="x"
-                    aria-label="Clear search"
+                    aria-label="Zoekveld wissen"
                     onClick={search.reset}
                     size={48}
                   />
@@ -152,12 +155,14 @@ export function DishPicker({ dishes, menu, onClose }: Props) {
             class="md-body-medium text-on-surface-variant mb-3"
             aria-live="polite"
           >
-            {visible.length} dish{visible.length === 1 ? "" : "es"} found
+            {visible.length} {visible.length === 1 ? "gerecht" : "gerechten"}
+            {" "}
+            gevonden
           </p>
         )}
         <div
           class="flex flex-col gap-2"
-          aria-label={showPlanned.value ? "Planned dishes" : "Dishes"}
+          aria-label={showPlanned.value ? "Geplande gerechten" : "Gerechten"}
         >
           {visible.map((dish) => {
             const checked = menu.plannedDishIds.value.has(dish.id);
@@ -176,7 +181,7 @@ export function DishPicker({ dishes, menu, onClose }: Props) {
                   <span class="md-title-medium break-words">{dish.name}</span>
                   {checked && (
                     <span class="block md-body-medium text-primary">
-                      Planned
+                      Gepland
                     </span>
                   )}
                 </span>
@@ -196,7 +201,7 @@ export function DishPicker({ dishes, menu, onClose }: Props) {
                       dishToRemove.value = dish;
                     } else void add(dish);
                   }}
-                  aria-label={`${dish.name}, planned this week`}
+                  aria-label={`${dish.name}, gepland voor deze week`}
                   class="peer sr-only"
                 />
                 <span
@@ -216,28 +221,28 @@ export function DishPicker({ dishes, menu, onClose }: Props) {
           {visible.length === 0 && (
             <p class="md-body-large text-on-surface-variant py-6 text-center">
               {showPlanned.value
-                ? "No dishes planned yet"
+                ? "Nog geen gerechten gepland"
                 : dishes.length === 0
-                ? "Your catalogue has no dishes yet."
-                : "No dishes match your search"}
+                ? "Er staan nog geen gerechten in je catalogus."
+                : "Geen gerechten gevonden"}
             </p>
           )}
         </div>
         {/* The summary toggle remains available after removing the last dish. */}
         {showPlanned.value && planned.length === 0 && (
           <Button variant="text" onClick={() => (showPlanned.value = false)}>
-            Back to results
+            Terug naar resultaten
           </Button>
         )}
         <Snackbar data={snack.value} />
       </FullScreenDialog>
       <DestructiveConfirmationDialog
         open={dishToRemove.value !== null}
-        headline="Remove from this week?"
+        headline="Uit deze week verwijderen?"
         supportingText={`“${
-          dishToRemove.value?.name ?? "This dish"
-        }” will stay in your dishes.`}
-        confirmLabel="Remove dish"
+          dishToRemove.value?.name ?? "Dit gerecht"
+        }” blijft bij je gerechten staan.`}
+        confirmLabel="Gerecht verwijderen"
         pending={busy}
         onClose={() => (dishToRemove.value = null)}
         onConfirm={async () => {
@@ -248,7 +253,8 @@ export function DishPicker({ dishes, menu, onClose }: Props) {
           const ok = await menu.removeDishFromPlan(dish.id);
           dishToRemove.value = null;
           if (!ok) {
-            error.value = "Couldn't update this week. Try again.";
+            error.value =
+              "Deze week bijwerken is niet gelukt. Probeer opnieuw.";
             showSnack(error.value);
           }
         }}

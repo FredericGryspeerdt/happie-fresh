@@ -11,6 +11,6 @@ Deno.test("MoreSheet — opens launch diagnostics inside the installed app", () 
     }),
   );
 
-  assertStringIncludes(html, "Launch diagnostics");
+  assertStringIncludes(html, "Opstartdiagnose");
   assertStringIncludes(html, 'href="/launch-diagnostics"');
 });

@@ -28,10 +28,10 @@ Deno.test("DishPicker — summary excludes unplanned dishes and counts overflow"
   });
   const html = render(h(DishPicker, { dishes, menu, onClose: () => {} }));
   const footer = html.slice(html.indexOf("<footer"));
-  assertStringIncludes(footer, "5 dishes planned");
+  assertStringIncludes(footer, "5 gerechten gepland");
   assertStringIncludes(footer, "Lasagne · Pizza · Tacos · Tomato soup");
-  assertStringIncludes(footer, "+1 more");
+  assertStringIncludes(footer, "+1 meer");
   assert(!footer.includes("Roast chicken"));
-  assertStringIncludes(footer, "View all");
-  assertStringIncludes(html, "Remove from this week?");
+  assertStringIncludes(footer, "Alles bekijken");
+  assertStringIncludes(html, "Uit deze week verwijderen?");
 });

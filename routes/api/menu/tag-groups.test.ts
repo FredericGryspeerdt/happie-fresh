@@ -39,9 +39,9 @@ Deno.test({
     assertEquals(res.status, 200);
     const groups = await res.json();
     assertEquals(groups.map((g: { label: string }) => g.label), [
-      "Type",
-      "Meal",
-      "Side type",
+      "Soort",
+      "Maaltijd",
+      "Bijgerechtsoort",
     ]);
   },
 });

@@ -57,7 +57,7 @@ export class ShoppingListMoveRepo {
           input.destinationListId === sourceId))
     ) {
       return fail(
-        `Choose 1–${MAX_MOVE_ITEMS} items and a different list, or a new list name (up to 100 characters).`,
+        `Kies 1–${MAX_MOVE_ITEMS} artikelen en een andere lijst, of een nieuwe lijstnaam (maximaal 100 tekens).`,
       );
     }
     const kv = await getKv();
@@ -68,10 +68,14 @@ export class ShoppingListMoveRepo {
         receipt.value.sourceId !== sourceId ||
         JSON.stringify(receipt.value.input) !== JSON.stringify(input) ||
         receipt.value.expiresAt < Date.now()
-      ) return fail("This move has expired. Refresh the list and try again.");
+      ) {
+        return fail(
+          "Deze verplaatsing is verlopen. Vernieuw de lijst en probeer opnieuw.",
+        );
+      }
       if (receipt.value.undone) {
         return fail(
-          "This move was already undone. Refresh the list before moving again.",
+          "Deze verplaatsing is al ongedaan gemaakt. Vernieuw de lijst voordat je opnieuw verplaatst.",
         );
       }
       return receipt.value.result;
@@ -84,7 +88,7 @@ export class ShoppingListMoveRepo {
       listKey(householdId, destinationId),
     );
     if (!source.value || (input.destinationListId && !destination.value)) {
-      return fail("One of these lists is no longer available.");
+      return fail("Een van deze lijsten is niet meer beschikbaar.");
     }
     const target: ShoppingListInterface = destination.value ?? {
       id: destinationId,
@@ -104,7 +108,7 @@ export class ShoppingListMoveRepo {
     );
     if (entries.some((e) => !e.value || e.value.listId !== sourceId)) {
       return fail(
-        "Some selected items have changed. Refresh the list and try again.",
+        "Sommige geselecteerde artikelen zijn gewijzigd. Vernieuw de lijst en probeer opnieuw.",
       );
     }
     // Stay comfortably under KV's 800 KiB transaction limit, including overhead.
@@ -113,7 +117,7 @@ export class ShoppingListMoveRepo {
         .byteLength > 600_000
     ) {
       return fail(
-        "These items contain too much text to move together. Select fewer items.",
+        "Deze artikelen bevatten te veel tekst om samen te verplaatsen. Selecteer minder artikelen.",
       );
     }
     let atomic = kv.atomic().check(source, destination, receipt, ...revisions);
@@ -151,7 +155,9 @@ export class ShoppingListMoveRepo {
         replay.value.sourceId === sourceId &&
         JSON.stringify(replay.value.input) === JSON.stringify(input)
       ) return replay.value.result;
-      return fail("The lists changed while moving. Please try again.");
+      return fail(
+        "De lijsten zijn gewijzigd tijdens het verplaatsen. Probeer opnieuw.",
+      );
     }
     return result;
   }
@@ -172,7 +178,7 @@ export class ShoppingListMoveRepo {
       !record || record.sourceId !== sourceId || record.expiresAt < Date.now()
     ) {
       return fail(
-        "Undo has expired. You can move the items back from their new list.",
+        "Ongedaan maken is niet meer mogelijk. Je kunt de artikelen terugplaatsen vanuit hun nieuwe lijst.",
       );
     }
     if (record.undone) {
@@ -194,7 +200,9 @@ export class ShoppingListMoveRepo {
       listKey(householdId, record.result.destination.id),
     );
     if (!source.value || !destination.value) {
-      return fail("A list was removed, so this move cannot be undone.");
+      return fail(
+        "Een lijst is verwijderd. Deze verplaatsing kan niet ongedaan gemaakt worden.",
+      );
     }
     const revisions = await kv.getMany<[number, number]>([
       ["shopping_list_items_rev", sourceId],
@@ -211,7 +219,7 @@ export class ShoppingListMoveRepo {
       entries.some((e) => !e.value || e.versionstamp !== receipt.versionstamp)
     ) {
       return fail(
-        "These items changed after the move. Move them back from their new list instead.",
+        "Deze artikelen zijn gewijzigd na de verplaatsing. Plaats ze terug vanuit hun nieuwe lijst.",
       );
     }
     let atomic = kv.atomic().check(source, destination, receipt, ...revisions);
@@ -232,7 +240,9 @@ export class ShoppingListMoveRepo {
       if (replay.value?.undone) {
         return this.undo(householdId, sourceId, requestId);
       }
-      return fail("The lists changed while undoing. Please try again.");
+      return fail(
+        "De lijsten zijn gewijzigd tijdens het ongedaan maken. Probeer opnieuw.",
+      );
     }
     return {
       ok: true,

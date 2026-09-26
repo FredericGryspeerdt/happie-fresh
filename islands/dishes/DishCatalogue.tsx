@@ -31,7 +31,7 @@ export async function confirmDishRemoval(
   onFailure: (message: string) => void,
 ): Promise<void> {
   if (await removeDishFromPlan(dishId)) onSuccess();
-  else onFailure("Couldn't remove that dish — try again");
+  else onFailure("Het gerecht verwijderen is niet gelukt — probeer opnieuw");
 }
 
 export default function DishCatalogue(
@@ -65,8 +65,8 @@ export default function DishCatalogue(
           <input
             value={query.value}
             onInput={(e) => (query.value = e.currentTarget.value)}
-            placeholder="Search dishes"
-            aria-label="Search dishes"
+            placeholder="Gerechten zoeken"
+            aria-label="Gerechten zoeken"
             class="flex-1 min-w-0 bg-transparent border-0 outline-none md-body-large text-on-surface"
           />
           {query.value && (
@@ -74,7 +74,7 @@ export default function DishCatalogue(
               name="x"
               size={36}
               iconSize={18}
-              aria-label="Clear search"
+              aria-label="Zoekveld wissen"
               onClick={() => (query.value = "")}
             />
           )}
@@ -82,7 +82,7 @@ export default function DishCatalogue(
 
         {/* count */}
         <div class="md-body-medium text-on-surface-variant px-1">
-          {list.length} dish{list.length === 1 ? "" : "es"}
+          {list.length} {list.length === 1 ? "gerecht" : "gerechten"}
         </div>
 
         {/* dish grid / empty state */}
@@ -91,15 +91,15 @@ export default function DishCatalogue(
             <div class="px-2 pt-2 text-center flex flex-col items-center gap-4">
               <div class="md-title-medium text-on-surface">
                 {dishes.value.length === 0
-                  ? "No dishes yet"
-                  : "No dishes match your search"}
+                  ? "Nog geen gerechten"
+                  : "Geen gerechten gevonden"}
               </div>
               <Button
                 variant="tonal"
                 icon="plus"
                 onClick={() => navigateTo("/menu/new")}
               >
-                Add a dish
+                Een gerecht toevoegen
               </Button>
             </div>
           )
@@ -119,11 +119,9 @@ export default function DishCatalogue(
                       {d.name}
                     </span>
                     <span class="md-body-small text-on-surface-variant truncate">
-                      {d.ingredientIds.length}{" "}
-                      ingredient{d.ingredientIds.length ===
-                          1
-                        ? ""
-                        : "s"}
+                      {d.ingredientIds.length} {d.ingredientIds.length === 1
+                        ? "ingrediënt"
+                        : "ingrediënten"}
                     </span>
                   </Pressable>
                   <div class="px-4 pb-3">
@@ -135,7 +133,7 @@ export default function DishCatalogue(
                           full
                           onClick={() => (dishToRemove.value = d)}
                         >
-                          Added
+                          Toegevoegd
                         </Button>
                       )
                       : (
@@ -145,7 +143,7 @@ export default function DishCatalogue(
                           full
                           onClick={() => addDish(d.id)}
                         >
-                          Add
+                          Toevoegen
                         </Button>
                       )}
                   </div>
@@ -156,11 +154,11 @@ export default function DishCatalogue(
       </div>
       <DestructiveConfirmationDialog
         open={dishToRemove.value !== null}
-        headline="Remove from this week?"
+        headline="Uit deze week verwijderen?"
         supportingText={`“${
-          dishToRemove.value?.name ?? "This dish"
-        }” will stay in your dishes.`}
-        confirmLabel="Remove dish"
+          dishToRemove.value?.name ?? "Dit gerecht"
+        }” blijft bij je gerechten staan.`}
+        confirmLabel="Gerecht verwijderen"
         pending={dishRemovalPending.value}
         onClose={() => (dishToRemove.value = null)}
         onConfirm={async () => {
@@ -188,8 +186,8 @@ export default function DishCatalogue(
       >
         <Fab
           icon="plus"
-          label="Add dish"
-          aria-label="Add dish"
+          label="Gerecht toevoegen"
+          aria-label="Gerecht toevoegen"
           onClick={() => navigateTo("/menu/new")}
         />
       </div>

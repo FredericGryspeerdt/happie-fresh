@@ -13,14 +13,14 @@ export default function MenuSubNav({ active }: Props) {
         leadingCheck={false}
         onClick={() => active !== "plan" && navigateTo("/menu")}
       >
-        This week
+        Deze week
       </Chip>
       <Chip
         selected={active === "dishes"}
         leadingCheck={false}
         onClick={() => active !== "dishes" && navigateTo("/menu/dishes")}
       >
-        Dishes
+        Gerechten
       </Chip>
     </div>
   );

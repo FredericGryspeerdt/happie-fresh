@@ -76,7 +76,7 @@ export function ScannerOverlay(
 
     const start = async () => {
       if (!Ctor) {
-        onError("Scanning isn't available on this device.");
+        onError("Scannen is niet beschikbaar op dit toestel.");
         onClose();
         return;
       }
@@ -186,7 +186,9 @@ export function ScannerOverlay(
         scan();
       } catch (_err) {
         console.debug("[scan] start failed", _err);
-        onError("Couldn't access the camera. Check the permission and retry.");
+        onError(
+          "De camera openen is niet gelukt. Controleer de toestemming en probeer opnieuw.",
+        );
         stop();
         onClose();
       }
@@ -202,10 +204,10 @@ export function ScannerOverlay(
         class="flex items-center justify-between px-4 pt-3"
         style={{ paddingTop: "calc(12px + env(safe-area-inset-top))" }}
       >
-        <span class="md-title-medium text-white">Scan a barcode</span>
+        <span class="md-title-medium text-white">Een barcode scannen</span>
         <IconButton
           name="x"
-          aria-label="Close scanner"
+          aria-label="Scanner sluiten"
           onClick={onClose}
           class="text-white"
         />
@@ -227,7 +229,7 @@ export function ScannerOverlay(
       </div>
       <div class="px-6 py-6 text-center">
         <span class="md-body-medium text-white/80">
-          Point the camera at the loyalty card's barcode.
+          Richt de camera op de barcode van de klantenkaart.
         </span>
       </div>
     </div>

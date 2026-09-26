@@ -36,7 +36,8 @@ export function PullToRefresh(
   const latest = useRef({ onRefresh, disabled });
   latest.current = { onRefresh, disabled };
 
-  const showError = () => showSnack("Couldn't refresh — try again");
+  const showError = () =>
+    showSnack("Vernieuwen is niet gelukt — probeer opnieuw");
 
   // useMemo with [] ensures usePullToRefresh is called only once.
   // usePullToRefresh uses plain signal() (not useSignal), so calling it on every
@@ -152,11 +153,11 @@ export function PullToRefresh(
       {/* Screen-reader status */}
       <span class="sr-only" aria-live="polite">
         {status === "refreshing"
-          ? "Refreshing"
+          ? "Vernieuwen"
           : status === "success"
-          ? "Refreshed"
+          ? "Vernieuwd"
           : status === "error"
-          ? "Couldn't refresh"
+          ? "Vernieuwen is niet gelukt"
           : ""}
       </span>
 

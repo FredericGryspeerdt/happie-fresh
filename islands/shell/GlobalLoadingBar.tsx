@@ -85,7 +85,7 @@ export default function GlobalLoadingBar() {
   return (
     <div
       role="progressbar"
-      aria-label="Loading"
+      aria-label="Laden"
       aria-hidden={visible ? undefined : "true"}
       class="fixed left-0 right-0 z-50 pointer-events-none"
       style={{

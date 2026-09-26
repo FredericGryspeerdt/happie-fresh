@@ -29,8 +29,8 @@ const targetList: ShoppingListInterface = {
 
 Deno.test("AddItems — idle: search-first hint, no chips, no rows", () => {
   const html = render(h(AddItems, { ...base, initialQuery: "" }));
-  assertStringIncludes(html, "Search your catalogue"); // idle hint
-  assertStringIncludes(html, "Adding to Groceries"); // context line
+  assertStringIncludes(html, "Zoek in je catalogus"); // idle hint
+  assertStringIncludes(html, "Toevoegen aan Groceries"); // context line
   assert(!html.includes("Butter")); // no catalogue rows when idle
   assert(!html.includes("Bakery")); // category chips are gone
 });
@@ -54,15 +54,15 @@ Deno.test("AddItems — matching query: results first, then a slim Create row (n
   assertStringIncludes(html, "Butter");
   // "But" has no exact match, so a Create affordance shows too — but BELOW the
   // results and as a slim row, NOT the prominent card.
-  assert(html.indexOf("Butter") < html.indexOf("Create &quot;But&quot;"));
-  assert(!html.includes("New item")); // de-emphasized: slim row, not the full card
+  assert(html.indexOf("Butter") < html.indexOf("Aanmaken: &quot;But&quot;"));
+  assert(!html.includes("Nieuw artikel")); // de-emphasized: slim row, not the full card
 });
 
 Deno.test("AddItems — no-match query shows the full Create card", () => {
   const html = render(h(AddItems, { ...base, initialQuery: "Tofu" }));
   // preact-render-to-string HTML-escapes the literal quotes in Create "{q}".
-  assertStringIncludes(html, "Create &quot;Tofu&quot;");
-  assertStringIncludes(html, "New item"); // no matches → the prominent card
+  assertStringIncludes(html, "Aanmaken: &quot;Tofu&quot;");
+  assertStringIncludes(html, "Nieuw artikel"); // no matches → the prominent card
 });
 
 Deno.test("AddItems — item editor is a closed dialog without a note field", () => {
@@ -70,7 +70,7 @@ Deno.test("AddItems — item editor is a closed dialog without a note field", ()
 
   assertStringIncludes(html, "fixed inset-0 z-[210] grid place-items-center");
   assertFalse(html.includes("<textarea"));
-  assertStringIncludes(html, "Remove from this list?");
+  assertStringIncludes(html, "Van deze lijst verwijderen?");
 });
 
 Deno.test("AddItems — a planned week offers dish selection for the current list", () => {
@@ -90,8 +90,8 @@ Deno.test("AddItems — a planned week offers dish selection for the current lis
     }],
   }));
 
-  assertStringIncludes(html, "Add this week’s ingredients");
-  assertStringIncludes(html, "Shop for dishes");
+  assertStringIncludes(html, "Ingrediënten voor deze week toevoegen");
+  assertStringIncludes(html, "Boodschappen voor gerechten");
 });
 
 Deno.test("AddItems — an empty week does not offer weekly ingredients", () => {
@@ -103,5 +103,5 @@ Deno.test("AddItems — an empty week does not offer weekly ingredients", () => 
     initialDishes: [],
   }));
 
-  assertFalse(html.includes("Add this week’s ingredients"));
+  assertFalse(html.includes("Ingrediënten voor deze week toevoegen"));
 });

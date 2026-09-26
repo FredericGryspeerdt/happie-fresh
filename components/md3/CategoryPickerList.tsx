@@ -39,13 +39,13 @@ export function CategoryPickerList(
           onInput={(e) => {
             query.value = (e.target as HTMLInputElement).value;
           }}
-          placeholder="Find a category"
+          placeholder="Zoek een categorie"
           class="flex-1 min-w-0 bg-transparent border-0 outline-none md-body-large text-on-surface"
         />
       </div>
-      {(!q || "uncategorized".includes(q)) && (
+      {(!q || "zonder categorie".includes(q)) && (
         <ListItem
-          headline="Uncategorized"
+          headline="Zonder categorie"
           onClick={() => onSelect("")}
           trailing={!selectedId
             ? <Icon name="check" size={20} class="text-primary" />
@@ -64,7 +64,7 @@ export function CategoryPickerList(
       ))}
       {q && matches.length === 0 && (
         <p class="md-body-medium text-on-surface-variant px-1 py-3.5">
-          No category matches "{query.value.trim()}".
+          Geen categorie gevonden voor "{query.value.trim()}".
         </p>
       )}
     </div>

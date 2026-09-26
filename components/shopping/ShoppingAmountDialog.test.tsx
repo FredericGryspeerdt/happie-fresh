@@ -20,8 +20,8 @@ Deno.test("ShoppingAmountDialog — conflict editor exposes labelled decimal inp
   assertStringIncludes(html, "w-full");
   assertStringIncludes(html, '<label for="shopping-amount"');
   assertStringIncludes(html, 'inputmode="decimal"');
-  assertStringIncludes(html, "Add for these dishes");
-  assertStringIncludes(html, "Already on your list: 2");
+  assertStringIncludes(html, "Toevoegen voor deze gerechten");
+  assertStringIncludes(html, "Staat al op je lijst: 2");
   assertStringIncludes(html, 'value="pieces"');
-  assertMatch(html, /<button[^>]*disabled[^>]*>[^<]*(<[^>]+>[^<]*)*Save/);
+  assertMatch(html, /<button[^>]*disabled[^>]*>[^<]*(<[^>]+>[^<]*)*Opslaan/);
 });

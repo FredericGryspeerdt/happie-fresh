@@ -18,7 +18,7 @@ export interface NavItem {
 export const NAV_CONFIG: NavItem[] = [
   {
     id: "home",
-    label: "Home",
+    label: "Start",
     icon: "🏠",
     iconName: "home",
     defaultRoute: "/home",
@@ -27,7 +27,7 @@ export const NAV_CONFIG: NavItem[] = [
   },
   {
     id: "shopping",
-    label: "Shop",
+    label: "Winkelen",
     icon: "🛒",
     iconName: "cart",
     defaultRoute: "/shopping",
@@ -36,7 +36,7 @@ export const NAV_CONFIG: NavItem[] = [
   },
   {
     id: "todos",
-    label: "To-dos",
+    label: "Te doen",
     icon: "✅",
     iconName: "checklist",
     defaultRoute: "/todos",
@@ -54,7 +54,7 @@ export const NAV_CONFIG: NavItem[] = [
   },
   {
     id: "more",
-    label: "More",
+    label: "Meer",
     icon: "⋯",
     iconName: "dots",
     defaultRoute: "/more",

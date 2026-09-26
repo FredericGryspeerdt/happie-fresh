@@ -19,7 +19,7 @@ export default function TopAppBar(
         {backUrl && (
           <a
             href={backUrl}
-            aria-label="Back"
+            aria-label="Terug"
             class="md-press grid place-items-center text-on-surface-variant rounded-full"
             style={{ width: 40, height: 40 }}
           >

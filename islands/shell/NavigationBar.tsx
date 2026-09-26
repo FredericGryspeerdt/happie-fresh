@@ -28,7 +28,7 @@ export default function NavigationBar({
         height: "calc(80px + env(safe-area-inset-bottom))",
         paddingBottom: "env(safe-area-inset-bottom)",
       }}
-      aria-label="Main navigation"
+      aria-label="Hoofdnavigatie"
     >
       {items.map((it) => {
         const on = activeId === it.id;

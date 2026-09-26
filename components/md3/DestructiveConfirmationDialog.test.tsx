@@ -18,7 +18,7 @@ Deno.test("DestructiveConfirmationDialog — uses an MD3 dialog and destructive 
   assertStringIncludes(html, "Pasta will be removed for everyone.");
   assertStringIncludes(html, "Delete dish");
   assertStringIncludes(html, "bg-error");
-  assertStringIncludes(html, "Cancel");
+  assertStringIncludes(html, "Annuleren");
 });
 
 Deno.test("DestructiveConfirmationDialog — blocks dismissal and actions while pending", () => {
@@ -32,6 +32,6 @@ Deno.test("DestructiveConfirmationDialog — blocks dismissal and actions while 
     onConfirm: () => {},
   }));
 
-  assertStringIncludes(html, "Loading");
+  assertStringIncludes(html, "Laden");
   assertStringIncludes(html, "disabled");
 });

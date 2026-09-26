@@ -38,20 +38,20 @@ export function CardPresent(
         class="flex items-center justify-between px-2 pt-2"
         style={{ paddingTop: "calc(8px + env(safe-area-inset-top))" }}
       >
-        <IconButton name="back" aria-label="Close" onClick={onClose} />
+        <IconButton name="back" aria-label="Sluiten" onClick={onClose} />
         <span class="md-title-medium truncate px-2">{card.label}</span>
         <div class="flex items-center shrink-0">
           {onEdit && (
             <IconButton
               name="edit"
-              aria-label="Edit card"
+              aria-label="Kaart bewerken"
               onClick={() => onEdit(card)}
             />
           )}
           {canDelete && onDelete && (
             <IconButton
               name="trash"
-              aria-label="Remove card"
+              aria-label="Kaart verwijderen"
               onClick={() => (confirming.value = true)}
             />
           )}
@@ -83,9 +83,9 @@ export function CardPresent(
       {canDelete && onDelete && (
         <DestructiveConfirmationDialog
           open={confirming.value}
-          headline="Remove this card?"
-          supportingText={`“${card.label}” will be removed for everyone.`}
-          confirmLabel="Remove card"
+          headline="Deze kaart verwijderen?"
+          supportingText={`“${card.label}” wordt voor iedereen verwijderd.`}
+          confirmLabel="Kaart verwijderen"
           pending={deletePending}
           onClose={() => (confirming.value = false)}
           onConfirm={async () => {

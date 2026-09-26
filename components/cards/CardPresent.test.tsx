@@ -19,8 +19,8 @@ Deno.test("CardPresent — removes a card through the shared confirmation dialog
     onEdit: () => {},
     onDelete: () => Promise.resolve(true),
   }));
-  assertStringIncludes(html, "Remove this card?");
-  assertStringIncludes(html, "Remove card");
+  assertStringIncludes(html, "Deze kaart verwijderen?");
+  assertStringIncludes(html, "Kaart verwijderen");
 });
 
 Deno.test("CardPresent — blocks confirmation dismissal while removal is pending", () => {
@@ -40,7 +40,7 @@ Deno.test("CardPresent — blocks confirmation dismissal while removal is pendin
     onDelete: () => Promise.resolve(false),
   }));
 
-  assertStringIncludes(html, "Loading");
+  assertStringIncludes(html, "Laden");
   assertStringIncludes(html, "disabled");
 });
 
@@ -57,7 +57,7 @@ Deno.test("CardPresent — presentation-only mode hides management controls", ()
   }));
 
   assertStringIncludes(html, "Delhaize");
-  assertStringIncludes(html, 'aria-label="Close"');
-  assertFalse(html.includes('aria-label="Edit card"'));
-  assertFalse(html.includes('aria-label="Remove card"'));
+  assertStringIncludes(html, 'aria-label="Sluiten"');
+  assertFalse(html.includes('aria-label="Kaart bewerken"'));
+  assertFalse(html.includes('aria-label="Kaart verwijderen"'));
 });

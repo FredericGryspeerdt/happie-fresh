@@ -17,7 +17,7 @@ export function ChooseShoppingDishesDialog(
   return (
     <FullScreenDialog
       open={open}
-      title="Shop for dishes"
+      title="Boodschappen voor gerechten"
       onClose={onClose}
       footer={
         <Button
@@ -26,15 +26,15 @@ export function ChooseShoppingDishesDialog(
           loading={busy}
           onClick={onContinue}
         >
-          Review ingredients
+          Ingrediënten bekijken
         </Button>
       }
     >
       <p class="md-body-large text-on-surface mt-3">
-        What are you shopping for?
+        Voor welke gerechten doe je boodschappen?
       </p>
       <p class="md-body-medium text-on-surface-variant mt-1 mb-5">
-        Choose from this week's menu.
+        Kies uit het menu van deze week.
       </p>
       {dishes.map((d) => (
         <label
@@ -55,8 +55,10 @@ export function ChooseShoppingDishesDialog(
             <span class="md-title-medium block">{d.name}</span>
             <span class="md-body-medium text-on-surface-variant">
               {d.ingredientIds.length
-                ? `${d.ingredientIds.length} ingredients`
-                : "No ingredients yet"}
+                ? `${d.ingredientIds.length} ${
+                  d.ingredientIds.length === 1 ? "ingrediënt" : "ingrediënten"
+                }`
+                : "Nog geen ingrediënten"}
             </span>
           </span>
         </label>

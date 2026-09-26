@@ -48,7 +48,7 @@ export function IngredientPreviewDialog(p: Props) {
   const locked = p.adding || p.draftLocked;
   const categoryByItem = new Map(p.items.map((i) => [i.id, i.categoryId]));
   const known = new Set(p.categories.map((c) => c.id));
-  const groups = [...p.categories, { id: "", label: "Other items" }].map(
+  const groups = [...p.categories, { id: "", label: "Overige artikelen" }].map(
     (c) => ({
       ...c,
       rows: eligible.filter((r) => {
@@ -71,19 +71,18 @@ export function IngredientPreviewDialog(p: Props) {
     <>
       <FullScreenDialog
         open={p.open}
-        title="Check your cupboards"
+        title="Kijk wat je nog in huis hebt"
         onClose={p.onClose}
         onBack={locked ? undefined : p.onBack}
-        backLabel="Back to shopping dishes"
+        backLabel="Terug naar gerechten kiezen"
         footer={
           <>
             <p
               class="md-body-medium text-on-surface-variant mb-2"
               aria-live="polite"
             >
-              {p.selectedCount} selected · {eligible.length - p.selectedCount}
-              {" "}
-              skipped
+              {p.selectedCount} geselecteerd ·{" "}
+              {eligible.length - p.selectedCount} overgeslagen
             </p>
             {p.message && (
               <p role="alert" class="md-body-small text-error mb-2">
@@ -97,36 +96,37 @@ export function IngredientPreviewDialog(p: Props) {
               onClick={p.onConfirm}
             >
               {p.retrying
-                ? "Retry addition"
-                : `Add ${p.selectedCount} ${
-                  p.selectedCount === 1 ? "item" : "items"
+                ? "Opnieuw toevoegen"
+                : `Toevoegen ${p.selectedCount} ${
+                  p.selectedCount === 1 ? "artikel" : "artikelen"
                 }`}
             </Button>
           </>
         }
       >
         <p class="md-title-medium mt-3">
-          For {p.dishCount} {p.dishCount === 1 ? "dish" : "dishes"} this week
+          Voor {p.dishCount} {p.dishCount === 1 ? "gerecht" : "gerechten"}{" "}
+          deze week
         </p>
         <p class="md-body-medium text-on-surface-variant mt-1">
-          Choose what to add for these dishes. Amounts here are added to
-          anything already on your list.
+          Kies wat je voor deze gerechten wilt toevoegen. Deze hoeveelheden
+          komen bij wat al op je lijst staat.
         </p>
         <div class="my-5 p-4 bg-surface-clow rounded-[var(--md-shape-xl)] flex items-center gap-3">
           <Icon name="cart" size={28} />
           <div class="flex-1 min-w-0">
-            <p class="md-body-small text-on-surface-variant">Adding to</p>
+            <p class="md-body-small text-on-surface-variant">Toevoegen aan</p>
             <p class="md-title-medium break-words">{p.listName}</p>
           </div>
           {p.canChangeList && (
             <Button variant="text" disabled={locked} onClick={p.onChangeList}>
-              Change
+              Wijzigen
             </Button>
           )}
         </div>
         {!p.rows.length && !p.emptyDishes.length && (
           <p class="md-body-medium py-6">
-            Nothing to add — choose dishes with ingredients.
+            Niets om toe te voegen — kies gerechten met ingrediënten.
           </p>
         )}
         {groups.map((g) => (
@@ -156,60 +156,62 @@ export function IngredientPreviewDialog(p: Props) {
                     </span>
                     <span class="md-body-small text-on-surface-variant block">
                       {!p.isSelected(row)
-                        ? "Skipping this time"
-                        : `${row.state === "bought" ? "Buy again · " : ""}${
+                        ? "Deze keer overslaan"
+                        : `${row.state === "bought" ? "Opnieuw kopen · " : ""}${
                           row.dishNames.join(" · ")
                         }`}
                     </span>
                     {hasAmountConflict(row) && (
                       <span class="md-body-small text-on-surface-variant block mt-1">
-                        Dish requirements: {(row.requirements ?? []).map((r) =>
+                        Nodig voor de gerechten:{" "}
+                        {(row.requirements ?? []).map((r) =>
                           `${r.dishName}: ${
                             r.amount
                               ? formatShoppingAmount(
                                 r.amount.quantity,
                                 r.amount.unit,
                               )
-                              : "amount not set"
+                              : "hoeveelheid niet ingesteld"
                           }`
                         ).join(" · ")}
                         {!!row.missingDishNames?.length && (
                           <span class="block" role="status">
-                            Amount not set for {row.missingDishNames.join(", ")}
+                            Hoeveelheid niet ingesteld voor{" "}
+                            {row.missingDishNames.join(", ")}
                           </span>
                         )}
                         {row.amountIssue &&
                           p.amounts[row.itemId] === undefined && (
                           <span class="block" role="alert">
                             {row.amountIssue === "incompatible"
-                              ? "Choose one amount for these dishes"
-                              : "The combined amount is too large or too precise; choose an amount"}
+                              ? "Kies één hoeveelheid voor deze gerechten"
+                              : "De totale hoeveelheid is te groot of te precies; kies een hoeveelheid"}
                           </span>
                         )}
                       </span>
                     )}
                     {row.existingAmount && (
                       <span class="md-body-small text-on-surface-variant block mt-1">
-                        Already on your list: {formatShoppingAmount(
+                        Staat al op je lijst: {formatShoppingAmount(
                           row.existingAmount.quantity,
                           row.existingAmount.unit,
                         )}
                         <span class="block">
                           {!p.isSelected(row)
-                            ? "Existing amount stays unchanged"
+                            ? "De bestaande hoeveelheid blijft behouden"
                             : (() => {
                               const total = addShoppingAmounts(
                                 row.existingAmount,
                                 amountFor(row.itemId),
                               );
                               return total
-                                ? `Total after adding: ${
+                                ? `Totaal na toevoegen: ${
                                   formatShoppingAmount(
                                     total.quantity,
                                     total.unit,
                                   )
                                 }`
-                                : "Choose a compatible amount";
+                                : "Kies een passende hoeveelheid";
                             })()}
                         </span>
                       </span>
@@ -219,13 +221,13 @@ export function IngredientPreviewDialog(p: Props) {
                 <button
                   type="button"
                   disabled={locked}
-                  aria-label={`Edit amount for ${row.name}`}
+                  aria-label={`Hoeveelheid wijzigen voor ${row.name}`}
                   onClick={() => editing.value = row}
                   class="shrink-0 min-h-12 px-3 rounded-full bg-surface-chigh text-primary md-label-large focus-visible:outline-2"
                 >
                   {row.amountIssue && p.amounts[row.itemId] === undefined
-                    ? "Choose amount"
-                    : `Add ${
+                    ? "Hoeveelheid kiezen"
+                    : `Toevoegen ${
                       formatShoppingAmount(
                         amountFor(row.itemId).quantity,
                         amountFor(row.itemId).unit,
@@ -238,7 +240,7 @@ export function IngredientPreviewDialog(p: Props) {
         ))}
         {!!p.emptyDishes.length && (
           <section>
-            <h3 class="md-title-small">No ingredients yet</h3>
+            <h3 class="md-title-small">Nog geen ingrediënten</h3>
             {p.emptyDishes.map((d) => (
               <Button
                 key={d.id}
@@ -246,7 +248,7 @@ export function IngredientPreviewDialog(p: Props) {
                 disabled={locked}
                 onClick={() => p.onOpenDish(d)}
               >
-                {d.name} — add ingredients
+                {d.name} — ingrediënten toevoegen
               </Button>
             ))}
           </section>

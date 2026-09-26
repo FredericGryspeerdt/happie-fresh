@@ -5,6 +5,6 @@ import MenuSubNav from "./MenuSubNav.tsx";
 
 Deno.test("MenuSubNav — renders both tab labels", () => {
   const html = render(h(MenuSubNav, { active: "plan" }));
-  assertStringIncludes(html, "This week");
-  assertStringIncludes(html, "Dishes");
+  assertStringIncludes(html, "Deze week");
+  assertStringIncludes(html, "Gerechten");
 });

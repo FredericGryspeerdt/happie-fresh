@@ -123,11 +123,11 @@ Deno.test("groupOpenTodos — an empty input yields no groups", () => {
 });
 
 Deno.test("GROUP_LABELS — every key has a user-facing header", () => {
-  assertEquals(GROUP_LABELS.overdue, "Overdue");
-  assertEquals(GROUP_LABELS.today, "Today");
-  assertEquals(GROUP_LABELS.thisWeek, "This week");
+  assertEquals(GROUP_LABELS.overdue, "Voorbij de geplande tijd");
+  assertEquals(GROUP_LABELS.today, "Vandaag");
+  assertEquals(GROUP_LABELS.thisWeek, "Deze week");
   assertEquals(GROUP_LABELS.later, "Later");
-  assertEquals(GROUP_LABELS.noDate, "No date");
+  assertEquals(GROUP_LABELS.noDate, "Zonder datum");
 });
 
 // ── isOverdue ────────────────────────────────────────────────────────────────
@@ -142,11 +142,11 @@ Deno.test("isOverdue — past is overdue, future is not, null never is", () => {
 
 // ── formatDueAt ──────────────────────────────────────────────────────────────
 
-Deno.test("formatDueAt — always includes the time", () => {
+Deno.test("formatDueAt — uses Belgian Dutch and local 24-hour time", () => {
   const now = local(2026, 8, 5, 12, 0);
   const out = formatDueAt(local(2026, 8, 7, 9, 0).toISOString(), now);
 
-  assertEquals(out.includes("09"), true);
+  assertEquals(out, "vr 7 aug, 09:00");
 });
 
 Deno.test("formatDueAt — omits the year in the current year, includes it otherwise", () => {

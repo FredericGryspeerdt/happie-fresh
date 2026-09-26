@@ -22,7 +22,7 @@ Deno.test("each NavItem has an iconName", () => {
 
 Deno.test("shopping tab has label 'Shop' and iconName 'cart'", () => {
   const shopping = NAV_CONFIG.find((t) => t.id === "shopping");
-  assertEquals(shopping?.label, "Shop");
+  assertEquals(shopping?.label, "Winkelen");
   assertEquals(shopping?.iconName, "cart");
 });
 

@@ -65,7 +65,7 @@ export function TodoEditorTextFields(
     <>
       <TextField
         id={`${idPrefix}-title`}
-        label="Title"
+        label="Titel"
         value={title}
         onInput={onTitleInput}
         placeholder={titlePlaceholder}
@@ -74,12 +74,12 @@ export function TodoEditorTextFields(
       />
       <TextField
         id={`${idPrefix}-notes`}
-        label="Notes"
+        label="Notities"
         value={notes}
         onInput={onNotesInput}
         multiline
         rows={2}
-        placeholder="Notes (optional)"
+        placeholder="Notities (optioneel)"
       />
     </>
   );
@@ -247,7 +247,7 @@ export default function TodoBacklog(
       assignedTo: newAssignee.value,
     });
     if (!created) {
-      say("Couldn't add that to-do. Try again?");
+      say("Toevoegen is niet gelukt. Probeer opnieuw.");
       return;
     }
     if (
@@ -257,7 +257,7 @@ export default function TodoBacklog(
         actingMemberId,
       )
     ) {
-      say("Added — switch to All to see it.");
+      say("Toegevoegd — kies Alles om het te zien.");
     }
     closeCreate();
   };
@@ -323,7 +323,7 @@ export default function TodoBacklog(
     dueEditingId.value = null;
     if (!id || !local) return;
     const ok = await setDueAt(id, new Date(local).toISOString());
-    if (!ok) say("Couldn't save that due date. Try again?");
+    if (!ok) say("De geplande datum opslaan is niet gelukt. Probeer opnieuw.");
   };
 
   const clearDue = async () => {
@@ -331,7 +331,9 @@ export default function TodoBacklog(
     dueEditingId.value = null;
     if (!id) return;
     const ok = await setDueAt(id, null);
-    if (!ok) say("Couldn't remove that due date. Try again?");
+    if (!ok) {
+      say("De geplande datum verwijderen is niet gelukt. Probeer opnieuw.");
+    }
   };
 
   // EXIT_MS is imported from useTodos so this transition and the exit-wait it
@@ -356,12 +358,14 @@ export default function TodoBacklog(
       <Pressable
         onClick={async () => {
           const ok = isDone ? await unTick(t.id) : await tickOff(t.id);
-          if (!ok) say("That didn't save. Try again?");
+          if (!ok) say("Opslaan is niet gelukt. Probeer opnieuw.");
           // Only on tick-off, not un-tick: reopening a to-do should not
           // resurrect a notification for a moment that has already passed.
           else if (!isDone) await clearNotificationFor(t.id);
         }}
-        aria-label={isDone ? `Reopen ${t.title}` : `Tick off ${t.title}`}
+        aria-label={isDone
+          ? `Opnieuw openen: ${t.title}`
+          : `Afvinken: ${t.title}`}
         class="pt-0.5"
       >
         <RoundCheck checked={isDone} />
@@ -425,52 +429,59 @@ export default function TodoBacklog(
               >
                 <Icon name="checklist" size={44} />
               </div>
-              <div class="md-headline-small text-on-surface">Nothing to do</div>
+              <div class="md-headline-small text-on-surface">Niets te doen</div>
               <div
                 class="md-body-medium text-on-surface-variant"
                 style={{ maxWidth: 280 }}
               >
-                When something needs doing around the house, add it here so
-                everyone can see it.
+                Moet er iets gebeuren in huis? Voeg het hier toe zodat iedereen
+                het kan zien.
               </div>
             </div>
           )
           : (
             <>
               <Segmented
-                options={[["all", "people", "All"], ["mine", "user", "Mine"]]}
+                options={[["all", "people", "Alles"], [
+                  "mine",
+                  "user",
+                  "Voor mij",
+                ]]}
                 value={filter.value}
                 onChange={(k) => (filter.value = k as "all" | "mine")}
               />
               {mineOnly && visibleOpen.length === 0 &&
                 filteredDone.length === 0 && (
                 <div class="md-body-medium text-on-surface-variant text-center pt-8">
-                  Nothing on your plate.
+                  Je hebt niets te doen.
                 </div>
               )}
               {!nudgeDismissed.value && pushState.value === "default" &&
                 open.some((t) => t.dueAt !== null) && (
                 <div class="flex flex-col gap-2 bg-secondary-container text-on-secondary-container rounded-[var(--md-shape-lg)] px-4 py-3">
                   <div class="md-body-medium">
-                    Get reminded when a to-do is due
+                    Krijg een herinnering wanneer het tijd is om iets te doen
                   </div>
-                  <div class="flex gap-2">
+                  <div class="flex flex-wrap gap-2">
                     <Button
                       variant="filled"
                       loading={pushBusy.value}
                       onClick={async () => {
                         const ok = await enablePush();
-                        if (!ok) say("Couldn't turn reminders on. Try again?");
-                        else nudgeDismissed.value = true;
+                        if (!ok) {
+                          say(
+                            "Herinneringen inschakelen is niet gelukt. Probeer opnieuw.",
+                          );
+                        } else nudgeDismissed.value = true;
                       }}
                     >
-                      Turn on reminders
+                      Herinneringen inschakelen
                     </Button>
                     <Button
                       variant="text"
                       onClick={() => (nudgeDismissed.value = true)}
                     >
-                      Not now
+                      Niet nu
                     </Button>
                   </div>
                 </div>
@@ -487,7 +498,7 @@ export default function TodoBacklog(
               {filteredDone.length > 0 && (
                 <div class="flex flex-col gap-1">
                   <div class="md-label-medium uppercase text-on-surface-variant px-1 pt-2">
-                    Done
+                    Klaar
                   </div>
                   {visibleDone.map((t) => row(t, true))}
                   {earlierDoneCount > 0 && !showEarlierDone.value && (
@@ -495,7 +506,7 @@ export default function TodoBacklog(
                       onClick={() => (showEarlierDone.value = true)}
                       class="self-start md-label-large text-primary px-1 py-2"
                     >
-                      Show earlier ({earlierDoneCount})
+                      Eerdere tonen ({earlierDoneCount})
                     </Pressable>
                   )}
                 </div>
@@ -511,8 +522,8 @@ export default function TodoBacklog(
       >
         <Fab
           icon="plus"
-          label="New to-do"
-          aria-label="New to-do"
+          label="Iets te doen toevoegen"
+          aria-label="Iets te doen toevoegen"
           onClick={openCreate}
         />
       </div>
@@ -547,8 +558,8 @@ export default function TodoBacklog(
       <FullScreenDialog
         open={createOpen.value}
         onClose={closeCreate}
-        title="New to-do"
-        action={<Button variant="text" onClick={submitNew}>Add</Button>}
+        title="Iets te doen toevoegen"
+        action={<Button variant="text" onClick={submitNew}>Toevoegen</Button>}
       >
         {createOpen.value && (
           <div class="flex flex-col gap-3 pt-2">
@@ -558,7 +569,7 @@ export default function TodoBacklog(
               notes={newNotes.value}
               onTitleInput={(value) => (newTitle.value = value)}
               onNotesInput={(value) => (newNotes.value = value)}
-              titlePlaceholder="What needs doing?"
+              titlePlaceholder="Wat moet er gebeuren?"
               titleRef={titleRef}
               onTitleKeyDown={(e) => {
                 if (e.key === "Enter") {
@@ -570,7 +581,7 @@ export default function TodoBacklog(
             <TodoDateTimeInput
               value={newDue.value}
               onChange={(e) => (newDue.value = e.currentTarget.value)}
-              ariaLabel="Due date and time (optional)"
+              ariaLabel="Geplande datum en tijd (optioneel)"
             />
             <AssigneePicker
               members={members}
@@ -585,8 +596,8 @@ export default function TodoBacklog(
       <FullScreenDialog
         open={editingId.value !== null}
         onClose={closeEditor}
-        title="Edit to-do"
-        action={<Button variant="text" onClick={closeEditor}>Done</Button>}
+        title="Bewerken wat er te doen is"
+        action={<Button variant="text" onClick={closeEditor}>Klaar</Button>}
       >
         {(() => {
           const t = editing();
@@ -608,16 +619,20 @@ export default function TodoBacklog(
                     t.id,
                     v ? new Date(v).toISOString() : null,
                   );
-                  if (!ok) say("Couldn't save that due date. Try again?");
+                  if (!ok) {
+                    say(
+                      "De geplande datum opslaan is niet gelukt. Probeer opnieuw.",
+                    );
+                  }
                 }}
-                ariaLabel="Due date and time"
+                ariaLabel="Geplande datum en tijd"
               />
               <AssigneePicker
                 members={members}
                 value={t.assignedTo}
                 onChange={async (id) => {
                   const ok = await assign(t.id, id);
-                  if (!ok) say("Couldn't save that. Try again?");
+                  if (!ok) say("Opslaan is niet gelukt. Probeer opnieuw.");
                 }}
               />
               {canDelete && (
@@ -630,7 +645,7 @@ export default function TodoBacklog(
                     confirmingId.value = id;
                   }}
                 >
-                  Delete
+                  Verwijderen
                 </Button>
               )}
             </div>
@@ -641,9 +656,9 @@ export default function TodoBacklog(
       {canDelete && (
         <DestructiveConfirmationDialog
           open={confirmingId.value !== null}
-          headline="Delete this to-do?"
-          supportingText="This removes it for everyone. Use it when the to-do never needed doing — ticking it off is how you say it's done."
-          confirmLabel="Delete"
+          headline="Dit verwijderen?"
+          supportingText="Dit verdwijnt voor iedereen. Verwijder het als het niet meer nodig is. Is het gedaan? Vink het dan af."
+          confirmLabel="Verwijderen"
           pending={deleting.value}
           onClose={() => (confirmingId.value = null)}
           onConfirm={async () => {
@@ -653,7 +668,7 @@ export default function TodoBacklog(
             try {
               const ok = await removeTodo(id);
               confirmingId.value = null;
-              if (!ok) say("Couldn't delete that. Try again?");
+              if (!ok) say("Verwijderen is niet gelukt. Probeer opnieuw.");
             } finally {
               deleting.value = false;
             }
@@ -670,18 +685,18 @@ export default function TodoBacklog(
       <Sheet
         open={dueEditingId.value !== null}
         onClose={() => (dueEditingId.value = null)}
-        title="When is it due?"
+        title="Wanneer moet het klaar zijn?"
       >
         {dueEditingId.value !== null && (
           <div class="flex flex-col gap-3 pb-1">
             <TodoDateTimeInput
               value={dueDraft.value}
               onInput={(e) => (dueDraft.value = e.currentTarget.value)}
-              ariaLabel="Due date and time"
+              ariaLabel="Geplande datum en tijd"
             />
-            <Button variant="filled" full onClick={commitDue}>Save</Button>
+            <Button variant="filled" full onClick={commitDue}>Opslaan</Button>
             <Button variant="text" full onClick={clearDue}>
-              Remove due date
+              Geplande datum verwijderen
             </Button>
           </div>
         )}

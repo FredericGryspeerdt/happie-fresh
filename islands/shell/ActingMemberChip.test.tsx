@@ -18,12 +18,12 @@ Deno.test("ActingMemberChip — shows the acting member's avatar and switch labe
     h(ActingMemberChip, { actingMember: bo, claimed: true }),
   );
   assertStringIncludes(html, "🐸");
-  assertStringIncludes(html, 'aria-label="Switch member"');
+  assertStringIncludes(html, 'aria-label="Van lid wisselen"');
 });
 
 Deno.test("ActingMemberChip — falls back to the people icon when no acting member", () => {
   const html = render(
     h(ActingMemberChip, { actingMember: null, claimed: true }),
   );
-  assertStringIncludes(html, 'aria-label="Switch member"');
+  assertStringIncludes(html, 'aria-label="Van lid wisselen"');
 });

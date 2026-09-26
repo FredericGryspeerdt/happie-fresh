@@ -95,7 +95,7 @@ export async function runSeed(opts: SeedOptions = {}): Promise<void> {
       ? opts.primaryPassword || fixtureUser.password
       : fixtureUser.password;
 
-    const household = await HouseholdRepo.create(`${username}'s household`);
+    const household = await HouseholdRepo.create(`Huishouden van ${username}`);
 
     // Members: the people of this household. The first fixture member is the
     // login's linked member.

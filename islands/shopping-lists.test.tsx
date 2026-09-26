@@ -19,14 +19,14 @@ Deno.test("ShoppingLists — renders list name and done/total", () => {
     ],
   }));
   assertStringIncludes(html, "Weekly groceries");
-  assertStringIncludes(html, "3/9 done");
+  assertStringIncludes(html, "3/9 afgevinkt");
   assertNotMatch(html, /NaN/);
 });
 
 Deno.test("ShoppingLists — creates a list from a basic dialog TextField", () => {
   const html = render(h(ShoppingLists, { initialLists: [] }));
   const dialogStart = html.indexOf(
-    'role="dialog" aria-modal="true" aria-label="New list"',
+    'role="dialog" aria-modal="true" aria-label="Nieuwe lijst"',
   );
   const dialog = html.slice(dialogStart);
 
@@ -36,7 +36,7 @@ Deno.test("ShoppingLists — creates a list from a basic dialog TextField", () =
   assertStringIncludes(dialog, 'id="new-list-name"');
   assertStringIncludes(dialog, 'for="new-list-name"');
   assertStringIncludes(dialog, 'type="submit"');
-  assertStringIncludes(dialog, ">Cancel</");
-  assertStringIncludes(dialog, ">Add</");
+  assertStringIncludes(dialog, ">Annuleren</");
+  assertStringIncludes(dialog, ">Toevoegen</");
   assertNotMatch(dialog, /translateY\(110%\)/);
 });

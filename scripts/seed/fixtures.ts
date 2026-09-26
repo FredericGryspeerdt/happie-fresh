@@ -42,92 +42,92 @@ export interface SeedUser {
 }
 
 export const categories: SeedCategory[] = [
-  { slug: "produce", label: "Produce", order: 0 },
-  { slug: "dairy-eggs", label: "Dairy & Eggs", order: 1 },
-  { slug: "bakery", label: "Bakery", order: 2 },
-  { slug: "meat-fish", label: "Meat & Fish", order: 3 },
-  { slug: "pantry", label: "Pantry", order: 4 },
-  { slug: "frozen", label: "Frozen", order: 5 },
-  { slug: "beverages", label: "Beverages", order: 6 },
-  { slug: "household", label: "Household", order: 7 },
+  { slug: "produce", label: "Groenten en fruit", order: 0 },
+  { slug: "dairy-eggs", label: "Zuivel en eieren", order: 1 },
+  { slug: "bakery", label: "Bakkerij", order: 2 },
+  { slug: "meat-fish", label: "Vlees en vis", order: 3 },
+  { slug: "pantry", label: "Voorraadkast", order: 4 },
+  { slug: "frozen", label: "Diepvries", order: 5 },
+  { slug: "beverages", label: "Dranken", order: 6 },
+  { slug: "household", label: "Huishouden", order: 7 },
 ];
 
 export const catalogue: SeedItem[] = [
   // Produce
-  { slug: "apples", name: "Apples", categorySlug: "produce" },
-  { slug: "bananas", name: "Bananas", categorySlug: "produce" },
-  { slug: "carrots", name: "Carrots", categorySlug: "produce" },
-  { slug: "spinach", name: "Spinach", categorySlug: "produce" },
-  { slug: "tomatoes", name: "Tomatoes", categorySlug: "produce" },
-  { slug: "potatoes", name: "Potatoes", categorySlug: "produce" },
-  { slug: "onions", name: "Onions", categorySlug: "produce" },
-  { slug: "garlic", name: "Garlic", categorySlug: "produce" },
+  { slug: "apples", name: "Appels", categorySlug: "produce" },
+  { slug: "bananas", name: "Bananen", categorySlug: "produce" },
+  { slug: "carrots", name: "Wortelen", categorySlug: "produce" },
+  { slug: "spinach", name: "Spinazie", categorySlug: "produce" },
+  { slug: "tomatoes", name: "Tomaten", categorySlug: "produce" },
+  { slug: "potatoes", name: "Aardappelen", categorySlug: "produce" },
+  { slug: "onions", name: "Uien", categorySlug: "produce" },
+  { slug: "garlic", name: "Knoflook", categorySlug: "produce" },
   { slug: "avocado", name: "Avocado", categorySlug: "produce" },
-  { slug: "lemons", name: "Lemons", categorySlug: "produce" },
-  { slug: "cucumber", name: "Cucumber", categorySlug: "produce" },
-  { slug: "bell-peppers", name: "Bell Peppers", categorySlug: "produce" },
+  { slug: "lemons", name: "Citroenen", categorySlug: "produce" },
+  { slug: "cucumber", name: "Komkommer", categorySlug: "produce" },
+  { slug: "bell-peppers", name: "Paprika's", categorySlug: "produce" },
   // Dairy & Eggs
-  { slug: "milk", name: "Milk", categorySlug: "dairy-eggs" },
-  { slug: "eggs", name: "Eggs", categorySlug: "dairy-eggs" },
-  { slug: "butter", name: "Butter", categorySlug: "dairy-eggs" },
-  { slug: "cheddar", name: "Cheddar Cheese", categorySlug: "dairy-eggs" },
-  { slug: "yogurt", name: "Yogurt", categorySlug: "dairy-eggs" },
-  { slug: "cream", name: "Cream", categorySlug: "dairy-eggs" },
-  { slug: "parmesan", name: "Parmesan", categorySlug: "dairy-eggs" },
+  { slug: "milk", name: "Melk", categorySlug: "dairy-eggs" },
+  { slug: "eggs", name: "Eieren", categorySlug: "dairy-eggs" },
+  { slug: "butter", name: "Boter", categorySlug: "dairy-eggs" },
+  { slug: "cheddar", name: "Cheddarkaas", categorySlug: "dairy-eggs" },
+  { slug: "yogurt", name: "Yoghurt", categorySlug: "dairy-eggs" },
+  { slug: "cream", name: "Room", categorySlug: "dairy-eggs" },
+  { slug: "parmesan", name: "Parmezaan", categorySlug: "dairy-eggs" },
   // Bakery
-  { slug: "bread", name: "Bread", categorySlug: "bakery" },
+  { slug: "bread", name: "Brood", categorySlug: "bakery" },
   { slug: "bagels", name: "Bagels", categorySlug: "bakery" },
   { slug: "croissants", name: "Croissants", categorySlug: "bakery" },
   { slug: "tortillas", name: "Tortillas", categorySlug: "bakery" },
   { slug: "muffins", name: "Muffins", categorySlug: "bakery" },
   // Meat & Fish
-  { slug: "chicken-breast", name: "Chicken Breast", categorySlug: "meat-fish" },
-  { slug: "ground-beef", name: "Ground Beef", categorySlug: "meat-fish" },
-  { slug: "salmon", name: "Salmon Fillet", categorySlug: "meat-fish" },
-  { slug: "bacon", name: "Bacon", categorySlug: "meat-fish" },
-  { slug: "sausages", name: "Sausages", categorySlug: "meat-fish" },
-  { slug: "shrimp", name: "Shrimp", categorySlug: "meat-fish" },
+  { slug: "chicken-breast", name: "Kipfilet", categorySlug: "meat-fish" },
+  { slug: "ground-beef", name: "Rundergehakt", categorySlug: "meat-fish" },
+  { slug: "salmon", name: "Zalmfilet", categorySlug: "meat-fish" },
+  { slug: "bacon", name: "Spek", categorySlug: "meat-fish" },
+  { slug: "sausages", name: "Worsten", categorySlug: "meat-fish" },
+  { slug: "shrimp", name: "Garnalen", categorySlug: "meat-fish" },
   // Pantry
-  { slug: "rice", name: "Rice", categorySlug: "pantry" },
+  { slug: "rice", name: "Rijst", categorySlug: "pantry" },
   { slug: "pasta", name: "Pasta", categorySlug: "pantry" },
-  { slug: "olive-oil", name: "Olive Oil", categorySlug: "pantry" },
-  { slug: "salt", name: "Salt", categorySlug: "pantry" },
-  { slug: "black-pepper", name: "Black Pepper", categorySlug: "pantry" },
-  { slug: "sugar", name: "Sugar", categorySlug: "pantry" },
-  { slug: "flour", name: "Flour", categorySlug: "pantry" },
-  { slug: "canned-tomatoes", name: "Canned Tomatoes", categorySlug: "pantry" },
-  { slug: "peanut-butter", name: "Peanut Butter", categorySlug: "pantry" },
-  { slug: "cereal", name: "Cereal", categorySlug: "pantry" },
-  { slug: "honey", name: "Honey", categorySlug: "pantry" },
-  { slug: "coffee-beans", name: "Coffee Beans", categorySlug: "pantry" },
+  { slug: "olive-oil", name: "Olijfolie", categorySlug: "pantry" },
+  { slug: "salt", name: "Zout", categorySlug: "pantry" },
+  { slug: "black-pepper", name: "Zwarte peper", categorySlug: "pantry" },
+  { slug: "sugar", name: "Suiker", categorySlug: "pantry" },
+  { slug: "flour", name: "Bloem", categorySlug: "pantry" },
+  { slug: "canned-tomatoes", name: "Tomaten in blik", categorySlug: "pantry" },
+  { slug: "peanut-butter", name: "Pindakaas", categorySlug: "pantry" },
+  { slug: "cereal", name: "Ontbijtgranen", categorySlug: "pantry" },
+  { slug: "honey", name: "Honing", categorySlug: "pantry" },
+  { slug: "coffee-beans", name: "Koffiebonen", categorySlug: "pantry" },
   // Frozen
-  { slug: "frozen-peas", name: "Frozen Peas", categorySlug: "frozen" },
-  { slug: "frozen-pizza", name: "Frozen Pizza", categorySlug: "frozen" },
-  { slug: "ice-cream", name: "Ice Cream", categorySlug: "frozen" },
-  { slug: "frozen-berries", name: "Frozen Berries", categorySlug: "frozen" },
+  { slug: "frozen-peas", name: "Diepvrieserwten", categorySlug: "frozen" },
+  { slug: "frozen-pizza", name: "Diepvriespizza", categorySlug: "frozen" },
+  { slug: "ice-cream", name: "IJs", categorySlug: "frozen" },
+  { slug: "frozen-berries", name: "Diepvriesbessen", categorySlug: "frozen" },
   // Beverages
-  { slug: "orange-juice", name: "Orange Juice", categorySlug: "beverages" },
+  { slug: "orange-juice", name: "Sinaasappelsap", categorySlug: "beverages" },
   {
     slug: "sparkling-water",
-    name: "Sparkling Water",
+    name: "Bruiswater",
     categorySlug: "beverages",
   },
   { slug: "cola", name: "Cola", categorySlug: "beverages" },
-  { slug: "green-tea", name: "Green Tea", categorySlug: "beverages" },
-  { slug: "red-wine", name: "Red Wine", categorySlug: "beverages" },
+  { slug: "green-tea", name: "Groene thee", categorySlug: "beverages" },
+  { slug: "red-wine", name: "Rode wijn", categorySlug: "beverages" },
   // Household
-  { slug: "dish-soap", name: "Dish Soap", categorySlug: "household" },
-  { slug: "paper-towels", name: "Paper Towels", categorySlug: "household" },
-  { slug: "trash-bags", name: "Trash Bags", categorySlug: "household" },
+  { slug: "dish-soap", name: "Afwasmiddel", categorySlug: "household" },
+  { slug: "paper-towels", name: "Keukenpapier", categorySlug: "household" },
+  { slug: "trash-bags", name: "Vuilniszakken", categorySlug: "household" },
   {
     slug: "laundry-detergent",
-    name: "Laundry Detergent",
+    name: "Wasmiddel",
     categorySlug: "household",
   },
-  { slug: "toilet-paper", name: "Toilet Paper", categorySlug: "household" },
+  { slug: "toilet-paper", name: "Toiletpapier", categorySlug: "household" },
   // Uncategorized (edge: items with no category)
-  { slug: "batteries", name: "AA Batteries" },
-  { slug: "birthday-candles", name: "Birthday Candles" },
+  { slug: "batteries", name: "AA-batterijen" },
+  { slug: "birthday-candles", name: "Verjaardagskaarsjes" },
 ];
 
 export const users: SeedUser[] = [
@@ -144,14 +144,14 @@ export const users: SeedUser[] = [
     ],
     lists: [
       {
-        name: "Weekly Groceries",
+        name: "Wekelijkse boodschappen",
         items: [
           { itemSlug: "milk", quantity: 2, checked: false },
           { itemSlug: "eggs", quantity: 1, checked: true },
           {
             itemSlug: "bread",
             quantity: 1,
-            note: "Sourdough if they have it",
+            note: "Zuurdesem als ze het hebben",
             checked: false,
           },
           { itemSlug: "bananas", quantity: 6, checked: false },
@@ -160,7 +160,7 @@ export const users: SeedUser[] = [
           {
             itemSlug: "olive-oil",
             quantity: 1,
-            note: "Extra virgin",
+            note: "Extra vierge",
             checked: false,
           },
           { itemSlug: "yogurt", quantity: 4, checked: true },
@@ -169,7 +169,7 @@ export const users: SeedUser[] = [
         ],
       },
       {
-        name: "Weekend BBQ",
+        name: "Barbecue in het weekend",
         items: [
           { itemSlug: "sausages", quantity: 3, checked: false },
           { itemSlug: "ground-beef", quantity: 2, checked: false },
@@ -178,7 +178,7 @@ export const users: SeedUser[] = [
           {
             itemSlug: "cola",
             quantity: 6,
-            note: "For the kids 🥤",
+            note: "Voor de kinderen 🥤",
             checked: false,
           },
           { itemSlug: "red-wine", quantity: 2, checked: false },
@@ -186,7 +186,7 @@ export const users: SeedUser[] = [
       },
       {
         // Edge: a fully-checked list ("everything bought").
-        name: "Pantry Restock",
+        name: "Voorraad aanvullen",
         items: [
           { itemSlug: "rice", quantity: 2, checked: true },
           { itemSlug: "pasta", quantity: 3, checked: true },
@@ -205,7 +205,7 @@ export const users: SeedUser[] = [
     ],
     lists: [
       {
-        name: "Groceries",
+        name: "Boodschappen",
         items: [
           { itemSlug: "milk", quantity: 1, checked: false },
           { itemSlug: "cheddar", quantity: 1, checked: true },
@@ -223,7 +223,7 @@ export const users: SeedUser[] = [
       },
       {
         // Edge: an empty list.
-        name: "Party Supplies",
+        name: "Feestbenodigdheden",
         items: [],
       },
     ],
@@ -237,7 +237,7 @@ export const users: SeedUser[] = [
     lists: [
       {
         // Edge: a long list spanning every category + an uncategorized item.
-        name: "Big Weekly Shop",
+        name: "Grote wekelijkse boodschappen",
         items: [
           { itemSlug: "apples", quantity: 3, checked: false },
           { itemSlug: "milk", quantity: 2, checked: false },
@@ -247,7 +247,7 @@ export const users: SeedUser[] = [
             // Edge: high quantity.
             itemSlug: "rice",
             quantity: 24,
-            note: "Bulk buy for the whole month",
+            note: "Voorraad voor de hele maand",
             checked: false,
           },
           { itemSlug: "frozen-peas", quantity: 2, checked: false },
@@ -258,7 +258,7 @@ export const users: SeedUser[] = [
             itemSlug: "ice-cream",
             quantity: 2,
             note:
-              "The good vanilla — the kind we got last time from the little shop on the corner, not the store brand that nobody in this house will actually eat",
+              "Het lekkere vanille-ijs — dat van vorige keer uit het winkeltje op de hoek, niet het huismerk dat niemand hier thuis wil eten",
             checked: true,
           },
           // Edge: an uncategorized item on a list.
@@ -278,7 +278,7 @@ export const users: SeedUser[] = [
       {
         // Edge: a very long list name (rename scenario).
         name:
-          "Monthly Bulk & Household Restock — Costco Run (don't forget the receipt!)",
+          "Maandelijkse voorraad voor het huishouden — naar de groothandel (vergeet het kasticket niet!)",
         items: [
           { itemSlug: "paper-towels", quantity: 2, checked: false },
           { itemSlug: "laundry-detergent", quantity: 1, checked: false },

@@ -15,6 +15,6 @@ Deno.test("TopAppBar — renders a back link only when backUrl is set", () => {
     'href="/shopping"',
   );
   assertFalse(
-    render(h(TopAppBar, { title: "X" })).includes('aria-label="Back"'),
+    render(h(TopAppBar, { title: "X" })).includes('aria-label="Terug"'),
   );
 });

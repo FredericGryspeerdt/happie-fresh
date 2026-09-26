@@ -24,11 +24,11 @@ export interface TodoGroup {
 }
 
 export const GROUP_LABELS: Record<TodoGroupKey, string> = {
-  overdue: "Overdue",
-  today: "Today",
-  thisWeek: "This week",
+  overdue: "Voorbij de geplande tijd",
+  today: "Vandaag",
+  thisWeek: "Deze week",
   later: "Later",
-  noDate: "No date",
+  noDate: "Zonder datum",
 };
 
 /** Fixed render order — urgent first, undated last. */
@@ -160,18 +160,17 @@ export function compareTodos(a: TodoInterface, b: TodoInterface): number {
  * The row label for a due moment, e.g. "Fri 1 Aug, 09:00". The time is always
  * included: once notifications exist it is when the phone will buzz, so hiding
  * it would be dishonest. The year is included only when it differs from `now`'s.
- * No explicit locale, so the device's is used and issue #13's Dutch conversion
- * is automatic.
+ * Belgian Dutch copy, while retaining the viewer's device timezone.
  */
 export function formatDueAt(dueAt: string, now: Date): string {
   const due = new Date(dueAt);
-  const date = due.toLocaleDateString(undefined, {
+  const date = due.toLocaleDateString("nl-BE", {
     weekday: "short",
     day: "numeric",
     month: "short",
     ...(due.getFullYear() !== now.getFullYear() ? { year: "numeric" } : {}),
   });
-  const time = due.toLocaleTimeString(undefined, {
+  const time = due.toLocaleTimeString("nl-BE", {
     hour: "2-digit",
     minute: "2-digit",
   });

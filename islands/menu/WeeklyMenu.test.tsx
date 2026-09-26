@@ -32,11 +32,11 @@ Deno.test("WeeklyMenu — empty state prompts adding dishes", () => {
     initialTagGroups: tagGroups,
     initialItems: [],
   }));
-  assertStringIncludes(html, "This week");
-  assertStringIncludes(html, "No dishes yet");
-  assertStringIncludes(html, "Add dishes");
-  assertStringIncludes(html, "Clear this week?");
-  assertStringIncludes(html, "Remove from this week?");
+  assertStringIncludes(html, "Deze week");
+  assertStringIncludes(html, "Nog geen gerechten");
+  assertStringIncludes(html, "Gerechten toevoegen");
+  assertStringIncludes(html, "Deze week leegmaken?");
+  assertStringIncludes(html, "Uit deze week verwijderen?");
 });
 
 Deno.test("WeeklyMenu — renders an entry with its dish name, tag, and day chip", () => {
@@ -51,12 +51,12 @@ Deno.test("WeeklyMenu — renders an entry with its dish name, tag, and day chip
   }));
   assertStringIncludes(html, "Pasta Bolognese");
   assertStringIncludes(html, "Meat"); // resolved tag label
-  assertStringIncludes(html, "Any"); // unpinned day chip
-  assertStringIncludes(html, "1 dish planned");
-  assertStringIncludes(html, "Add dishes");
+  assertStringIncludes(html, "Vrij"); // unpinned day chip
+  assertStringIncludes(html, "1 gerecht gepland");
+  assertStringIncludes(html, "Gerechten toevoegen");
 });
 
-Deno.test("WeeklyMenu — offers 'Add ingredients to a shopping list' when the week has dishes", () => {
+Deno.test("WeeklyMenu — offers 'Ingrediënten aan boodschappenlijst toevoegen' when the week has dishes", () => {
   const html = render(h(WeeklyMenu, {
     initialMenu: {
       householdId: "h1",
@@ -68,7 +68,7 @@ Deno.test("WeeklyMenu — offers 'Add ingredients to a shopping list' when the w
   }));
   assertMatch(
     html,
-    /<button[^>]*>(?:[^<]|<(?!\/button>))*Add ingredients to a shopping list/,
+    /<button[^>]*>(?:[^<]|<(?!\/button>))*Ingrediënten aan boodschappenlijst toevoegen/,
   );
 });
 
@@ -81,6 +81,6 @@ Deno.test("WeeklyMenu — no shopping action on an empty week", () => {
   }));
   assertNotMatch(
     html,
-    /<button[^>]*>(?:[^<]|<(?!\/button>))*Add ingredients to a shopping list/,
+    /<button[^>]*>(?:[^<]|<(?!\/button>))*Ingrediënten aan boodschappenlijst toevoegen/,
   );
 });

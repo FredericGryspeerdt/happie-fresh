@@ -26,9 +26,9 @@ Deno.test("MembersScreen — a manager sees member names, the Manager label, and
 
   assertStringIncludes(html, "Demo");
   assertStringIncludes(html, "Robin");
-  assertStringIncludes(html, "Manager");
-  assertStringIncludes(html, "Add a member");
-  assertStringIncludes(html, "Remove this member?");
+  assertStringIncludes(html, "Beheerder");
+  assertStringIncludes(html, "Een lid toevoegen");
+  assertStringIncludes(html, "Dit lid verwijderen?");
 });
 
 Deno.test("MembersScreen — a non-manager does not see Add a member", () => {
@@ -41,5 +41,5 @@ Deno.test("MembersScreen — a non-manager does not see Add a member", () => {
 
   assertStringIncludes(html, "Demo");
   assertStringIncludes(html, "Robin");
-  assertFalse(html.includes("Add a member"));
+  assertFalse(html.includes("Een lid toevoegen"));
 });

@@ -58,55 +58,55 @@ export default function DesignShowcase() {
 
   return (
     <div class="flex flex-col gap-2 pb-24">
-      <h1 class="md-headline-small text-on-surface pt-4">MD3 showcase</h1>
+      <h1 class="md-headline-small text-on-surface pt-4">MD3-voorbeelden</h1>
       <p class="md-body-medium text-on-surface-variant">
-        Dev-only. Every component in its states — the live-verification surface
-        for component work.
+        Alleen voor ontwikkelaars. Bekijk elk onderdeel in zijn verschillende
+        toestanden.
       </p>
 
-      <Section title="Buttons">
+      <Section title="Knoppen">
         <div class="flex flex-wrap gap-2 items-center">
-          <Button>Filled</Button>
-          <Button variant="tonal">Tonal</Button>
-          <Button variant="elevated">Elevated</Button>
-          <Button variant="outlined">Outlined</Button>
-          <Button variant="text">Text</Button>
-          <Button variant="error">Error</Button>
-          <Button disabled>Disabled</Button>
-          <Button loading>Loading</Button>
-          <Button icon="plus">With icon</Button>
-          <IconButton name="edit" aria-label="Edit" />
-          <IconButton name="trash" variant="tonal" aria-label="Delete" />
+          <Button>Gevuld</Button>
+          <Button variant="tonal">Getint</Button>
+          <Button variant="elevated">Met schaduw</Button>
+          <Button variant="outlined">Omlijnd</Button>
+          <Button variant="text">Tekst</Button>
+          <Button variant="error">Fout</Button>
+          <Button disabled>Uitgeschakeld</Button>
+          <Button loading>Laden</Button>
+          <Button icon="plus">Met pictogram</Button>
+          <IconButton name="edit" aria-label="Bewerken" />
+          <IconButton name="trash" variant="tonal" aria-label="Verwijderen" />
         </div>
       </Section>
 
-      <Section title="Text fields">
+      <Section title="Tekstvelden">
         <TextField
           id="sc-name"
-          label="Name"
+          label="Naam"
           value={name.value}
           onInput={(v) => name.value = v}
-          placeholder="e.g. Frida"
-          supporting="Visible to the household"
+          placeholder="bv. Frida"
+          supporting="Zichtbaar voor het huishouden"
           icon="user"
         />
         <TextField
           id="sc-error"
-          label="With error"
+          label="Met foutmelding"
           value=""
           onInput={() => {}}
-          error="Name is required"
+          error="Naam is verplicht"
         />
         <TextField
           id="sc-disabled"
-          label="Disabled"
-          value="Can't touch this"
+          label="Uitgeschakeld"
+          value="Niet bewerkbaar"
           onInput={() => {}}
           disabled
         />
         <TextField
           id="sc-notes"
-          label="Notes (multiline)"
+          label="Notities (meerdere regels)"
           value={notes.value}
           onInput={(v) => notes.value = v}
           multiline
@@ -114,86 +114,86 @@ export default function DesignShowcase() {
         />
       </Section>
 
-      <Section title="Switches">
+      <Section title="Schakelaars">
         <Card pad={0}>
           <ListItem
-            headline="Keep screen awake"
-            supporting="While the shopping list is open"
+            headline="Scherm aanhouden"
+            supporting="Zolang de boodschappenlijst openstaat"
             trailing={
               <Switch
                 checked={wake.value}
                 onChange={(v) => wake.value = v}
-                aria-label="Keep screen awake"
+                aria-label="Scherm aanhouden"
               />
             }
           />
           <Divider inset />
           <ListItem
-            headline="Notifications"
-            supporting="Due to-dos on this device"
+            headline="Meldingen"
+            supporting="Herinneringen op dit toestel"
             trailing={
               <Switch
                 checked={push.value}
                 onChange={(v) => push.value = v}
-                aria-label="Notifications"
+                aria-label="Meldingen"
               />
             }
           />
           <Divider inset />
           <ListItem
-            headline="Disabled switch"
+            headline="Uitgeschakelde schakelaar"
             trailing={
               <Switch
                 checked={false}
                 onChange={() => {}}
                 disabled
-                aria-label="Disabled"
+                aria-label="Uitgeschakeld"
               />
             }
           />
         </Card>
       </Section>
 
-      <Section title="Dividers & lists">
+      <Section title="Scheidingslijnen en lijsten">
         <Card pad={0}>
-          <ListSubheader>General</ListSubheader>
-          <ListItem headline="A list item" supporting="With supporting text" />
+          <ListSubheader>Algemeen</ListSubheader>
+          <ListItem headline="Een lijstartikel" supporting="Met toelichting" />
           <Divider inset />
-          <ListItem headline="Another item" trailing="Meta" />
+          <ListItem headline="Nog een artikel" trailing="Informatie" />
           <Divider />
-          <ListSubheader>Danger zone</ListSubheader>
-          <ListItem headline="Full-width divider above" />
+          <ListSubheader>Gevarenzone</ListSubheader>
+          <ListItem headline="Scheidingslijn over de volledige breedte hierboven" />
         </Card>
       </Section>
 
-      <Section title="Dialogs">
+      <Section title="Dialoogvensters">
         <div class="flex flex-wrap gap-2">
           <Button variant="tonal" onClick={() => dialogOpen.value = true}>
-            Basic dialog
+            Eenvoudig dialoogvenster
           </Button>
           <Button variant="tonal" onClick={() => fsOpen.value = true}>
-            Full-screen dialog
+            Dialoogvenster op volledig scherm
           </Button>
           <Button variant="tonal" onClick={() => sheetOpen.value = true}>
-            Sheet (for comparison)
+            Schuifpaneel (ter vergelijking)
           </Button>
         </div>
       </Section>
 
-      <Section title="Chips & segmented">
+      <Section title="Keuzeknoppen en segmenten">
         <div class="flex flex-wrap gap-2">
-          <Chip selected>Selected</Chip>
-          <Chip>Unselected</Chip>
-          <Chip icon="tag">With icon</Chip>
+          <Chip selected>Geselecteerd</Chip>
+          <Chip>Niet geselecteerd</Chip>
+          <Chip icon="tag">Met pictogram</Chip>
         </div>
         <Segmented
-          options={[["plan", "edit", "Plan"], ["shop", "cart", "Shop"]]}
+          options={[["plan", "edit", "Plannen"], ["shop", "cart", "Winkelen"]]}
           value={seg.value}
           onChange={(v) => seg.value = v}
         />
       </Section>
 
-      <Section title="Feedback">
+      <Section title="Terugkoppeling">
         <div class="flex items-center gap-4">
           <Spinner />
           <div class="flex-1">
@@ -201,9 +201,9 @@ export default function DesignShowcase() {
           </div>
           <Button
             variant="text"
-            onClick={() => showSnack("Saved to the household")}
+            onClick={() => showSnack("Opgeslagen voor het huishouden")}
           >
-            Snackbar
+            Korte melding
           </Button>
         </div>
       </Section>
@@ -211,14 +211,14 @@ export default function DesignShowcase() {
       <Dialog
         open={dialogOpen.value}
         onClose={() => dialogOpen.value = false}
-        headline="Rename list"
+        headline="Lijstnaam wijzigen"
         actions={
           <>
             <Button variant="text" onClick={() => dialogOpen.value = false}>
-              Cancel
+              Annuleren
             </Button>
             <Button variant="text" onClick={() => dialogOpen.value = false}>
-              Rename
+              Naam wijzigen
             </Button>
           </>
         }
@@ -226,10 +226,10 @@ export default function DesignShowcase() {
         <div class="pt-2">
           <TextField
             id="sc-dialog-name"
-            label="Name"
+            label="Naam"
             value={dialogName.value}
             onInput={(v) => dialogName.value = v}
-            placeholder="Type with the keyboard open"
+            placeholder="Typ met het toetsenbord open"
           />
         </div>
       </Dialog>
@@ -237,35 +237,35 @@ export default function DesignShowcase() {
       <FullScreenDialog
         open={fsOpen.value}
         onClose={() => fsOpen.value = false}
-        title="New member"
+        title="Nieuw lid"
         action={
           <Button variant="text" onClick={() => fsOpen.value = false}>
-            Save
+            Opslaan
           </Button>
         }
       >
         <div class="flex flex-col gap-4 pt-2">
           <TextField
             id="sc-fs-name"
-            label="Name"
+            label="Naam"
             value={name.value}
             onInput={(v) => name.value = v}
           />
           <TextField
             id="sc-fs-notes"
-            label="Notes"
+            label="Notities"
             value={notes.value}
             onInput={(v) => notes.value = v}
             multiline
           />
           <ListItem
-            headline="Manager"
-            supporting="Can edit members and delete"
+            headline="Beheerder"
+            supporting="Kan leden bewerken en gegevens verwijderen"
             trailing={
               <Switch
                 checked={push.value}
                 onChange={(v) => push.value = v}
-                aria-label="Manager"
+                aria-label="Beheerder"
               />
             }
           />
@@ -275,13 +275,13 @@ export default function DesignShowcase() {
       <Sheet
         open={sheetOpen.value}
         onClose={() => sheetOpen.value = false}
-        title="A bottom sheet"
+        title="Een schuifpaneel onderaan"
       >
         <p class="md-body-large text-on-surface pb-4">
-          Sheets stay the home of keyboard-less overlays: confirmations, action
-          lists, pickers.
+          Schuifpanelen zijn bedoeld voor vensters zonder toetsenbord:
+          bevestigingen, actielijsten en keuzes.
         </p>
-        <Button full onClick={() => sheetOpen.value = false}>Got it</Button>
+        <Button full onClick={() => sheetOpen.value = false}>Begrepen</Button>
       </Sheet>
 
       <Snackbar data={snack.value} />

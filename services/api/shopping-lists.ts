@@ -155,7 +155,7 @@ export const shoppingList = {
         return {
           error: typeof body?.error === "string"
             ? body.error
-            : "Couldn't add these amounts. Review the list and try again.",
+            : "Toevoegen van deze hoeveelheden is niet gelukt. Controleer de lijst en probeer opnieuw.",
         };
       }
       return null;

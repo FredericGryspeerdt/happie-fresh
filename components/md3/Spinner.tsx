@@ -16,7 +16,7 @@ export function Spinner(
   { size = 20, color = "currentColor", class: cls, "aria-label": ariaLabel }:
     SpinnerProps,
 ) {
-  const label = ariaLabel ?? "Loading";
+  const label = ariaLabel ?? "Laden";
   const borderWidth = Math.max(2, Math.round(size / 10));
   return (
     <span role="status" class={cn("inline-block align-middle", cls)}>

@@ -28,5 +28,5 @@ Deno.test("Barcode — Code 39 lower-case is normalized to upper and renders", (
 Deno.test("Barcode — friendly fallback when the value can't be encoded", () => {
   // A non-numeric value is invalid for EAN-13, so bwip-js throws.
   const html = render(h(Barcode, { value: "not-a-barcode", format: "ean13" }));
-  assertStringIncludes(html, "render");
+  assertStringIncludes(html, "tonen");
 });

@@ -34,7 +34,7 @@ export function DestructiveConfirmationDialog(
       actions={
         <>
           <Button variant="text" disabled={pending} onClick={close}>
-            Cancel
+            Annuleren
           </Button>
           <Button
             variant="error"

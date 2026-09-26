@@ -33,7 +33,7 @@ export function ComingSoon({ icon, title, blurb }: ComingSoonProps) {
         class="md-label-large text-on-tertiary-container bg-tertiary-container rounded-[var(--md-shape-full)]"
         style={{ padding: "8px 16px", marginTop: 4 }}
       >
-        Coming soon
+        Binnenkort beschikbaar
       </span>
     </div>
   );

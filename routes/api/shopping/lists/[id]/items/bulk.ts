@@ -48,15 +48,15 @@ export const handler = define.handlers({
   // are applied by ShoppingListItemRepo.bulkAdd in one atomic commit.
   async POST(ctx) {
     const list = await authorizeList(ctx, ctx.params.id);
-    if (!list) return new Response("Forbidden", { status: 403 });
+    if (!list) return new Response("Geen toegang", { status: 403 });
     let body: unknown;
     try {
       body = await ctx.req.json();
     } catch {
-      return badRequest("invalid JSON");
+      return badRequest("Ongeldige gegevens");
     }
     const items = parseItems(body);
-    if (!items) return badRequest("items required");
+    if (!items) return badRequest("Selecteer artikelen om toe te voegen");
     const { addToExisting, requestId } = body as {
       addToExisting?: unknown;
       requestId?: unknown;
@@ -68,7 +68,7 @@ export const handler = define.handlers({
         requestId.trim().length === 0 || requestId.length > 128
       ) {
         return badRequest(
-          "addToExisting requires a requestId of 1 to 128 characters",
+          "Toevoegen vereist een verzoekcode van 1 tot 128 tekens",
         );
       }
       options = { addToExisting: true, requestId };

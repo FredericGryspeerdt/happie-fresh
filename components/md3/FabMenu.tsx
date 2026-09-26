@@ -18,7 +18,7 @@ interface FabMenuProps {
  * MD3 expressive FAB speed-dial: a primary "+" that expands into labelled
  * action FABs over a scrim. Render inside an island (it hydrates with it).
  */
-export function FabMenu({ actions, label = "Actions" }: FabMenuProps) {
+export function FabMenu({ actions, label = "Acties" }: FabMenuProps) {
   const open = useSignal(false);
   return (
     <>

@@ -192,7 +192,8 @@ export default function Items(
       rename: (name) => api.shoppingLists.rename(listId, name),
       beginBusy,
       endBusy,
-      onFailure: () => showSnack("Couldn't rename this list — try again"),
+      onFailure: () =>
+        showSnack("De lijstnaam wijzigen is niet gelukt — probeer opnieuw"),
     });
     if (saved) {
       renameOpen.value = false;
@@ -201,7 +202,9 @@ export default function Items(
   };
 
   useEffect(() => {
-    if (saveError.value) showSnack("Couldn't save your changes — try again");
+    if (saveError.value) {
+      showSnack("Je wijzigingen opslaan is niet gelukt — probeer opnieuw");
+    }
   }, [saveError.value]);
 
   // ── register the "list options" overflow into the shell's TopAppBar ───────
@@ -214,7 +217,7 @@ export default function Items(
     }
     appBarAction.value = {
       icon: "dots",
-      label: "List options",
+      label: "Lijstopties",
       onClick: () => {
         if (moveBusy.value || selecting.value) return;
         mgmtOpen.value = true;
@@ -259,7 +262,9 @@ export default function Items(
     const label = formatShoppingAmount(quantity, li.unit);
     return (
       <Pressable
-        aria-label={`Edit amount for ${getItemName(li.itemId)}: ${label}`}
+        aria-label={`Hoeveelheid wijzigen voor ${
+          getItemName(li.itemId)
+        }: ${label}`}
         class="inline-flex min-h-12 shrink-0 items-center gap-2 rounded-full bg-secondary-container px-3 text-on-secondary-container md-label-large"
         onClick={() => {
           amountEditing.value = {
@@ -321,12 +326,12 @@ export default function Items(
       {/* Mode toggle (Plan / Shop) — list options live in the top app bar */}
       <fieldset
         disabled={selecting.value || moveBusy.value}
-        aria-label="Shopping mode"
+        aria-label="Boodschappenmodus"
       >
         <Segmented
           options={[
-            ["plan", "edit", "Plan"],
-            ["shop", "cart", "Shop"],
+            ["plan", "edit", "Plannen"],
+            ["shop", "cart", "Winkelen"],
           ]}
           value={mode.value}
           onChange={(m) => {
@@ -345,7 +350,7 @@ export default function Items(
               pendingItemIds.value.size > 0}
             onClick={() => selecting.value = true}
           >
-            Select items
+            Artikelen selecteren
           </Button>
         </div>
       )}
@@ -394,7 +399,7 @@ export default function Items(
               <div class="flex flex-col gap-2">
                 {/* SubHeader */}
                 <div class="md-title-small text-primary uppercase tracking-wide px-1">
-                  {group.category?.label ?? "Uncategorized"}
+                  {group.category?.label ?? "Zonder categorie"}
                 </div>
 
                 {/* Card of rows */}
@@ -444,7 +449,7 @@ export default function Items(
 
           {groupedList.value.length === 0 && (
             <p class="md-body-large text-on-surface-variant text-center py-8">
-              Tap Add items to get started.
+              Tik op Artikelen toevoegen om te beginnen.
             </p>
           )}
         </div>
@@ -460,7 +465,7 @@ export default function Items(
             <Card variant="filled" pad={16}>
               <div class="flex items-baseline justify-between gap-2 mb-2.5">
                 <span class="md-title-medium text-on-surface whitespace-nowrap">
-                  {done} / {shoppingTotal.value} in cart
+                  {done} / {shoppingTotal.value} in de kar
                 </span>
                 {
                   /* Mirrors the wake lock actually held by useWakeLock above:
@@ -469,7 +474,7 @@ export default function Items(
                 }
                 {screenAwake.value && (
                   <span class="inline-flex items-center gap-1 md-label-small text-on-surface-variant whitespace-nowrap shrink-0">
-                    <Icon name="bolt" size={13} /> Screen awake
+                    <Icon name="bolt" size={13} /> Scherm blijft aan
                   </span>
                 )}
               </div>
@@ -485,10 +490,10 @@ export default function Items(
               >
                 <div class="text-[34px] leading-none mb-1">🎉</div>
                 <div class="md-title-large text-on-tertiary-container mt-1">
-                  All done — nice work!
+                  Alles klaar — goed gedaan!
                 </div>
                 <div class="md-body-medium text-on-tertiary-container opacity-85 mt-1">
-                  Everything's in the cart.
+                  Alles zit in de kar.
                 </div>
                 <Button
                   variant="filled"
@@ -496,7 +501,7 @@ export default function Items(
                   class="mt-4"
                   onClick={() => (loyaltyCardsOpen.value = true)}
                 >
-                  Show loyalty card
+                  Klantenkaart tonen
                 </Button>
               </Card>
             )}
@@ -509,10 +514,10 @@ export default function Items(
                     {/* Aisle header */}
                     <div class="flex items-center justify-between mx-1 mt-1">
                       <span class="md-title-small text-primary uppercase tracking-[0.05em]">
-                        {group.category?.label ?? "Uncategorized"}
+                        {group.category?.label ?? "Zonder categorie"}
                       </span>
                       <span class="md-label-medium text-on-surface-variant whitespace-nowrap shrink-0">
-                        {group.items.length} left
+                        {group.items.length} over
                       </span>
                     </div>
 
@@ -571,7 +576,7 @@ export default function Items(
                   class="flex items-center gap-2.5 px-1 py-2 mt-1"
                 >
                   <span class="md-title-small text-on-surface-variant">
-                    In cart · {checkedItems.value.length}
+                    In de kar · {checkedItems.value.length}
                   </span>
                   <div class="flex-1 h-px bg-surface-chigh" />
                   <span
@@ -616,7 +621,7 @@ export default function Items(
 
             {shoppingTotal.value === 0 && (
               <p class="md-body-large text-on-surface-variant text-center py-8">
-                Switch to Plan to add items.
+                Kies Plannen om artikelen toe te voegen.
               </p>
             )}
           </div>
@@ -639,7 +644,7 @@ export default function Items(
               mgmtOpen.value = false;
               renameOpen.value = false;
             }}
-            title="List options"
+            title="Lijstopties"
           >
             <div class="flex flex-col gap-1 pb-1">
               <Button
@@ -654,11 +659,11 @@ export default function Items(
                   selecting.value = true;
                 }}
               >
-                Select items to move
+                Artikelen selecteren om te verplaatsen
               </Button>
               {/* Rename */}
               <ListItem
-                headline="Rename list"
+                headline="Lijstnaam wijzigen"
                 supporting={listName}
                 leading={
                   <span class="w-10 h-10 rounded-full bg-surface-chigh text-on-surface-variant grid place-items-center">
@@ -675,24 +680,24 @@ export default function Items(
 
               {/* Share — coming soon */}
               <ListItem
-                headline="Share list"
-                supporting="Invite household members"
+                headline="Lijst delen"
+                supporting="Leden van het huishouden uitnodigen"
                 leading={
                   <span class="w-10 h-10 rounded-full bg-surface-chigh text-on-surface-variant grid place-items-center">
                     <Icon name="share" size={20} />
                   </span>
                 }
                 onClick={() => {
-                  showSnack("Sharing is coming soon");
+                  showSnack("Delen is binnenkort beschikbaar");
                 }}
               />
 
               {/* Clear checked */}
               <ListItem
-                headline="Clear checked items"
+                headline="Afgevinkte artikelen wissen"
                 supporting={checkedItems.value.length
-                  ? `${checkedItems.value.length} checked off`
-                  : "Nothing checked yet"}
+                  ? `${checkedItems.value.length} afgevinkt`
+                  : "Nog niets afgevinkt"}
                 leading={
                   <span class="w-10 h-10 rounded-full bg-surface-chigh text-on-surface-variant grid place-items-center">
                     <Icon name="check" size={20} />
@@ -710,7 +715,7 @@ export default function Items(
 
                   {/* Delete list */}
                   <ListItem
-                    headline={<span class="text-error">Delete list</span>}
+                    headline={<span class="text-error">Lijst verwijderen</span>}
                     leading={
                       <span class="w-10 h-10 rounded-full bg-error-container text-error grid place-items-center">
                         <Icon name="trash" size={20} />
@@ -732,7 +737,7 @@ export default function Items(
             onClose={() => {
               if (!renamePending.value) renameOpen.value = false;
             }}
-            headline="Rename list"
+            headline="Lijstnaam wijzigen"
             actions={
               <>
                 <Button
@@ -740,7 +745,7 @@ export default function Items(
                   disabled={renamePending.value}
                   onClick={() => renameOpen.value = false}
                 >
-                  Cancel
+                  Annuleren
                 </Button>
                 <Button
                   variant="text"
@@ -748,7 +753,7 @@ export default function Items(
                   loading={renamePending.value}
                   onClick={commitRename}
                 >
-                  Save
+                  Opslaan
                 </Button>
               </>
             }
@@ -761,12 +766,14 @@ export default function Items(
             >
               <TextField
                 id="list-name"
-                label="List name"
+                label="Naam van de lijst"
                 disabled={renamePending.value}
                 value={renameValue.value}
                 onInput={(value) => renameValue.value = value}
               />
-              <button type="submit" class="hidden" tabindex={-1}>Save</button>
+              <button type="submit" class="hidden" tabindex={-1}>
+                Opslaan
+              </button>
             </form>
           </Dialog>
         </>
@@ -783,7 +790,7 @@ export default function Items(
             editCatPicking.value = false;
           }}
           headline={editCatPicking.value
-            ? "Choose category"
+            ? "Categorie kiezen"
             : (editingId.value ? getItemName(editingListItem()?.itemId) : "")}
         >
           {(() => {
@@ -796,7 +803,7 @@ export default function Items(
             const currentCatLabel = categories.value.find((c) =>
               c.id === currentCategoryId
             )?.label ??
-              "Uncategorized";
+              "Zonder categorie";
 
             // Searchable category picker replaces the editor body while open
             if (editCatPicking.value) {
@@ -822,7 +829,7 @@ export default function Items(
                   {savingIds.value.has(li.id!)
                     ? (
                       <span class="inline-flex items-center gap-1.5 md-label-medium text-on-surface-variant">
-                        <Spinner size={12} /> Saving…
+                        <Spinner size={12} /> Opslaan…
                       </span>
                     )
                     : showSaved && (
@@ -830,21 +837,23 @@ export default function Items(
                         key={savedTick}
                         class="md-saved-flash inline-flex items-center gap-1 md-label-medium text-on-tertiary-container bg-tertiary-container rounded-full px-2.5 py-0.5 pointer-events-none"
                       >
-                        <Icon name="check" size={14} /> Saved
+                        <Icon name="check" size={14} /> Opgeslagen
                       </span>
                     )}
                 </div>
 
                 {/* Quantity */}
                 <div class="flex items-center justify-between px-1 py-1.5">
-                  <span class="md-body-large text-on-surface">Quantity</span>
+                  <span class="md-body-large text-on-surface">Hoeveelheid</span>
                   {quantityControl(li, true)}
                 </div>
                 <div class="h-px bg-surface-chigh mx-1" />
 
                 {/* Category — opens the searchable picker */}
                 <div class="px-1 py-1.5">
-                  <div class="md-body-large text-on-surface mb-2">Category</div>
+                  <div class="md-body-large text-on-surface mb-2">
+                    Categorie
+                  </div>
                   <Pressable
                     onClick={() => {
                       editCatPicking.value = true;
@@ -865,7 +874,9 @@ export default function Items(
 
                 {/* Note */}
                 <div class="px-1 py-1.5">
-                  <div class="md-body-large text-on-surface mb-2">Note</div>
+                  <div class="md-body-large text-on-surface mb-2">
+                    Opmerking
+                  </div>
                   <TextField
                     value={li.note ?? ""}
                     onInput={(note) =>
@@ -874,7 +885,7 @@ export default function Items(
                       })}
                     multiline
                     rows={2}
-                    placeholder="e.g. the red ones, big pack, any brand…"
+                    placeholder="bv. de rode, grote verpakking, merk naar keuze…"
                   />
                 </div>
 
@@ -889,7 +900,7 @@ export default function Items(
                   }}
                   class="mt-2.5"
                 >
-                  Done
+                  Klaar
                 </Button>
 
                 {/* Remove from list */}
@@ -903,7 +914,7 @@ export default function Items(
                   }}
                   class="mt-2"
                 >
-                  Remove from list
+                  Van lijst verwijderen
                 </Button>
               </div>
             );
@@ -913,11 +924,11 @@ export default function Items(
 
       <DestructiveConfirmationDialog
         open={itemToRemove.value !== null}
-        headline="Remove from this list?"
+        headline="Van deze lijst verwijderen?"
         supportingText={`“${
-          itemToRemove.value?.name ?? "This item"
-        }” will stay in the catalogue.`}
-        confirmLabel="Remove item"
+          itemToRemove.value?.name ?? "Dit artikel"
+        }” blijft in de catalogus staan.`}
+        confirmLabel="Artikel verwijderen"
         pending={itemRemovalPending.value}
         onClose={() => (itemToRemove.value = null)}
         onConfirm={async () => {
@@ -926,7 +937,7 @@ export default function Items(
           itemRemovalPending.value = true;
           try {
             if (await removeListItem(target.id)) itemToRemove.value = null;
-            else showSnack("Couldn't remove that item — try again");
+            else showSnack("Verwijderen is niet gelukt — probeer opnieuw");
           } finally {
             itemRemovalPending.value = false;
           }
@@ -934,11 +945,13 @@ export default function Items(
       />
       <DestructiveConfirmationDialog
         open={clearCheckedOpen.value}
-        headline="Clear checked items?"
-        supportingText={`${checkedItems.value.length} checked item${
-          checkedItems.value.length === 1 ? "" : "s"
-        } will be removed from this list.`}
-        confirmLabel="Clear items"
+        headline="Afgevinkte artikelen wissen?"
+        supportingText={`${checkedItems.value.length} ${
+          checkedItems.value.length === 1
+            ? "afgevinkt artikel wordt"
+            : "afgevinkte artikelen worden"
+        } van deze lijst verwijderd.`}
+        confirmLabel="Artikelen wissen"
         pending={clearCheckedPending.value}
         onClose={() => (clearCheckedOpen.value = false)}
         onConfirm={async () => {
@@ -946,7 +959,9 @@ export default function Items(
           try {
             const ok = await clearCheckedItems();
             clearCheckedOpen.value = false;
-            if (!ok) showSnack("Couldn't clear checked items — try again");
+            if (!ok) {showSnack(
+                "Afgevinkte artikelen wissen is niet gelukt — probeer opnieuw",
+              );}
           } finally {
             clearCheckedPending.value = false;
           }
@@ -955,9 +970,9 @@ export default function Items(
       {canDelete && (
         <DestructiveConfirmationDialog
           open={deleteListOpen.value}
-          headline="Delete this shopping list?"
-          supportingText={`“${listName}” and everything on it will be removed for everyone.`}
-          confirmLabel="Delete list"
+          headline="Deze boodschappenlijst verwijderen?"
+          supportingText={`“${listName}” en alle artikelen erop worden voor iedereen verwijderd.`}
+          confirmLabel="Lijst verwijderen"
           pending={listDeletionPending.value}
           onClose={() => (deleteListOpen.value = false)}
           onConfirm={async () => {
@@ -968,7 +983,7 @@ export default function Items(
                 navigateTo("/shopping");
               } else {
                 showSnack(
-                  "Couldn't delete this shopping list — try again",
+                  "De boodschappenlijst verwijderen is niet gelukt — probeer opnieuw",
                 );
               }
             } finally {
@@ -995,7 +1010,9 @@ export default function Items(
               if (await saveAmount(id, amount)) {
                 amountEditing.value = null;
               } else {
-                showSnack("Couldn't save the amount — try again");
+                showSnack(
+                  "De hoeveelheid opslaan is niet gelukt — probeer opnieuw",
+                );
               }
             } finally {
               amountSaving.value = false;
@@ -1012,8 +1029,8 @@ export default function Items(
         >
           <Fab
             icon="plus"
-            label="Add items"
-            aria-label="Add items"
+            label="Artikelen toevoegen"
+            aria-label="Artikelen toevoegen"
             onClick={openAdd}
           />
         </div>
@@ -1026,8 +1043,8 @@ export default function Items(
         >
           <Fab
             icon="card"
-            label="Loyalty cards"
-            aria-label="Loyalty cards"
+            label="Klantenkaarten"
+            aria-label="Klantenkaarten"
             onClick={() => (loyaltyCardsOpen.value = true)}
           />
         </div>

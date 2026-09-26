@@ -10,15 +10,15 @@ Deno.test("DueChip — undated shows the add affordance, not a date", () => {
     h(DueChip, { dueAt: null, now, onClick: () => {} }),
   );
 
-  assertStringIncludes(html, "due");
-  assertFalse(html.includes("Aug"));
+  assertStringIncludes(html, "wanneer");
+  assertFalse(html.includes("aug"));
 });
 
 Deno.test("DueChip — dated shows the formatted moment including the time", () => {
   const due = new Date(2026, 7, 7, 9, 0).toISOString();
   const html = render(h(DueChip, { dueAt: due, now, onClick: () => {} }));
 
-  assertStringIncludes(html, "Aug");
+  assertStringIncludes(html, "aug");
   assertStringIncludes(html, "09");
 });
 

@@ -12,8 +12,8 @@ Deno.test("CatalogueAddRow — un-added: name, category, Add affordance", () => 
   }));
   assertStringIncludes(html, "Butter");
   assertStringIncludes(html, "Dairy");
-  assert(!html.includes("Decrease quantity")); // no stepper when un-added
-  assert(!html.includes("Added")); // un-added row never shows the Added affordance
+  assert(!html.includes("Hoeveelheid verlagen")); // no stepper when un-added
+  assert(!html.includes("Toegevoegd")); // un-added row never shows the Added affordance
 });
 
 Deno.test("CatalogueAddRow — added: inline quantity stepper", () => {
@@ -26,8 +26,8 @@ Deno.test("CatalogueAddRow — added: inline quantity stepper", () => {
     onEdit: () => {},
   }));
   assertStringIncludes(html, "Bread");
-  assertStringIncludes(html, "Decrease quantity"); // Stepper present
-  assertStringIncludes(html, "Increase quantity");
+  assertStringIncludes(html, "Hoeveelheid verlagen"); // Stepper present
+  assertStringIncludes(html, "Hoeveelheid verhogen");
 });
 
 Deno.test("CatalogueAddRow — added with onRemove shows a remove control", () => {
@@ -40,7 +40,7 @@ Deno.test("CatalogueAddRow — added with onRemove shows a remove control", () =
     onEdit: () => {},
     onRemove: () => {},
   }));
-  assertStringIncludes(html, "Remove Milk");
+  assertStringIncludes(html, "Verwijderen Milk");
 });
 
 // Defensive fallback: no current caller exercises this path (the sole caller,
@@ -56,8 +56,8 @@ Deno.test("CatalogueAddRow — added fallback: static Added label, inert, no ste
     added: true,
     onAdd: () => {},
   }));
-  assertStringIncludes(html, "Added"); // static fallback label
-  assert(!html.includes("Decrease quantity")); // no stepper
-  assert(!html.includes("Remove ")); // no remove control
+  assertStringIncludes(html, "Toegevoegd"); // static fallback label
+  assert(!html.includes("Hoeveelheid verlagen")); // no stepper
+  assert(!html.includes("Verwijderen ")); // no remove control
   assert(!html.includes("md-press")); // inert: no interactive Pressable wrapper
 });

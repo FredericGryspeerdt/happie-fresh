@@ -36,7 +36,7 @@ export function FullScreenDialog(
     contentClass,
     action,
     onBack,
-    backLabel = "Back",
+    backLabel = "Terug",
     children,
     class: cls,
   }: FullScreenDialogProps,
@@ -75,7 +75,7 @@ export function FullScreenDialog(
         >
           <IconButton
             name={onBack ? "back" : closeIcon}
-            aria-label={onBack ? backLabel : "Close"}
+            aria-label={onBack ? backLabel : "Sluiten"}
             onClick={onBack ?? onClose}
           />
           <div class="flex-1 min-w-0">
@@ -88,7 +88,7 @@ export function FullScreenDialog(
           </div>
           {action}
           {onBack && (
-            <IconButton name="x" aria-label="Close" onClick={onClose} />
+            <IconButton name="x" aria-label="Sluiten" onClick={onClose} />
           )}
         </header>
         <div

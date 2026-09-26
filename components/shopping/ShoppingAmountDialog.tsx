@@ -35,7 +35,7 @@ export function ShoppingAmountDialog(
     onClose,
   }: Props,
 ) {
-  const text = useSignal(String(amount.quantity));
+  const text = useSignal(formatShoppingAmount(amount.quantity));
   const unit = useSignal<ShoppingUnit>(amount.unit);
   const value = parseShoppingAmount(text.value, unit.value);
   const total = existingAmount && value
@@ -59,7 +59,7 @@ export function ShoppingAmountDialog(
       actions={
         <>
           <Button variant="text" disabled={busy} onClick={onClose}>
-            Cancel
+            Annuleren
           </Button>
           <Button
             variant="text"
@@ -67,7 +67,7 @@ export function ShoppingAmountDialog(
             loading={busy}
             onClick={save}
           >
-            Save
+            Opslaan
           </Button>
         </>
       }
@@ -81,29 +81,29 @@ export function ShoppingAmountDialog(
       >
         <p>
           {additional
-            ? "How much would you like to add for these dishes?"
-            : "How much do you need?"}
+            ? "Hoeveel wil je toevoegen voor deze gerechten?"
+            : "Hoeveel heb je nodig?"}
         </p>
         {existingAmount && (
           <p>
-            Already on your list:{" "}
+            Staat al op je lijst:{" "}
             {formatShoppingAmount(existingAmount.quantity, existingAmount.unit)}
           </p>
         )}
         <TextField
           disabled={busy}
           id="shopping-amount"
-          label={additional ? "Add for these dishes" : "Amount"}
+          label={additional ? "Toevoegen voor deze gerechten" : "Hoeveelheid"}
           inputMode="decimal"
           value={text.value}
           onInput={(v) => text.value = v}
-          supporting="Decimals are welcome, e.g. 0.5"
+          supporting="Kommagetallen zijn ook mogelijk, bv. 0,5"
           error={!value
-            ? "Enter an amount above 0, up to 99999 (max. 3 decimals)."
+            ? "Vul een hoeveelheid groter dan 0 en maximaal 99999 in (max. 3 cijfers na de komma)."
             : undefined}
         />
         <fieldset disabled={busy}>
-          <legend class="md-label-large mb-2">Unit</legend>
+          <legend class="md-label-large mb-2">Eenheid</legend>
           <div class="grid grid-cols-3 gap-2">
             {units.map((u) => (
               <label
@@ -122,14 +122,14 @@ export function ShoppingAmountDialog(
                   checked={unit.value === u}
                   onChange={() => unit.value = u}
                 />
-                {u}
+                {u === "pieces" ? "stuks" : u === "packs" ? "pakken" : u}
               </label>
             ))}
           </div>
         </fieldset>
         {onClear && (
           <Button variant="text" disabled={busy} onClick={onClear}>
-            Clear amount
+            Hoeveelheid wissen
           </Button>
         )}
         {existingAmount && (
@@ -138,13 +138,13 @@ export function ShoppingAmountDialog(
             class={!total ? "text-error" : "text-on-surface"}
           >
             {total
-              ? `Total after adding: ${
+              ? `Totaal na toevoegen: ${
                 formatShoppingAmount(total.quantity, total.unit)
               }`
-              : "Choose a compatible unit and keep the total at or below 99999."}
+              : "Kies een passende eenheid en een totaal van maximaal 99999."}
           </p>
         )}
-        <button type="submit" class="hidden" tabindex={-1}>Save</button>
+        <button type="submit" class="hidden" tabindex={-1}>Opslaan</button>
       </form>
     </Dialog>
   );

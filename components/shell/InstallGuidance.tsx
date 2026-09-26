@@ -11,8 +11,8 @@ export function InstallGuidance({ variant }: InstallGuidanceProps) {
   if (variant === "generic") {
     return (
       <div class="md-body-medium text-on-surface-variant">
-        Open your browser's menu and look for <b>Install app</b> or{" "}
-        <b>Add to Home Screen</b>.
+        Open het menu van je browser en zoek naar <b>App installeren</b> of{" "}
+        <b>Zet op beginscherm</b>.
       </div>
     );
   }
@@ -22,16 +22,16 @@ export function InstallGuidance({ variant }: InstallGuidanceProps) {
       style={{ paddingLeft: "20px" }}
     >
       <li>
-        Tap the <b>Share</b>{" "}
-        button (the square with an arrow) in Safari's toolbar.
+        Tik op de knop <b>Delen</b>{" "}
+        (het vierkant met een pijl) in de knoppenbalk van Safari.
       </li>
       <li>
-        Scroll down and tap <b>Add to Home Screen</b>.
+        Scrol omlaag en tik op <b>Zet op beginscherm</b>.
       </li>
       <li>
-        Tap <b>Add</b>{" "}
-        — Happie gets its own icon and opens full screen, with reminders
-        available.
+        Tik op <b>Toevoegen</b>{" "}
+        — Happie krijgt een eigen pictogram en opent op het volledige scherm. Je
+        kunt dan ook herinneringen ontvangen.
       </li>
     </ol>
   );

@@ -99,14 +99,14 @@ export function useMenuShopping(
       isSelected(r) && r.amountIssue && !amounts.value[r.itemId]
     );
     if (unresolved) {
-      return `Choose an amount for ${unresolved.name} based on the dishes before adding it.`;
+      return `Kies een hoeveelheid voor ${unresolved.name} op basis van de gerechten voordat je het toevoegt.`;
     }
     const row = rows.value.find((r) =>
       isSelected(r) && r.existingAmount &&
       !addShoppingAmounts(r.existingAmount, amountFor(r))
     );
     return row
-      ? `Check the amount for ${row.name}: use a compatible unit and a total up to 99999.`
+      ? `Controleer de hoeveelheid voor ${row.name}: gebruik een passende eenheid en een totaal van maximaal 99999.`
       : null;
   });
 
@@ -274,7 +274,7 @@ export function useMenuShopping(
       );
       if (!result) {
         submissionMessage.value =
-          "We couldn't confirm the addition. Retry to check it safely; your amounts are kept unchanged.";
+          "We konden niet bevestigen of alles toegevoegd is. Probeer opnieuw om dit veilig te controleren; je hoeveelheden blijven bewaard.";
         return null;
       }
       if ("error" in result) {

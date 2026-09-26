@@ -26,21 +26,21 @@ function relativeTime(msOrString: number | string): string {
   const ms = typeof msOrString === "string"
     ? new Date(msOrString).getTime()
     : msOrString;
-  if (isNaN(ms)) return "recently";
+  if (isNaN(ms)) return "onlangs";
   const diff = Date.now() - ms;
   const minutes = Math.floor(diff / 60_000);
-  if (minutes < 2) return "just now";
-  if (minutes < 60) return `${minutes}m ago`;
+  if (minutes < 2) return "net";
+  if (minutes < 60) return `${minutes} min geleden`;
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  if (hours < 48) return "yesterday";
+  if (hours < 24) return `${hours} u geleden`;
+  if (hours < 48) return "gisteren";
   const days = Math.floor(hours / 24);
-  return `${days}d ago`;
+  return `${days} d geleden`;
 }
 
 const SEGMENTED_OPTIONS: [string, "cart" | "tag", string][] = [
-  ["lists", "cart", "Lists"],
-  ["catalogue", "tag", "Catalogue"],
+  ["lists", "cart", "Lijsten"],
+  ["catalogue", "tag", "Catalogus"],
 ];
 
 export default function ShoppingLists({ initialLists }: ShoppingListsProps) {
@@ -104,10 +104,10 @@ export default function ShoppingLists({ initialLists }: ShoppingListsProps) {
               </div>
               <div>
                 <div class="md-title-medium text-on-surface">
-                  No lists yet
+                  Nog geen lijsten
                 </div>
                 <div class="md-body-medium text-on-surface-variant mt-1">
-                  Tap the + button to start your first shopping list.
+                  Tik op de plusknop om je eerste boodschappenlijst te maken.
                 </div>
               </div>
               <Button
@@ -116,7 +116,7 @@ export default function ShoppingLists({ initialLists }: ShoppingListsProps) {
                   newOpen.value = true;
                 }}
               >
-                New list
+                Nieuwe lijst
               </Button>
             </div>
           )
@@ -142,7 +142,7 @@ export default function ShoppingLists({ initialLists }: ShoppingListsProps) {
                         {list.name}
                       </div>
                       <div class="md-body-small text-on-surface-variant">
-                        {list.done}/{list.total} done &middot;{" "}
+                        {list.done}/{list.total} afgevinkt ·{" "}
                         {relativeTime(list.createdAt)}
                       </div>
                     </div>
@@ -165,8 +165,8 @@ export default function ShoppingLists({ initialLists }: ShoppingListsProps) {
       >
         <Fab
           icon="plus"
-          label="New list"
-          aria-label="New list"
+          label="Nieuwe lijst"
+          aria-label="Nieuwe lijst"
           onClick={() => {
             newOpen.value = true;
           }}
@@ -180,7 +180,7 @@ export default function ShoppingLists({ initialLists }: ShoppingListsProps) {
           newOpen.value = false;
           newName.value = "";
         }}
-        headline="New list"
+        headline="Nieuwe lijst"
         actions={
           <>
             <Button
@@ -191,7 +191,7 @@ export default function ShoppingLists({ initialLists }: ShoppingListsProps) {
                 newName.value = "";
               }}
             >
-              Cancel
+              Annuleren
             </Button>
             <Button
               variant="text"
@@ -199,7 +199,7 @@ export default function ShoppingLists({ initialLists }: ShoppingListsProps) {
               loading={loading.value}
               onClick={createList}
             >
-              Add
+              Toevoegen
             </Button>
           </>
         }
@@ -212,14 +212,14 @@ export default function ShoppingLists({ initialLists }: ShoppingListsProps) {
         >
           <TextField
             id="new-list-name"
-            label="List name"
+            label="Naam van de lijst"
             disabled={loading.value}
             value={newName.value}
             onInput={(value) => {
               newName.value = value;
             }}
           />
-          <button type="submit" class="hidden" tabindex={-1}>Add</button>
+          <button type="submit" class="hidden" tabindex={-1}>Toevoegen</button>
         </form>
       </Dialog>
     </PullToRefresh>

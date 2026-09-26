@@ -30,7 +30,7 @@ export default function AssigneePicker(
         id="assignee-picker-label"
         class="md-label-medium uppercase text-on-surface-variant px-1"
       >
-        Assigned to
+        Toegewezen aan
       </div>
       <div
         class="flex flex-wrap gap-2"
@@ -44,7 +44,7 @@ export default function AssigneePicker(
           onClick={() => onChange(null)}
           class={`px-4 ${chip(value === null)}`}
         >
-          No one
+          Niemand
         </button>
         {members.map((m) => (
           <button

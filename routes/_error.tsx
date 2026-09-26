@@ -8,9 +8,9 @@ export default function ErrorPage(props: PageProps) {
 
     // Render a 404 not found page
     if (status === 404) {
-      return <h1>404 - Page not found</h1>;
+      return <h1>404 - Pagina niet gevonden</h1>;
     }
   }
 
-  return <h1>Oh no...</h1>;
+  return <h1>Oei, er ging iets mis…</h1>;
 }

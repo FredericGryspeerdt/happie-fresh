@@ -33,10 +33,10 @@ Deno.test("shopping amounts — accepts decimal comma and dot, rejects invalid o
   }
   assertEquals(isShoppingUnit("kg"), true);
   assertEquals(isShoppingUnit("litres"), false);
-  assertEquals(formatShoppingAmount(0.5, "kg"), "0.5 kg");
+  assertEquals(formatShoppingAmount(0.5, "kg"), "0,5 kg");
   assertEquals(formatShoppingAmount(5, "pieces"), "5");
-  assertEquals(formatShoppingAmount(1, "packs"), "1 pack");
-  assertEquals(formatShoppingAmount(2, "packs"), "2 packs");
+  assertEquals(formatShoppingAmount(1, "packs"), "1 pak");
+  assertEquals(formatShoppingAmount(2, "packs"), "2 pakken");
   assertEquals(formatShoppingAmount(3), "3");
 });
 

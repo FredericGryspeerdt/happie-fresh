@@ -5,9 +5,12 @@ import {
 import { getKv } from "./db.ts";
 
 const DEFAULT_GROUPS: { label: string; values: string[] }[] = [
-  { label: "Type", values: ["Vegetarian", "Fish", "Meat"] },
-  { label: "Meal", values: ["Main dish", "Breakfast", "Lunch", "Side dish"] },
-  { label: "Side type", values: ["Rice", "Potatoes", "Pasta"] },
+  { label: "Soort", values: ["Vegetarisch", "Vis", "Vlees"] },
+  {
+    label: "Maaltijd",
+    values: ["Hoofdgerecht", "Ontbijt", "Lunch", "Bijgerecht"],
+  },
+  { label: "Bijgerechtsoort", values: ["Rijst", "Aardappelen", "Pasta"] },
 ];
 
 export class DishTagGroupRepo {

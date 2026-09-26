@@ -16,5 +16,5 @@ Deno.test("CategoryReorder — renders categories in aisle order with move contr
   assertStringIncludes(html, "Produce");
   assertStringIncludes(html, "Bakery");
   if (produceAt > bakeryAt) throw new Error("expected Produce before Bakery");
-  assertStringIncludes(html, "Move up");
+  assertStringIncludes(html, "Omhoog verplaatsen");
 });

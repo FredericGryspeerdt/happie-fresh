@@ -13,8 +13,8 @@ Deno.test("AppChrome — mode:none renders only the loading bar (full-screen rou
     }),
   );
   assertStringIncludes(html, 'role="progressbar"');
-  assertFalse(html.includes('aria-label="Main navigation"'));
-  assertFalse(html.includes("Shopping"));
+  assertFalse(html.includes('aria-label="Hoofdnavigatie"'));
+  assertFalse(html.includes("Boodschappen"));
 });
 
 Deno.test("AppChrome — mode:detail renders a back + title bar", () => {

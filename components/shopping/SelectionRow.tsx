@@ -23,7 +23,7 @@ export function SelectionRow(
         checked={selected}
         disabled={disabled}
         onChange={onToggle}
-        aria-label={`Select ${name}`}
+        aria-label={`Selecteren: ${name}`}
         class="w-5 h-5 shrink-0 accent-primary"
       />
       <span class="flex-1 min-w-0">
@@ -36,7 +36,7 @@ export function SelectionRow(
       </span>
       <span
         class="md-body-large text-on-surface"
-        aria-label={`Quantity: ${
+        aria-label={`Hoeveelheid: ${
           formatShoppingAmount(item.quantity, item.unit)
         }`}
       >

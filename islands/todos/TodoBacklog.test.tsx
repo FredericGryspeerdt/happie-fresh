@@ -69,9 +69,9 @@ Deno.test("TodoEditorTextFields — uses house TextFields for title and notes", 
     onNotesInput: () => {},
   }));
 
-  assertStringIncludes(html, ">Title</label>");
+  assertStringIncludes(html, ">Titel</label>");
   assertStringIncludes(html, 'value="Book the venue"');
-  assertStringIncludes(html, ">Notes</label>");
+  assertStringIncludes(html, ">Notities</label>");
   assertStringIncludes(html, "<textarea");
   assertStringIncludes(html, "Ask about Saturday");
   assertStringIncludes(html, "bg-surface-chighest");
@@ -111,8 +111,8 @@ Deno.test("TodoBacklog — renders open and done to-dos, and the FAB", () => {
   assertStringIncludes(html, "Call the dentist");
   assertStringIncludes(html, "09 123 45 67"); // notes hint on the row
   assertStringIncludes(html, "Pay the water bill");
-  assertStringIncludes(html, ">Done<"); // done section heading
-  assertStringIncludes(html, "New to-do"); // FAB label
+  assertStringIncludes(html, ">Klaar<"); // done section heading
+  assertStringIncludes(html, "Iets te doen toevoegen"); // FAB label
 });
 
 Deno.test("TodoBacklog — empty state when the household has no to-dos", () => {
@@ -123,8 +123,8 @@ Deno.test("TodoBacklog — empty state when the household has no to-dos", () => 
     initialTodos: [],
   }));
 
-  assertStringIncludes(html, "Nothing to do");
-  assertStringIncludes(html, "New to-do"); // FAB is still offered
+  assertStringIncludes(html, "Niets te doen");
+  assertStringIncludes(html, "Iets te doen toevoegen"); // FAB is still offered
 });
 
 Deno.test("TodoBacklog — no Done heading when nothing is done yet", () => {
@@ -138,10 +138,10 @@ Deno.test("TodoBacklog — no Done heading when nothing is done yet", () => {
   assertStringIncludes(html, "Take out the bins");
   // The edit dialog's header (including its "Done" action button) renders
   // unconditionally — FullScreenDialog doesn't gate its header on `open`,
-  // only its body — so a bare `>Done<` no longer proves the section heading
+  // only its body — so a bare `>Klaar<` no longer proves the section heading
   // is absent. Count instead: the only "Done" text should be that header
   // button, never the section heading.
-  const doneCount = (html.match(/>Done</g) ?? []).length;
+  const doneCount = (html.match(/>Klaar</g) ?? []).length;
   assertEquals(doneCount, 1); // edit dialog's header action only
 });
 
@@ -183,9 +183,9 @@ Deno.test("TodoBacklog — renders a section header per populated group", () => 
     ],
   }));
 
-  assertStringIncludes(html, ">Overdue<");
-  assertStringIncludes(html, ">Today<");
-  assertStringIncludes(html, ">No date<");
+  assertStringIncludes(html, ">Voorbij de geplande tijd<");
+  assertStringIncludes(html, ">Vandaag<");
+  assertStringIncludes(html, ">Zonder datum<");
   assertStringIncludes(html, "Overdue one");
   assertStringIncludes(html, "Undated one");
 });
@@ -198,9 +198,9 @@ Deno.test("TodoBacklog — omits headers for empty groups", () => {
     initialTodos: [todo({ id: "t1", title: "Undated one", dueAt: null })],
   }));
 
-  assertStringIncludes(html, ">No date<");
-  assertFalse(html.includes(">Overdue<"));
-  assertFalse(html.includes(">This week<"));
+  assertStringIncludes(html, ">Zonder datum<");
+  assertFalse(html.includes(">Voorbij de geplande tijd<"));
+  assertFalse(html.includes(">Deze week<"));
 });
 
 Deno.test("TodoBacklog — an undated to-do offers the add-due affordance", () => {
@@ -211,7 +211,7 @@ Deno.test("TodoBacklog — an undated to-do offers the add-due affordance", () =
     initialTodos: [todo({ id: "t1", dueAt: null })],
   }));
 
-  assertStringIncludes(html, "Add a due date");
+  assertStringIncludes(html, "Geplande datum toevoegen");
 });
 
 Deno.test("TodoBacklog — Done hides to-dos completed more than 7 days ago", () => {
@@ -228,8 +228,8 @@ Deno.test("TodoBacklog — Done hides to-dos completed more than 7 days ago", ()
   }));
 
   assertStringIncludes(html, "Done recently");
-  assertFalse(html.includes("Done ages ago"));
-  assertStringIncludes(html, "Show earlier");
+  assertFalse(html.includes("Klaar ages ago"));
+  assertStringIncludes(html, "Eerdere tonen");
 });
 
 Deno.test("TodoBacklog — no Show earlier button when nothing is outside the window", () => {
@@ -244,7 +244,7 @@ Deno.test("TodoBacklog — no Show earlier button when nothing is outside the wi
   }));
 
   assertStringIncludes(html, "Done recently");
-  assertFalse(html.includes("Show earlier"));
+  assertFalse(html.includes("Eerdere tonen"));
 });
 
 Deno.test("TodoBacklog — Done section (and its reveal) still renders when every done to-do is outside the window, with no open to-dos", () => {
@@ -258,10 +258,10 @@ Deno.test("TodoBacklog — Done section (and its reveal) still renders when ever
     ],
   }));
 
-  assertStringIncludes(html, ">Done<"); // section exists even with zero visible rows
-  assertStringIncludes(html, "Show earlier (1)"); // the only way to reach it
-  assertFalse(html.includes("Done ages ago")); // outside the window until revealed
-  assertFalse(html.includes("Nothing to do")); // this isn't the empty state
+  assertStringIncludes(html, ">Klaar<"); // section exists even with zero visible rows
+  assertStringIncludes(html, "Eerdere tonen (1)"); // the only way to reach it
+  assertFalse(html.includes("Klaar ages ago")); // outside the window until revealed
+  assertFalse(html.includes("Niets te doen")); // this isn't the empty state
 });
 
 Deno.test("TodoBacklog — Done section (and its reveal) still renders when every done to-do is outside the window, alongside an open to-do", () => {
@@ -277,8 +277,8 @@ Deno.test("TodoBacklog — Done section (and its reveal) still renders when ever
   }));
 
   assertStringIncludes(html, "Take out the bins");
-  assertStringIncludes(html, ">Done<");
-  assertStringIncludes(html, "Show earlier (1)");
+  assertStringIncludes(html, ">Klaar<");
+  assertStringIncludes(html, "Eerdere tonen (1)");
 });
 
 Deno.test("TodoBacklog — offers the reminder nudge when a to-do has a due date", () => {
@@ -291,7 +291,10 @@ Deno.test("TodoBacklog — offers the reminder nudge when a to-do has a due date
     ],
   }));
 
-  assertStringIncludes(html, "Get reminded when a to-do is due");
+  assertStringIncludes(
+    html,
+    "Krijg een herinnering wanneer het tijd is om iets te doen",
+  );
 });
 
 Deno.test("TodoBacklog — no nudge when nothing has a due date", () => {
@@ -302,7 +305,9 @@ Deno.test("TodoBacklog — no nudge when nothing has a due date", () => {
     initialTodos: [todo({ id: "t1", dueAt: null })],
   }));
 
-  assertFalse(html.includes("Get reminded when a to-do is due"));
+  assertFalse(
+    html.includes("Krijg een herinnering wanneer het tijd is om iets te doen"),
+  );
 });
 
 Deno.test("TodoBacklog — canDelete: false hides the editor delete trigger", () => {
@@ -317,8 +322,8 @@ Deno.test("TodoBacklog — canDelete: false hides the editor delete trigger", ()
   }));
 
   assertStringIncludes(html, "Take out the bins");
-  assertFalse(html.includes(">Delete</"));
-  assertFalse(html.includes("Delete this to-do?"));
+  assertFalse(html.includes(">Verwijderen</"));
+  assertFalse(html.includes("Dit verwijderen?"));
 });
 
 Deno.test("TodoBacklog — create and edit surfaces are dialogs, not sheets", () => {
@@ -329,10 +334,10 @@ Deno.test("TodoBacklog — create and edit surfaces are dialogs, not sheets", ()
     canDelete: true,
   }));
   // FullScreenDialog renders role="dialog" with an aria-label per title.
-  assertStringIncludes(html, 'aria-label="New to-do"');
-  assertStringIncludes(html, 'aria-label="Edit to-do"');
+  assertStringIncludes(html, 'aria-label="Iets te doen toevoegen"');
+  assertStringIncludes(html, 'aria-label="Bewerken wat er te doen is"');
   // Rapid capture is retired: no body-level Close button in the create flow.
-  assertFalse(html.includes(">Close<"));
+  assertFalse(html.includes(">Sluiten<"));
 });
 
 Deno.test("TodoBacklog — open rows show the assignee's avatar, done rows the completer's", () => {
@@ -368,6 +373,6 @@ Deno.test("TodoBacklog — renders the All/Mine toggle when the backlog is non-e
   // bare label for the same reason). Anchoring on `</button>` keeps this
   // specific to the toggle's own option labels rather than any other "All"/
   // "Mine" substring in the render.
-  assertStringIncludes(html, "All</button>");
-  assertStringIncludes(html, "Mine</button>");
+  assertStringIncludes(html, "Alles</button>");
+  assertStringIncludes(html, "Voor mij</button>");
 });
