@@ -102,11 +102,16 @@ keeping their identity and details. _Avoid_: merge, copy
 
 **Dish**: Something the household cooks and eats — "lasagne", "pancakes". A dish
 lives in the household's dish catalogue and knows which ingredients it calls
-for, but not how much of each. _Avoid_: recipe, meal, food
+for, optionally with an amount for each. _Avoid_: recipe, meal, food
 
 **Ingredient**: A catalogue item that a dish calls for. Being an ingredient is a
 relationship, not a kind of item: "pasta" is an item, and it is an ingredient
 _of_ lasagne. _Avoid_: component, grocery, product
+
+**Ingredient amount**: The quantity and unit of a catalogue item called for by a
+particular dish for the household's usual preparation, such as 200 g of pasta.
+It is optional and belongs to that dish; a shopping list entry has its own
+independently adjustable amount.
 
 **Weekly menu**: The dishes a household plans to eat this week, each optionally
 pinned to a weekday. A household has exactly one; it is a plan, not a record —
