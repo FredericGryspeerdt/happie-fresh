@@ -7,6 +7,7 @@ import {
   notFound,
   requireManager,
 } from "@/utils/index.ts";
+import { hasValidIngredientAmounts } from "@/utils/dish-ingredient-amount.ts";
 
 export const handler = define.handlers({
   async GET(ctx) {
@@ -19,6 +20,14 @@ export const handler = define.handlers({
     const householdId = ctx.state.householdId;
     if (!householdId) return new Response("Unauthorized", { status: 401 });
     const body = await ctx.req.json();
+    const existing = body.id
+      ? await DishRepo.getById(householdId, body.id)
+      : null;
+    if (body.id && !existing) return notFound("Dish not found");
+    const ingredientIds = body.ingredientIds ?? existing?.ingredientIds ?? [];
+    if (!hasValidIngredientAmounts(ingredientIds, body.ingredientAmounts)) {
+      return badRequest("Ingredient amounts must use a valid amount and unit.");
+    }
     if (body.id) {
       const updated = await DishRepo.update(householdId, body.id, body);
       if (!updated) return notFound("Dish not found");

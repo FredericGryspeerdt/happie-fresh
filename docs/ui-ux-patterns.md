@@ -387,6 +387,18 @@ separate. This is a picker within a create/edit flow, not a stays-open dish
 creation form (§13). See `components/dishes/IngredientPicker.tsx` and
 `islands/dishes/DishEditor.tsx`.
 
+For dish ingredient amounts, keep catalogue selection quick: adding an
+ingredient does not open the amount editor. Show each selected ingredient in a
+row with its saved amount or **Add amount**. Open the shared amount dialog on
+tap; edits stay in the dish draft until the existing create/save action
+succeeds. Cancel leaves the draft unchanged. **Clear amount** removes only the
+amount, and removing an ingredient also removes its amount after confirmation.
+Use the shopping amount parser and units so dish values remain valid when
+shopping suggests them later. Existing dishes without amounts remain editable.
+
+See `components/shopping/ShoppingAmountDialog.tsx` and
+`utils/shopping-amount.ts`.
+
 **See:** `components/md3/DestructiveConfirmationDialog.tsx`,
 `components/md3/` (component set), `components/md3/tokens.ts` (tokens +
 `cn` helper), `/design` (dev-only showcase of every component and state — 404s

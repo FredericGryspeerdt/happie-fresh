@@ -19,6 +19,7 @@ interface Props {
   name: string;
   amount: ShoppingAmount;
   onSave: (amount: ShoppingAmount) => void;
+  onClear?: () => void;
   onClose: () => void;
 }
 
@@ -26,6 +27,7 @@ export function ShoppingAmountDialog(
   {
     name,
     amount,
+    onClear,
     busy = false,
     additional = false,
     existingAmount,
@@ -125,6 +127,11 @@ export function ShoppingAmountDialog(
             ))}
           </div>
         </fieldset>
+        {onClear && (
+          <Button variant="text" disabled={busy} onClick={onClear}>
+            Clear amount
+          </Button>
+        )}
         {existingAmount && (
           <p
             aria-live="polite"
