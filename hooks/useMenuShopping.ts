@@ -54,8 +54,18 @@ export function useMenuShopping(
   );
   const amounts = signal<Record<string, ShoppingAmount>>({});
   const previousAmounts = signal<Record<string, ShoppingAmount>>({});
+  const rows = signal<IngredientRow[]>([]);
   const reviewAmounts = computed(() => ({
-    ...previousAmounts.value,
+    ...Object.fromEntries(rows.value.flatMap((row) => {
+      if (row.amountIssue) return [];
+      return [[
+        row.itemId,
+        row.suggestedAmount ?? previousAmounts.value[row.itemId] ?? {
+          quantity: 1,
+          unit: "pieces",
+        },
+      ]];
+    })),
     ...amounts.value,
   }));
   const plannedDishes = computed(() =>
@@ -64,7 +74,6 @@ export function useMenuShopping(
   let generation = 0;
   const lists = signal<ShoppingListInterface[]>([]);
   const chosenList = signal<ShoppingListInterface | null>(null);
-  const rows = signal<IngredientRow[]>([]);
   const emptyDishes = signal<DishInterface[]>([]);
   // Rows start ticked; we only track the ones the user unticked.
   const unticked = signal<Set<string>>(new Set());
@@ -81,8 +90,17 @@ export function useMenuShopping(
     adding.value || pendingSubmission.value !== null
   );
   const amountFor = (row: IngredientRow): ShoppingAmount =>
-    reviewAmounts.value[row.itemId] ?? { quantity: 1, unit: "pieces" };
+    reviewAmounts.value[row.itemId] ?? {
+      quantity: 1,
+      unit: "pieces",
+    };
   const amountError = computed(() => {
+    const unresolved = rows.value.find((r) =>
+      isSelected(r) && r.amountIssue && !amounts.value[r.itemId]
+    );
+    if (unresolved) {
+      return `Choose an amount for ${unresolved.name} based on the dishes before adding it.`;
+    }
     const row = rows.value.find((r) =>
       isSelected(r) && r.existingAmount &&
       !addShoppingAmounts(r.existingAmount, amountFor(r))

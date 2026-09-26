@@ -64,7 +64,7 @@ A user can:
 
 - See the items on the list grouped by category, in the household's **aisle order** (uncategorised last), alphabetical within a category.
 - Add items from the household's catalogue by searching (substring, case-insensitive).
-- Add ingredients from selected dishes on this week's menu, reviewing amounts before adding them to the current shopping list.
+- Add ingredients from selected dishes on this week's menu, reviewing amounts before adding them to the current shopping list. Compatible saved dish amounts are summed, with missing amounts identified and incompatible or unrepresentable totals requiring an explicit shopping amount or a skipped ingredient.
 - Create a new catalogue item on the spot when the search finds no exact match, choosing its category, and have it land on the list immediately.
 - See what they added during this adding session, and adjust or remove those.
 - Set an item's quantity.

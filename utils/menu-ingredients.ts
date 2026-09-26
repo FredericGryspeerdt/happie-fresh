@@ -6,6 +6,10 @@ import type {
   ShoppingAmount,
   ShoppingListItemInterface,
 } from "@/models/index.ts";
+import {
+  addShoppingAmounts,
+  compatibleShoppingUnits,
+} from "@/utils/shopping-amount.ts";
 
 // How an ingredient relates to the target shopping list:
 //   new     — not on the list; will be created
@@ -13,17 +17,31 @@ import type {
 //   bought  — on the list but checked off; will be unchecked again
 export type IngredientState = "new" | "on-list" | "bought";
 
+export interface DishIngredientRequirement {
+  dishName: string;
+  amount?: ShoppingAmount;
+}
+
 export interface IngredientRow {
   itemId: string;
   name: string;
   // Names of the planned dishes that call for this item, in menu order.
   dishNames: string[];
+  requirements?: DishIngredientRequirement[];
+  missingDishNames?: string[];
+  suggestedAmount?: ShoppingAmount;
+  amountIssue?: "incompatible" | "unrepresentable";
   state: IngredientState;
   existingAmount?: ShoppingAmount;
 }
 
+export interface CollectedIngredientRow extends IngredientRow {
+  requirements: DishIngredientRequirement[];
+  missingDishNames: string[];
+}
+
 export interface IngredientPreview {
-  rows: IngredientRow[];
+  rows: CollectedIngredientRow[];
   // Planned dishes that contribute no resolvable ingredient at all.
   emptyDishes: DishInterface[];
 }
@@ -41,19 +59,30 @@ export function collectIngredients(
 
   const listEntryByItem = shoppingEntriesByItem(listItems);
 
-  const rowByItem = new Map<string, IngredientRow>();
+  const rowByItem = new Map<string, CollectedIngredientRow>();
   const emptyDishes: DishInterface[] = [];
+  const seenDishes = new Set<string>();
   for (const entry of entries) {
     const dish = dishById.get(entry.dishId);
     if (!dish) continue; // dish deleted since it was planned
+    if (seenDishes.has(dish.id)) continue;
+    seenDishes.add(dish.id);
     let resolved = 0;
+    const seenIngredients = new Set<string>();
     for (const itemId of dish.ingredientIds) {
       const item = itemById.get(itemId);
-      if (!item) continue; // catalogue item deleted
+      if (!item || seenIngredients.has(itemId)) continue; // deleted or duplicate
+      seenIngredients.add(itemId);
       resolved++;
       const row = rowByItem.get(itemId);
       if (row) {
         if (!row.dishNames.includes(dish.name)) row.dishNames.push(dish.name);
+        row.requirements.push({
+          dishName: dish.name,
+          ...(dish.ingredientAmounts?.[itemId]
+            ? { amount: dish.ingredientAmounts[itemId] }
+            : {}),
+        });
         continue;
       }
       const existing = listEntryByItem.get(itemId);
@@ -61,6 +90,13 @@ export function collectIngredients(
         itemId,
         name: item.name,
         dishNames: [dish.name],
+        requirements: [{
+          dishName: dish.name,
+          ...(dish.ingredientAmounts?.[itemId]
+            ? { amount: dish.ingredientAmounts[itemId] }
+            : {}),
+        }],
+        missingDishNames: [],
         state: existing ? (existing.checked ? "bought" : "on-list") : "new",
         ...(existing && !existing.checked
           ? {
@@ -73,6 +109,30 @@ export function collectIngredients(
       });
     }
     if (resolved === 0) emptyDishes.push(dish);
+  }
+
+  for (const row of rowByItem.values()) {
+    const requirements = row.requirements;
+    const known = requirements.filter((r) => r.amount);
+    row.missingDishNames = requirements.filter((r) => !r.amount).map((r) =>
+      r.dishName
+    );
+    if (known.length === 0) continue;
+    let total = known[0].amount!;
+    for (const requirement of known.slice(1)) {
+      const amount = requirement.amount!;
+      const next = addShoppingAmounts(total, amount);
+      if (!next) {
+        row.amountIssue = compatibleShoppingUnits(total.unit).includes(
+            amount.unit,
+          )
+          ? "unrepresentable"
+          : "incompatible";
+        break;
+      }
+      total = next;
+    }
+    if (!row.amountIssue) row.suggestedAmount = total;
   }
 
   const rows = [...rowByItem.values()].sort((a, b) =>

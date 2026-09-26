@@ -565,6 +565,105 @@ Deno.test("review — bought duplicates use the same first entry as bulk restora
   assertEquals(flow.reviewAmounts.value.mince, { quantity: 500, unit: "g" });
 });
 
+Deno.test("all-missing dish amounts keep 1 in an unchecked entry's unit", async () => {
+  using _entries = stub(
+    api.shoppingList,
+    "getItemsOrNull",
+    () =>
+      Promise.resolve([{
+        ...li("pasta", false),
+        quantity: 300,
+        unit: "kg" as const,
+      }]),
+  );
+  const flow = useMenuShopping(menuOf("A"), dishes, items);
+  await flow.chooseList(list("A"));
+  assertEquals(flow.reviewAmounts.value.pasta, { quantity: 1, unit: "kg" });
+});
+
+Deno.test("saved dish totals prefill review and explicit shopping overrides win", async () => {
+  using _entries = stub(
+    api.shoppingList,
+    "getItemsOrNull",
+    () =>
+      Promise.resolve([{
+        ...li("pasta", true),
+        quantity: 2,
+        unit: "kg" as const,
+      }]),
+  );
+  using _remember = stub(
+    api.weeklyMenu,
+    "setShoppingList",
+    () => Promise.resolve(null),
+  );
+  using bulk = stub(
+    api.shoppingList,
+    "bulkAdd",
+    () => Promise.resolve({ added: [], restored: [], skipped: [] }),
+  );
+  const menu = menuOf();
+  menu.value.entries.push({ id: "e2", dishId: "d2", day: "Tue" });
+  const flow = useMenuShopping(menu, [{
+    ...dishes[0],
+    ingredientAmounts: { pasta: { quantity: 200, unit: "g" } },
+  }, {
+    id: "d2",
+    name: "Pasta bake",
+    ingredientIds: ["pasta"],
+    ingredientAmounts: { pasta: { quantity: 300, unit: "g" } },
+    tagValueIds: [],
+  }], items);
+  flow.toggleDish("d2");
+  await flow.chooseList(list("A"));
+  assertEquals(flow.reviewAmounts.value.pasta, { quantity: 200, unit: "g" });
+  flow.setAmount("pasta", { quantity: 250, unit: "g" });
+  await flow.confirm();
+  assertEquals(bulk.calls[0].args[1].find((i) => i.itemId === "pasta"), {
+    itemId: "pasta",
+    note: "Lasagne",
+    quantity: 250,
+    unit: "g",
+  });
+});
+
+Deno.test("incompatible dish requirements block only that ingredient until chosen or skipped", async () => {
+  using _entries = stub(
+    api.shoppingList,
+    "getItemsOrNull",
+    () => Promise.resolve([]),
+  );
+  using bulk = stub(
+    api.shoppingList,
+    "bulkAdd",
+    () => Promise.resolve({ added: [], restored: [], skipped: [] }),
+  );
+  const extra: DishInterface = {
+    id: "d2",
+    name: "Pasta soup",
+    ingredientIds: ["pasta"],
+    ingredientAmounts: { pasta: { quantity: 2, unit: "pieces" } },
+    tagValueIds: [],
+  };
+  const menu = menuOf();
+  menu.value.entries.push({ id: "e2", dishId: extra.id, day: "Tue" });
+  const flow = useMenuShopping(menu, [{
+    ...dishes[0],
+    ingredientAmounts: { pasta: { quantity: 200, unit: "g" } },
+  }, extra], items);
+  await flow.chooseList(list("A"));
+  assertEquals(
+    flow.amountError.value?.includes("Choose an amount") ?? false,
+    true,
+  );
+  assertEquals(await flow.confirm(), null);
+  assertEquals(bulk.calls.length, 0);
+  flow.toggle("pasta");
+  assertEquals(flow.amountError.value, null);
+  await flow.confirm();
+  assertEquals(bulk.calls[0].args[1].map((i) => i.itemId), ["mince"]);
+});
+
 Deno.test("existing ingredient — selects an additional amount and sends it once with a stable retry key", async () => {
   using _entries = stub(
     api.shoppingList,
