@@ -63,6 +63,154 @@ Deno.test("collectIngredients — dedups across dishes, sorts case-insensitively
   assertEquals(rows.every((r) => r.state === "new"), true);
 });
 
+Deno.test("collectIngredients — sums compatible saved amounts once per selected dish", () => {
+  const amountDishes: DishInterface[] = [
+    {
+      id: "d1",
+      name: "Lasagne",
+      ingredientIds: ["pasta"],
+      ingredientAmounts: { pasta: { quantity: 200, unit: "g" } },
+      tagValueIds: [],
+    },
+    {
+      id: "d2",
+      name: "Pasta bake",
+      ingredientIds: ["pasta"],
+      ingredientAmounts: { pasta: { quantity: 0.3, unit: "kg" } },
+      tagValueIds: [],
+    },
+  ];
+  const selected: MenuEntryInterface[] = [
+    { id: "e1", dishId: "d1", day: "Mon" },
+    { id: "e1-again", dishId: "d1", day: "Tue" },
+    { id: "e2", dishId: "d2", day: "Wed" },
+  ];
+
+  const { rows } = collectIngredients(selected, amountDishes, items, []);
+  const pasta = rows.find((row) => row.itemId === "pasta")!;
+  assertEquals(pasta.suggestedAmount, { quantity: 500, unit: "g" });
+  assertEquals(pasta.requirements, [
+    { dishName: "Lasagne", amount: { quantity: 200, unit: "g" } },
+    { dishName: "Pasta bake", amount: { quantity: 0.3, unit: "kg" } },
+  ]);
+  assertEquals(pasta.missingDishNames, []);
+});
+
+Deno.test("collectIngredients — keeps known total and names dishes with missing amounts", () => {
+  const amountDishes: DishInterface[] = [
+    {
+      id: "d1",
+      name: "Lasagne",
+      ingredientIds: ["pasta"],
+      ingredientAmounts: { pasta: { quantity: 200, unit: "g" } },
+      tagValueIds: [],
+    },
+    { id: "d2", name: "Soup", ingredientIds: ["pasta"], tagValueIds: [] },
+  ];
+  const { rows } = collectIngredients(
+    [{ id: "e1", dishId: "d1", day: null }, {
+      id: "e2",
+      dishId: "d2",
+      day: null,
+    }],
+    amountDishes,
+    items,
+    [],
+  );
+  const pasta = rows.find((row) => row.itemId === "pasta")!;
+  assertEquals(pasta.suggestedAmount, { quantity: 200, unit: "g" });
+  assertEquals(pasta.missingDishNames, ["Soup"]);
+});
+
+Deno.test("collectIngredients — incompatible units require an explicit choice", () => {
+  const amountDishes: DishInterface[] = [
+    {
+      id: "d1",
+      name: "Lasagne",
+      ingredientIds: ["pasta"],
+      ingredientAmounts: { pasta: { quantity: 200, unit: "g" } },
+      tagValueIds: [],
+    },
+    {
+      id: "d2",
+      name: "Soup",
+      ingredientIds: ["pasta"],
+      ingredientAmounts: { pasta: { quantity: 2, unit: "pieces" } },
+      tagValueIds: [],
+    },
+  ];
+  const { rows } = collectIngredients(
+    [{ id: "e1", dishId: "d1", day: null }, {
+      id: "e2",
+      dishId: "d2",
+      day: null,
+    }],
+    amountDishes,
+    items,
+    [],
+  );
+  const pasta = rows.find((row) => row.itemId === "pasta")!;
+  assertEquals(pasta.suggestedAmount, undefined);
+  assertEquals(pasta.amountIssue, "incompatible");
+  assertEquals(pasta.requirements?.map((r) => r.amount), [
+    { quantity: 200, unit: "g" },
+    { quantity: 2, unit: "pieces" },
+  ]);
+});
+
+Deno.test("collectIngredients — converts litres and flags totals that exceed shopping limits", () => {
+  const amountDishes: DishInterface[] = [
+    {
+      id: "d1",
+      name: "Soup",
+      ingredientIds: ["pasta"],
+      ingredientAmounts: { pasta: { quantity: 1, unit: "L" } },
+      tagValueIds: [],
+    },
+    {
+      id: "d2",
+      name: "Stew",
+      ingredientIds: ["pasta"],
+      ingredientAmounts: { pasta: { quantity: 500, unit: "ml" } },
+      tagValueIds: [],
+    },
+  ];
+  const rows = collectIngredients(
+    [{ id: "e1", dishId: "d1", day: null }, {
+      id: "e2",
+      dishId: "d2",
+      day: null,
+    }],
+    amountDishes,
+    items,
+    [],
+  ).rows;
+  const pasta = rows.find((row) => row.itemId === "pasta")!;
+  assertEquals(pasta.suggestedAmount, { quantity: 1.5, unit: "L" });
+
+  const tooMuch = collectIngredients(
+    [{ id: "e1", dishId: "d1", day: null }, {
+      id: "e2",
+      dishId: "d2",
+      day: null,
+    }],
+    [
+      {
+        ...amountDishes[0],
+        ingredientAmounts: { pasta: { quantity: 99999, unit: "pieces" } },
+      },
+      {
+        ...amountDishes[1],
+        ingredientAmounts: { pasta: { quantity: 1, unit: "pieces" } },
+      },
+    ],
+    items,
+    [],
+  ).rows.find((row) => row.itemId === "pasta")!;
+  assertEquals(tooMuch.suggestedAmount, undefined);
+  assertEquals(tooMuch.amountIssue, "unrepresentable");
+});
+
 Deno.test("collectIngredients — states come from the target list", () => {
   const { rows } = collectIngredients(entries, dishes, items, [
     li("pasta", false),
@@ -102,6 +250,8 @@ Deno.test("noteFor — joins dish names with a comma", () => {
       name: "x",
       dishNames: ["Lasagne", "Curry"],
       state: "new",
+      requirements: [],
+      missingDishNames: [],
     }),
     "Lasagne, Curry",
   );

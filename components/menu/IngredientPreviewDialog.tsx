@@ -58,7 +58,15 @@ export function IngredientPreviewDialog(p: Props) {
     }),
   ).filter((c) => c.rows.length);
   const amountFor = (id: string): ShoppingAmount =>
-    p.amounts[id] ?? { quantity: 1, unit: "pieces" };
+    p.amounts[id] ?? eligible.find((row) =>
+      row.itemId === id
+    )?.requirements?.find(
+      (r) => r.amount,
+    )?.amount ?? { quantity: 1, unit: "pieces" };
+  const hasAmountConflict = (row: IngredientRow): boolean =>
+    !!row.amountIssue || (row.missingDishNames?.length ?? 0) > 0 ||
+    (!!row.existingAmount && !!row.suggestedAmount &&
+      !addShoppingAmounts(row.existingAmount, row.suggestedAmount));
   return (
     <>
       <FullScreenDialog
@@ -153,6 +161,33 @@ export function IngredientPreviewDialog(p: Props) {
                           row.dishNames.join(" · ")
                         }`}
                     </span>
+                    {hasAmountConflict(row) && (
+                      <span class="md-body-small text-on-surface-variant block mt-1">
+                        Dish requirements: {(row.requirements ?? []).map((r) =>
+                          `${r.dishName}: ${
+                            r.amount
+                              ? formatShoppingAmount(
+                                r.amount.quantity,
+                                r.amount.unit,
+                              )
+                              : "amount not set"
+                          }`
+                        ).join(" · ")}
+                        {!!row.missingDishNames?.length && (
+                          <span class="block" role="status">
+                            Amount not set for {row.missingDishNames.join(", ")}
+                          </span>
+                        )}
+                        {row.amountIssue &&
+                          p.amounts[row.itemId] === undefined && (
+                          <span class="block" role="alert">
+                            {row.amountIssue === "incompatible"
+                              ? "Choose one amount for these dishes"
+                              : "The combined amount is too large or too precise; choose an amount"}
+                          </span>
+                        )}
+                      </span>
+                    )}
                     {row.existingAmount && (
                       <span class="md-body-small text-on-surface-variant block mt-1">
                         Already on your list: {formatShoppingAmount(
@@ -188,10 +223,14 @@ export function IngredientPreviewDialog(p: Props) {
                   onClick={() => editing.value = row}
                   class="shrink-0 min-h-12 px-3 rounded-full bg-surface-chigh text-primary md-label-large focus-visible:outline-2"
                 >
-                  Add {formatShoppingAmount(
-                    amountFor(row.itemId).quantity,
-                    amountFor(row.itemId).unit,
-                  )}
+                  {row.amountIssue && p.amounts[row.itemId] === undefined
+                    ? "Choose amount"
+                    : `Add ${
+                      formatShoppingAmount(
+                        amountFor(row.itemId).quantity,
+                        amountFor(row.itemId).unit,
+                      )
+                    }`}
                 </button>
               </div>
             ))}
