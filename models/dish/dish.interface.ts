@@ -1,7 +1,10 @@
+import type { ShoppingAmount } from "@/models/shopping-list/shopping-list-item.interface.ts";
+
 export interface DishInterface {
   id: string;
   name: string;
   ingredientIds: string[]; // → catalogue Item ids (["items", id])
+  ingredientAmounts?: Record<string, ShoppingAmount>;
   tagValueIds: string[]; // → DishTagValue ids, flat across all groups
   createdAt?: string;
   createdBy?: string;

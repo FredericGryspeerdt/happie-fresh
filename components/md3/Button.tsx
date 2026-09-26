@@ -24,6 +24,7 @@ interface ButtonProps {
   loading?: boolean;
   class?: string;
   style?: JSX.CSSProperties;
+  "aria-label"?: string;
   children?: ComponentChildren;
 }
 
@@ -37,6 +38,7 @@ export function Button(
     loading,
     class: cls,
     style,
+    "aria-label": ariaLabel,
     children,
   }: ButtonProps,
 ) {
@@ -55,6 +57,7 @@ export function Button(
         cls,
       )}
       style={style}
+      aria-label={ariaLabel}
     >
       {loading ? <Spinner size={18} /> : icon && <Icon name={icon} size={18} />}
       {children}

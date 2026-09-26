@@ -16,6 +16,9 @@ import { FullScreenDialog } from "@/components/md3/FullScreenDialog.tsx";
 import { Snackbar } from "@/components/md3/Snackbar.tsx";
 import { DestructiveConfirmationDialog } from "@/components/md3/DestructiveConfirmationDialog.tsx";
 import { navigateTo } from "@/utils/loading.ts";
+import { ShoppingAmountDialog } from "@/components/shopping/ShoppingAmountDialog.tsx";
+import { formatDishIngredientAmount } from "@/utils/dish-ingredient-amount.ts";
+import type { ShoppingAmount } from "@/models/index.ts";
 
 const fieldClass =
   "flex-1 min-w-0 md-body-large text-on-surface bg-surface-chighest rounded-t-[var(--md-shape-sm)] border-0 border-b-2 border-primary px-4 py-3 focus:outline-none";
@@ -32,6 +35,8 @@ export default function DishEditor(
 ) {
   const name = useSignal(dish?.name ?? "");
   const ingredientIds = useSignal<string[]>(dish?.ingredientIds ?? []);
+  const ingredientAmounts = useSignal(dish?.ingredientAmounts ?? {});
+  const amountEditing = useSignal<string | null>(null);
   const tagValueIds = useSignal<string[]>(dish?.tagValueIds ?? []);
   const localItems = useSignal<ItemInterface[]>(items);
   const localGroups = useSignal<DishTagGroupInterface[]>(tagGroups);
@@ -101,6 +106,9 @@ export default function DishEditor(
     const itemId = ingredientToRemove.value;
     if (!itemId) return;
     ingredientIds.value = ingredientIds.value.filter((i) => i !== itemId);
+    const nextAmounts = { ...ingredientAmounts.value };
+    delete nextAmounts[itemId];
+    ingredientAmounts.value = nextAmounts;
     ingredientStatus.value = `${
       itemById(itemId)?.name ?? "Ingredient"
     } removed`;
@@ -152,6 +160,7 @@ export default function DishEditor(
     const payload = {
       name: n,
       ingredientIds: ingredientIds.value,
+      ingredientAmounts: ingredientAmounts.value,
       tagValueIds: tagValueIds.value,
     };
     try {
@@ -162,9 +171,11 @@ export default function DishEditor(
         navigateTo("/menu");
       } else {
         saving.value = false; // failed — re-enable so the user can retry
+        showSnack("Couldn't save this dish — try again");
       }
     } catch (_) {
       saving.value = false; // network error — re-enable
+      showSnack("Couldn't save this dish — try again");
     }
   };
   const remove = async () => {
@@ -201,13 +212,26 @@ export default function DishEditor(
         <div class="md-label-medium uppercase text-on-surface-variant mb-2">
           Ingredients
         </div>
-        <div class="flex flex-wrap gap-2">
+        <div class="flex flex-col gap-2">
           {ingredientIds.value.map((id) => (
-            <span
+            <div
               key={id}
-              class="inline-flex items-center gap-1 md-label-large bg-secondary-container text-on-secondary-container rounded-[var(--md-shape-full)] pl-3 pr-1 py-1"
+              class="w-full flex items-center gap-2 bg-secondary-container text-on-secondary-container rounded-[var(--md-shape-md)] px-3 py-1"
             >
-              {itemById(id)?.name ?? "Unknown"}
+              <span class="flex-1 min-w-0 md-label-large">
+                {itemById(id)?.name ?? "Unknown"}
+              </span>
+              <Button
+                variant="text"
+                aria-label={ingredientAmounts.value[id]
+                  ? `Edit amount for ${itemById(id)?.name ?? "ingredient"}`
+                  : `Add amount for ${itemById(id)?.name ?? "ingredient"}`}
+                onClick={() => amountEditing.value = id}
+              >
+                {ingredientAmounts.value[id]
+                  ? formatDishIngredientAmount(ingredientAmounts.value[id])
+                  : "Add amount"}
+              </Button>
               <IconButton
                 name="x"
                 size={44}
@@ -217,7 +241,7 @@ export default function DishEditor(
                 }`}
                 onClick={() => removeIngredient(id)}
               />
-            </span>
+            </div>
           ))}
           <Chip
             icon="plus"
@@ -365,6 +389,32 @@ export default function DishEditor(
         onClose={() => (ingredientToRemove.value = null)}
         onConfirm={confirmIngredientRemoval}
       />
+      {amountEditing.value && (
+        <ShoppingAmountDialog
+          key={amountEditing.value}
+          name={itemById(amountEditing.value)?.name ?? "Ingredient"}
+          amount={ingredientAmounts.value[amountEditing.value] ?? {
+            quantity: 1,
+            unit: "pieces",
+          }}
+          onClose={() => amountEditing.value = null}
+          onSave={(amount: ShoppingAmount) => {
+            ingredientAmounts.value = {
+              ...ingredientAmounts.value,
+              [amountEditing.value!]: amount,
+            };
+            amountEditing.value = null;
+          }}
+          onClear={ingredientAmounts.value[amountEditing.value]
+            ? () => {
+              const nextAmounts = { ...ingredientAmounts.value };
+              delete nextAmounts[amountEditing.value!];
+              ingredientAmounts.value = nextAmounts;
+              amountEditing.value = null;
+            }
+            : undefined}
+        />
+      )}
       {dish && canDelete && (
         <DestructiveConfirmationDialog
           open={deleteOpen.value}

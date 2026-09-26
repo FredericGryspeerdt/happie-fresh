@@ -78,7 +78,116 @@ Deno.test({
     );
     assertEquals(updateRes.status, 200);
     assertEquals(updateRes.headers.get("Content-Type"), "application/json");
-    assertEquals((await updateRes.json()).name, "Veggie Curry");
+    const updated = await updateRes.json();
+    assertEquals(updated.name, "Veggie Curry");
+    assertEquals(updated.ingredientAmounts, undefined);
+  },
+});
+
+Deno.test({
+  name: "POST rejects an invalid ingredient amount without saving the dish",
+  sanitizeResources: false,
+  async fn() {
+    await clearDishes();
+    const res = await handler.POST(ctx(post({
+      name: "Pasta",
+      ingredientIds: ["pasta"],
+      tagValueIds: [],
+      ingredientAmounts: {
+        pasta: { quantity: 0, unit: "g" },
+      },
+    })));
+
+    assertEquals(res.status, 400);
+    assertEquals(
+      await handler.GET(
+        ctx(new Request("http://x/api/menu/dishes")),
+      ).then((response) => response.json()),
+      [],
+    );
+  },
+});
+
+Deno.test({
+  name: "dish API saves, preserves, clears, and removes ingredient amounts",
+  sanitizeResources: false,
+  async fn() {
+    await clearDishes();
+    const amount = { quantity: 0.5, unit: "kg" };
+    const createdResponse = await handler.POST(ctx(post({
+      name: "Pasta",
+      ingredientIds: ["pasta", "salt"],
+      tagValueIds: [],
+      ingredientAmounts: { pasta: amount },
+    })));
+    assertEquals(createdResponse.status, 201);
+    const created = await createdResponse.json();
+    assertEquals(created.ingredientAmounts, { pasta: amount });
+
+    const renamedResponse = await handler.POST(ctx(post({
+      id: created.id,
+      name: "Family pasta",
+    })));
+    assertEquals(renamedResponse.status, 200);
+    assertEquals((await renamedResponse.json()).ingredientAmounts, {
+      pasta: amount,
+    });
+
+    const removedIngredientResponse = await handler.POST(ctx(post({
+      id: created.id,
+      ingredientIds: ["salt"],
+    })));
+    assertEquals(removedIngredientResponse.status, 200);
+    assertEquals(
+      (await removedIngredientResponse.json()).ingredientAmounts,
+      {},
+    );
+
+    const clearedResponse = await handler.POST(ctx(post({
+      id: created.id,
+      ingredientAmounts: {},
+    })));
+    assertEquals(clearedResponse.status, 200);
+    assertEquals((await clearedResponse.json()).ingredientAmounts, {});
+  },
+});
+
+Deno.test({
+  name: "dish API rejects ingredient amounts for items outside the dish",
+  sanitizeResources: false,
+  async fn() {
+    await clearDishes();
+    const res = await handler.POST(ctx(post({
+      name: "Pasta",
+      ingredientIds: ["pasta"],
+      tagValueIds: [],
+      ingredientAmounts: { salt: { quantity: 1, unit: "g" } },
+    })));
+    assertEquals(res.status, 400);
+  },
+});
+
+Deno.test({
+  name:
+    "dish API rejects unsupported units, excessive precision, and oversized amounts",
+  sanitizeResources: false,
+  async fn() {
+    await clearDishes();
+    for (
+      const amount of [
+        { quantity: 1, unit: "cups" },
+        { quantity: 1.2345, unit: "g" },
+        { quantity: 100000, unit: "g" },
+      ]
+    ) {
+      const res = await handler.POST(ctx(post({
+        name: "Pasta",
+        ingredientIds: ["pasta"],
+        tagValueIds: [],
+        ingredientAmounts: { pasta: amount },
+      })));
+      assertEquals(res.status, 400);
+    }
   },
 });
 

@@ -45,6 +45,25 @@ Deno.test("DishEditor — existing dish prefills name, shows ingredient chip + d
   assertStringIncludes(html, "Remove this ingredient?");
 });
 
+Deno.test("DishEditor — ingredient rows show saved amounts and an add action", () => {
+  const html = render(h(DishEditor, {
+    dish: {
+      id: "1",
+      name: "Pasta",
+      ingredientIds: ["a", "salt"],
+      ingredientAmounts: { a: { quantity: 0.5, unit: "kg" } },
+      tagValueIds: [],
+    },
+    tagGroups: [],
+    items: [...items, { id: "salt", name: "Salt" }],
+    canDelete: true,
+  }));
+
+  assertStringIncludes(html, "0.5 kg");
+  assertStringIncludes(html, "Add amount");
+  assertStringIncludes(html, 'aria-label="Remove Onion"');
+});
+
 Deno.test("DishEditor — canDelete: false hides Delete dish even for an existing dish", () => {
   const html = render(h(DishEditor, {
     dish: {

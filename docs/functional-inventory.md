@@ -164,8 +164,8 @@ A user can:
 
 - Browse and search the household's dishes, seeing each dish's ingredient count and whether it is on this week's menu.
 - Add a dish to this week directly from the dish overview, or remove it after confirmation.
-- Create a dish with a name (required), ingredients picked from the shopping catalogue (creating new catalogue items on the spot when needed), and tags per tag group (e.g. cuisine, type). New tag values can be created inline.
-- Edit a dish's name, ingredients and tags. Removing an ingredient from the draft requires confirmation.
+- Create a dish with a name (required), ingredients picked from the shopping catalogue (creating new catalogue items on the spot when needed), an optional amount and unit for each ingredient, and tags per tag group (e.g. cuisine, type). New tag values can be created inline.
+- Edit a dish's name, ingredients, optional ingredient amounts and tags. Clear an amount without removing its ingredient. Removing an ingredient from the draft requires confirmation and removes its amount.
 - Delete a dish (manager only), after confirmation.
 
 Tag-based filtering of dishes exists in the data model but has no interface.
