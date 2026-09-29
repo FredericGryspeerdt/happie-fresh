@@ -12,5 +12,5 @@ Deno.test("AssigneePicker — labels its radiogroup with the visible heading", (
 
   assertStringIncludes(html, 'id="assignee-picker-label"');
   assertStringIncludes(html, 'aria-labelledby="assignee-picker-label"');
-  assertFalse(html.includes('aria-label="Assigned to"'));
+  assertFalse(html.includes('aria-label="Toegewezen aan"'));
 });

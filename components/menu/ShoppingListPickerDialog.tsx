@@ -18,7 +18,7 @@ interface Props {
   onClose: () => void;
 }
 
-const DEFAULT_NAME = "Groceries";
+const DEFAULT_NAME = "Boodschappen";
 
 // "Which list?" — a picker in a Dialog; typing a new list's name
 // happens in a centered Dialog (patterns doc §9). With no lists at all the
@@ -63,7 +63,7 @@ export function ShoppingListPickerDialog(
         <Dialog
           open={open && !creating.value}
           onClose={onClose}
-          headline="Which list?"
+          headline="Welke lijst?"
         >
           <div class="-mx-6">
             {lists.map((l) => {
@@ -93,7 +93,7 @@ export function ShoppingListPickerDialog(
               icon="plus"
               onClick={() => (creating.value = true)}
             >
-              New list
+              Nieuwe lijst
             </Button>
           </div>
         </Dialog>
@@ -102,11 +102,11 @@ export function ShoppingListPickerDialog(
       <Dialog
         open={dialogOpen}
         onClose={closeDialog}
-        headline="New shopping list"
+        headline="Nieuwe boodschappenlijst"
         actions={
           <>
             <Button variant="text" disabled={busy} onClick={closeDialog}>
-              Cancel
+              Annuleren
             </Button>
             <Button
               variant="text"
@@ -114,20 +114,20 @@ export function ShoppingListPickerDialog(
               disabled={!name.value.trim()}
               onClick={() => void submit()}
             >
-              Create list
+              Lijst aanmaken
             </Button>
           </>
         }
       >
         {noLists && (
           <p class="md-body-medium text-on-surface-variant">
-            You don't have a shopping list yet. Let's make one for these
-            ingredients.
+            Je hebt nog geen boodschappenlijst. Maak er een aan voor deze
+            ingrediënten.
           </p>
         )}
         <TextField
           id="new-shopping-list-name"
-          label="List name"
+          label="Naam van de lijst"
           value={name.value}
           onInput={(v) => (name.value = v)}
         />

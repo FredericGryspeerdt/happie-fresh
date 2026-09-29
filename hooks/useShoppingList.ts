@@ -314,7 +314,7 @@ export function useShoppingList(
   };
 
   const getItemName = (itemId?: string) =>
-    items.value.find((i) => i.id === itemId)?.name || "Unknown";
+    items.value.find((i) => i.id === itemId)?.name || "Onbekend";
 
   const getItem = (itemId?: string) => items.value.find((i) => i.id === itemId);
 

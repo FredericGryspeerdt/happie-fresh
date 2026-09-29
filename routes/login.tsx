@@ -53,8 +53,8 @@ export default define.page(function Login({ data }) {
 
   return (
     <main>
-      <h1>Login</h1>
-      <p>This is the login page.</p>
+      <h1>Inloggen</h1>
+      <p>Log in om Happie te gebruiken.</p>
 
       {error && <p style={{ color: "red" }}>{error}</p>}
 

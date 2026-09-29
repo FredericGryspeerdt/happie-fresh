@@ -56,9 +56,9 @@ export function Barcode(
           cls,
         )}
         role="img"
-        aria-label="Barcode could not be rendered"
+        aria-label="Barcode kan niet getoond worden"
       >
-        Couldn't render this barcode — check the number.
+        De barcode tonen is niet gelukt — controleer het nummer.
       </div>
     );
   }

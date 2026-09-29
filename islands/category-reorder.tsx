@@ -31,7 +31,7 @@ export default function CategoryReorder({ initialCategories }: Props) {
   if (list.length === 0) {
     return (
       <div class="text-center py-12 md-body-medium text-on-surface-variant">
-        No categories yet. Add one from the catalogue.
+        Nog geen categorieën. Voeg er een toe in de catalogus.
       </div>
     );
   }
@@ -39,8 +39,8 @@ export default function CategoryReorder({ initialCategories }: Props) {
   return (
     <div class="flex flex-col gap-2">
       <p class="md-body-medium text-on-surface-variant mb-1">
-        Order categories the way you walk the store — this sets the aisle order
-        in Shop mode.
+        Zet de categorieën in de volgorde waarin je door de winkel loopt. Zo
+        staan ze ook in de modus Winkelen.
       </p>
       {list.map((c, i) => (
         <div
@@ -53,14 +53,14 @@ export default function CategoryReorder({ initialCategories }: Props) {
           <IconButton
             name="chevron"
             iconSize={20}
-            aria-label="Move up"
+            aria-label="Omhoog verplaatsen"
             style={{ transform: "rotate(-90deg)" }}
             onClick={() => move(i, -1)}
           />
           <IconButton
             name="chevron"
             iconSize={20}
-            aria-label="Move down"
+            aria-label="Omlaag verplaatsen"
             style={{ transform: "rotate(90deg)" }}
             onClick={() => move(i, 1)}
           />

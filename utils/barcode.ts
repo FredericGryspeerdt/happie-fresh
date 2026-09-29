@@ -13,7 +13,7 @@ export const SUPPORTED_FORMATS: { format: BarcodeFormat; label: string }[] = [
   { format: "upca", label: "UPC-A" },
   { format: "code128", label: "Code 128" },
   { format: "code39", label: "Code 39" },
-  { format: "qrcode", label: "QR code" },
+  { format: "qrcode", label: "QR-code" },
 ];
 
 const LABELS: Record<BarcodeFormat, string> = Object.fromEntries(
@@ -75,19 +75,25 @@ export function validateBarcode(
   format: BarcodeFormat,
 ): ValidationResult {
   const v = value.trim();
-  if (!v) return { ok: false, message: "Enter a barcode value." };
+  if (!v) return { ok: false, message: "Vul een barcode in." };
 
   const fixed = FIXED_LENGTHS[format];
   if (fixed !== undefined) {
     const label = formatLabel(format);
     if (!/^\d+$/.test(v)) {
-      return { ok: false, message: `${label} must be digits only.` };
+      return { ok: false, message: `${label} mag alleen cijfers bevatten.` };
     }
     if (v.length !== fixed) {
-      return { ok: false, message: `${label} must be ${fixed} digits.` };
+      return {
+        ok: false,
+        message: `${label} moet bestaan uit ${fixed} cijfers.`,
+      };
     }
     if (!hasValidCheckDigit(v)) {
-      return { ok: false, message: `That ${label} number looks incorrect.` };
+      return {
+        ok: false,
+        message: `Dat ${label} nummer lijkt niet te kloppen.`,
+      };
     }
     return { ok: true };
   }
@@ -95,7 +101,10 @@ export function validateBarcode(
   if (format === "code128") {
     // Code 128 covers the printable ASCII range (0x20–0x7E).
     if (!/^[\x20-\x7E]+$/.test(v)) {
-      return { ok: false, message: "Use letters, digits and basic symbols." };
+      return {
+        ok: false,
+        message: "Gebruik letters, cijfers en eenvoudige tekens.",
+      };
     }
     return { ok: true };
   }
@@ -109,7 +118,7 @@ export function validateBarcode(
     if (!/^[0-9A-Z \-\.\$\/\+\%]+$/.test(upper)) {
       return {
         ok: false,
-        message: "Use uppercase letters, digits and - . $ / + % or space.",
+        message: "Gebruik hoofdletters, cijfers en - . $ / + % of een spatie.",
       };
     }
     return { ok: true };

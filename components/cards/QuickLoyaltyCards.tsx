@@ -102,21 +102,22 @@ export function QuickLoyaltyCards(
   }
 
   return (
-    <Sheet open={open} onClose={onClose} title="Choose a loyalty card">
+    <Sheet open={open} onClose={onClose} title="Een klantenkaart kiezen">
       {cards.length === 0
         ? (
           <div class="flex flex-col items-center gap-4 py-6 text-center">
             <Icon name="card" size={32} />
             <div>
               <div class="md-title-medium text-on-surface">
-                No loyalty cards yet
+                Nog geen klantenkaarten
               </div>
               <p class="md-body-medium text-on-surface-variant mt-1">
-                Add one once, then it will be ready here while you shop.
+                Voeg een kaart toe. Daarna heb je ze hier bij de hand tijdens
+                het winkelen.
               </p>
             </div>
             <Button onClick={() => navigateTo("/cards")}>
-              Add a loyalty card
+              Een klantenkaart toevoegen
             </Button>
           </div>
         )

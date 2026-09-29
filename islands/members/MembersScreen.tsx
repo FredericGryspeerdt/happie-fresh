@@ -81,7 +81,7 @@ export default function MembersScreen(
           isManager: draftManager.value,
         });
         if (!created) {
-          say("Couldn't add that member. Try again?");
+          say("Het lid toevoegen is niet gelukt. Probeer opnieuw.");
           return;
         }
       } else if (editing) {
@@ -95,7 +95,7 @@ export default function MembersScreen(
             : {}),
         });
         if (!saved) {
-          say("Couldn't save those changes. Try again?");
+          say("De wijzigingen opslaan is niet gelukt. Probeer opnieuw.");
           return;
         }
       }
@@ -112,7 +112,7 @@ export default function MembersScreen(
     try {
       const ok = await removeMember(id);
       confirmingId.value = null;
-      if (!ok) say("Couldn't remove that member. Try again?");
+      if (!ok) say("Het lid verwijderen is niet gelukt. Probeer opnieuw.");
     } finally {
       removing.value = false;
     }
@@ -129,9 +129,9 @@ export default function MembersScreen(
             <ListItem
               leading={<MemberAvatar color={m.color} emoji={m.emoji} />}
               headline={m.name}
-              supporting={m.isManager ? "Manager" : undefined}
+              supporting={m.isManager ? "Beheerder" : undefined}
               trailing={canEdit(m)
-                ? <span class="md-label-large text-primary">Edit</span>
+                ? <span class="md-label-large text-primary">Bewerken</span>
                 : undefined}
               onClick={canEdit(m) ? () => openEdit(m) : undefined}
             />
@@ -142,7 +142,7 @@ export default function MembersScreen(
       {canManage && (
         <div class="pt-4 pb-6">
           <Button variant="filled" full onClick={openCreate}>
-            Add a member
+            Een lid toevoegen
           </Button>
         </div>
       )}
@@ -150,22 +150,22 @@ export default function MembersScreen(
       <Sheet
         open={editingId.value !== null}
         onClose={() => (editingId.value = null)}
-        title={editingId.value === "" ? "New member" : "Edit member"}
+        title={editingId.value === "" ? "Nieuw lid" : "Lid bewerken"}
       >
         <div class="flex flex-col gap-4 pb-2">
           <input
             type="text"
             value={draftName.value}
             onInput={(e) => (draftName.value = e.currentTarget.value)}
-            placeholder="Name or nickname"
-            aria-label="Name"
+            placeholder="Naam of roepnaam"
+            aria-label="Naam"
             class="w-full md-body-large text-on-surface bg-surface-chigh border-0 rounded-[var(--md-shape-lg)] py-3 px-4 outline-none"
           />
 
           <div
             class="flex flex-wrap gap-2"
             role="radiogroup"
-            aria-label="Colour"
+            aria-label="Kleur"
           >
             {AVATAR_COLORS.map((c) => (
               <button
@@ -173,7 +173,7 @@ export default function MembersScreen(
                 type="button"
                 role="radio"
                 aria-checked={draftColor.value === c.key}
-                aria-label={c.key}
+                aria-label={c.label}
                 onClick={() => (draftColor.value = c.key)}
                 class={`rounded-full ${
                   draftColor.value === c.key
@@ -215,17 +215,18 @@ export default function MembersScreen(
                 onChange={(e) => (draftManager.value = e.currentTarget.checked)}
                 class="w-5 h-5"
               />
-              Manages the household
+              Beheert het huishouden
             </label>
           )}
           {lockedLastManager && (
             <div class="md-body-medium text-on-surface-variant">
-              Every household needs a manager. Promote someone else first.
+              Elk huishouden heeft een beheerder nodig. Maak eerst iemand anders
+              beheerder.
             </div>
           )}
 
           <Button variant="filled" full loading={saving.value} onClick={submit}>
-            {editingId.value === "" ? "Add" : "Save"}
+            {editingId.value === "" ? "Toevoegen" : "Opslaan"}
           </Button>
           {canManage && editing && !lockedLastManager && (
             <Button
@@ -237,7 +238,7 @@ export default function MembersScreen(
                 confirmingId.value = id;
               }}
             >
-              Remove from household
+              Uit huishouden verwijderen
             </Button>
           )}
         </div>
@@ -247,9 +248,9 @@ export default function MembersScreen(
         <DestructiveConfirmationDialog
           open={confirmingId.value !== null}
           onClose={() => (confirmingId.value = null)}
-          headline="Remove this member?"
-          supportingText="Their name and avatar are gone for good. Things they added stay."
-          confirmLabel="Remove member"
+          headline="Dit lid verwijderen?"
+          supportingText="De naam en avatar worden definitief verwijderd. Alles wat dit lid heeft toegevoegd, blijft behouden."
+          confirmLabel="Lid verwijderen"
           pending={removing.value}
           onConfirm={confirmRemove}
         />

@@ -9,8 +9,8 @@ export const handler = define.handlers({
     // Deliberately the same sendToHousehold the sweep uses, differing only in
     // payload. A separate test path would verify code nobody uses in anger.
     const result = await sendToHousehold(householdId, {
-      title: "Happie is set up",
-      body: "Notifications are working.",
+      title: "Happie is ingesteld",
+      body: "Meldingen werken.",
       tag: "push-test",
       url: "/todos",
     });

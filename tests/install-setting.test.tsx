@@ -4,13 +4,13 @@ import InstallSetting from "@/islands/shell/InstallSetting.tsx";
 
 Deno.test("InstallSetting — SSR renders the row deterministically", () => {
   const html = render(<InstallSetting />);
-  assertStringIncludes(html, "Install the app");
+  assertStringIncludes(html, "De app installeren");
 });
 
 Deno.test("InstallSetting — sheet content is not rendered while closed", () => {
   const html = render(<InstallSetting />);
   assert(
-    !html.includes("Install Happie"),
+    !html.includes("Happie installeren"),
     "promptable button should not render while the sheet is closed",
   );
   assert(

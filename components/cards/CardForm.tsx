@@ -43,7 +43,7 @@ export function CardForm(
     form,
     scannerAvailable,
     saving,
-    submitLabel = "Save card",
+    submitLabel = "Kaart opslaan",
     submitIcon = "plus",
     onScan,
     onSubmit,
@@ -81,13 +81,13 @@ export function CardForm(
     <div class="flex flex-col gap-5 pt-1">
       {/* Label */}
       <div class="flex flex-col">
-        <label class={fieldLabel}>Card name</label>
+        <label class={fieldLabel}>Naam van de kaart</label>
         <div class="flex items-center bg-surface-chighest rounded-[var(--md-shape-sm)] h-12 px-4">
           <input
             value={form.label.value}
             onInput={(e) => (form.label.value = e.currentTarget.value)}
-            placeholder="e.g. Delhaize"
-            aria-label="Card name"
+            placeholder="bv. Delhaize"
+            aria-label="Naam van de kaart"
             class="flex-1 min-w-0 bg-transparent border-0 outline-none md-body-large text-on-surface"
           />
         </div>
@@ -95,13 +95,13 @@ export function CardForm(
 
       {/* Value + scan */}
       <div class="flex flex-col">
-        <label class={fieldLabel}>Barcode number</label>
+        <label class={fieldLabel}>Barcodenummer</label>
         <div class="flex items-center gap-2 bg-surface-chighest rounded-[var(--md-shape-sm)] h-12 pl-4 pr-1.5">
           <input
             value={value}
             onInput={(e) => onValueInput(e.currentTarget.value)}
-            placeholder="Type or scan the number"
-            aria-label="Barcode number"
+            placeholder="Typ of scan het nummer"
+            aria-label="Barcodenummer"
             inputMode={NUMERIC.includes(format) ? "numeric" : "text"}
             autocomplete="off"
             autocapitalize="off"
@@ -111,11 +111,11 @@ export function CardForm(
           {scannerAvailable && (
             <Pressable
               onClick={onScan}
-              aria-label="Scan barcode with camera"
+              aria-label="Barcode scannen met camera"
               class="inline-flex items-center gap-1.5 h-9 px-3 rounded-[var(--md-shape-full)] bg-secondary-container text-on-secondary-container shrink-0"
             >
               <Icon name="expand" size={18} />
-              <span class="md-label-large">Scan</span>
+              <span class="md-label-large">Scannen</span>
             </Pressable>
           )}
         </div>
@@ -128,7 +128,7 @@ export function CardForm(
 
       {/* Format */}
       <div class="flex flex-col">
-        <label class={fieldLabel}>Barcode type</label>
+        <label class={fieldLabel}>Soort barcode</label>
         <div class="flex gap-2 overflow-x-auto pr-1 pb-1">
           <Chip
             selected={isAuto}
@@ -136,8 +136,8 @@ export function CardForm(
             onClick={pickAuto}
           >
             {isAuto && trimmed.length > 0
-              ? `Auto · ${formatLabel(format)}`
-              : "Auto"}
+              ? `Automatisch · ${formatLabel(format)}`
+              : "Automatisch"}
           </Chip>
           {SUPPORTED_FORMATS.map((f) => (
             <Chip
@@ -154,7 +154,7 @@ export function CardForm(
 
       {/* Colour */}
       <div class="flex flex-col">
-        <label class={fieldLabel}>Colour</label>
+        <label class={fieldLabel}>Kleur</label>
         <div class="flex gap-3 pl-1">
           {CARD_COLORS.map((c) => {
             const on = form.color.value === c.key;
@@ -162,7 +162,7 @@ export function CardForm(
               <Pressable
                 key={c.key}
                 onClick={() => (form.color.value = c.key)}
-                aria-label={`Colour ${c.key}`}
+                aria-label={`Kleur ${c.label}`}
                 aria-pressed={on ? "true" : "false"}
                 class="grid place-items-center rounded-full shrink-0"
                 style={{
@@ -186,7 +186,7 @@ export function CardForm(
 
       {/* Live preview */}
       <div class="flex flex-col">
-        <label class={fieldLabel}>Preview</label>
+        <label class={fieldLabel}>Voorbeeld</label>
         <div class="grid place-items-center bg-white rounded-[var(--md-shape-md)] border border-outline-variant min-h-24 p-3">
           {check.ok
             ? (
@@ -204,7 +204,7 @@ export function CardForm(
             )
             : (
               <span class="md-body-small text-on-surface-variant">
-                Enter a valid number to preview the barcode.
+                Vul een geldig nummer in om de barcode te bekijken.
               </span>
             )}
         </div>
@@ -212,7 +212,7 @@ export function CardForm(
 
       {/* Actions */}
       <div class="flex gap-3 pt-1">
-        <Button variant="text" full onClick={onCancel}>Cancel</Button>
+        <Button variant="text" full onClick={onCancel}>Annuleren</Button>
         <Button
           variant="filled"
           full

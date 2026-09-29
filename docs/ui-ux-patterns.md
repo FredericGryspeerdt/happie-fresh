@@ -19,6 +19,13 @@ product ethos (warm, collaborative, all-ages, mobile-first PWA), see the top of
 
 ---
 
+## Interface language
+
+All app-owned copy is Dutch for Flanders, including accessibility labels, errors,
+notifications and install metadata. Use the Dutch terminology in `CONTEXT.md`,
+write strings directly in the existing components, and format dates and quantities
+with `nl-BE`. Keep stored keys and user-entered content unchanged.
+
 ## 1. Optimistic updates/deletes, pessimistic creates
 
 **Rule:** For **updates, deletes, toggles**, change local state immediately and

@@ -68,7 +68,7 @@ export async function sweepDueNotifications(): Promise<
       todo.householdId,
       {
         title: todo.title,
-        body: "Due now",
+        body: "Nu te doen",
         tag: `todo-${todo.id}`,
         url: "/todos",
       },

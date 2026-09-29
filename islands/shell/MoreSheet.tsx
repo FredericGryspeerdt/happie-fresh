@@ -27,7 +27,7 @@ const badge = (icon: IconName) => (
 export default function MoreSheet({ open, onClose }: MoreSheetProps) {
   const { snack, showSnack } = useSnack(2200);
   const soon = (label: string) => {
-    showSnack(`${label} — coming soon`);
+    showSnack(`${label} — binnenkort beschikbaar`);
   };
 
   const chevron = () => <Icon name="chevron" size={18} />;
@@ -64,16 +64,16 @@ export default function MoreSheet({ open, onClose }: MoreSheetProps) {
   };
   return (
     <>
-      <Sheet open={open} onClose={onClose} title="The household">
+      <Sheet open={open} onClose={onClose} title="Het huishouden">
         <div
           class="md-label-medium text-on-surface-variant uppercase tracking-wide"
           style={{ margin: "8px 4px 4px" }}
         >
-          Modules
+          Onderdelen
         </div>
         <ListItem
           leading={badge("cart")}
-          headline="Shopping"
+          headline="Boodschappen"
           trailing={chevron()}
           onClick={() => {
             onClose();
@@ -82,7 +82,7 @@ export default function MoreSheet({ open, onClose }: MoreSheetProps) {
         />
         <ListItem
           leading={badge("checklist")}
-          headline="To-dos"
+          headline="Te doen"
           trailing={chevron()}
           onClick={() => {
             onClose();
@@ -91,13 +91,13 @@ export default function MoreSheet({ open, onClose }: MoreSheetProps) {
         />
         <ListItem
           leading={badge("plate")}
-          headline="Menu planner"
+          headline="Weekmenu"
           trailing={chevron()}
-          onClick={() => soon("Menu planner")}
+          onClick={() => soon("Weekmenu")}
         />
         <ListItem
           leading={badge("card")}
-          headline="Loyalty cards"
+          headline="Klantenkaarten"
           trailing={chevron()}
           onClick={() => {
             onClose();
@@ -108,11 +108,11 @@ export default function MoreSheet({ open, onClose }: MoreSheetProps) {
           class="md-label-medium text-on-surface-variant uppercase tracking-wide"
           style={{ margin: "16px 4px 4px" }}
         >
-          Household
+          Huishouden
         </div>
         <ListItem
           leading={badge("people")}
-          headline="Members"
+          headline="Leden"
           trailing={chevron()}
           onClick={() => {
             onClose();
@@ -121,9 +121,9 @@ export default function MoreSheet({ open, onClose }: MoreSheetProps) {
         />
         <ListItem
           leading={badge("cog")}
-          headline="Settings"
+          headline="Instellingen"
           trailing={chevron()}
-          onClick={() => soon("Settings")}
+          onClick={() => soon("Instellingen")}
         />
         {
           /* onOpen={onClose} so the notifications sheet never stacks on top of
@@ -133,9 +133,9 @@ export default function MoreSheet({ open, onClose }: MoreSheetProps) {
         <InstallSetting onOpen={onClose} />
         <ListItem
           leading={badge("swap")}
-          headline="Switch household"
+          headline="Van huishouden wisselen"
           trailing={chevron()}
-          onClick={() => soon("Switch household")}
+          onClick={() => soon("Van huishouden wisselen")}
         />
         <a
           href="/launch-diagnostics"
@@ -144,8 +144,8 @@ export default function MoreSheet({ open, onClose }: MoreSheetProps) {
         >
           <ListItem
             leading={badge("bolt")}
-            headline="Launch diagnostics"
-            supporting="Temporary troubleshooting"
+            headline="Opstartdiagnose"
+            supporting="Tijdelijke probleemoplossing"
             trailing={chevron()}
           />
         </a>
@@ -155,7 +155,7 @@ export default function MoreSheet({ open, onClose }: MoreSheetProps) {
           style={{ padding: "16px" }}
           onClick={logOut}
         >
-          Log out
+          Uitloggen
         </a>
       </Sheet>
       <Snackbar data={snack.value} />

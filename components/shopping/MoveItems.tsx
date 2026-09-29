@@ -110,7 +110,7 @@ export function MoveItems(
     if (next.has(id)) next.delete(id);
     else if (next.size < MAX_MOVE_ITEMS) next.add(id);
     else {
-      showSnack(`Move up to ${MAX_MOVE_ITEMS} items at a time`);
+      showSnack(`Verplaats maximaal ${MAX_MOVE_ITEMS} producten tegelijk`);
       return;
     }
     selected.value = next;
@@ -122,16 +122,17 @@ export function MoveItems(
     beginBusy();
     // Persistent: the outcome is unknown until the request settles, so nothing
     // may dismiss this on a clock (the next snack replaces it).
-    showSnack("Undoing move…", undefined, undefined, null);
+    showSnack("Verplaatsing ongedaan maken…", undefined, undefined, null);
     try {
       const result = await api.shoppingList.undoMove(listId, requestId);
       if (result?.ok) {
         onRestored(result.items);
-        showSnack("Items moved back");
+        showSnack("Producten teruggeplaatst");
       } else {
         showSnack(
-          result?.error ?? "Couldn't confirm Undo. Try again.",
-          "Retry",
+          result?.error ??
+            "Ongedaan maken kon niet bevestigd worden. Probeer opnieuw.",
+          "Opnieuw proberen",
           () => void undo(requestId),
         );
       }
@@ -151,7 +152,8 @@ export function MoveItems(
     try {
       const ids = [...selected.value];
       if (!await prepareMove(ids)) {
-        error.value = "Couldn't save your latest changes. Try moving again.";
+        error.value =
+          "Je laatste wijzigingen opslaan is niet gelukt. Probeer opnieuw te verplaatsen.";
         return;
       }
       const input = request.value ?? {
@@ -165,7 +167,7 @@ export function MoveItems(
       const result = await api.shoppingList.moveItems(listId, input);
       if (!result?.ok) {
         error.value = result?.error ??
-          "Couldn't confirm the move. Try again to check.";
+          "De verplaatsing kon niet bevestigd worden. Probeer opnieuw om dit te controleren.";
         return;
       }
       if (!destinations.value.some((d) => d.id === result.destination.id)) {
@@ -180,9 +182,9 @@ export function MoveItems(
       active.value = false;
       showSnack(
         `${result.count} ${
-          result.count === 1 ? "item" : "items"
-        } moved to ${result.destination.name}`,
-        "Undo",
+          result.count === 1 ? "product" : "producten"
+        } verplaatst naar ${result.destination.name}`,
+        "Ongedaan maken",
         () => void undo(result.requestId),
       );
     } finally {
@@ -213,7 +215,7 @@ export function MoveItems(
         <>
           <div class="flex items-center justify-between gap-2">
             <span role="status" class="md-title-medium text-on-surface">
-              {count.value} selected
+              {count.value} geselecteerd
             </span>
             <div class="flex gap-1">
               <Button
@@ -224,19 +226,19 @@ export function MoveItems(
                   request.value = null;
                 }}
               >
-                Clear
+                Wissen
               </Button>
               <Button
                 variant="text"
                 disabled={busy.value}
                 onClick={() => active.value = false}
               >
-                Cancel
+                Annuleren
               </Button>
             </div>
           </div>
           <p class="md-body-small text-on-surface-variant">
-            Choose up to {MAX_MOVE_ITEMS} items to move.
+            Kies maximaal {MAX_MOVE_ITEMS} producten om te verplaatsen.
           </p>
           <div class="flex flex-col gap-4">
             {groups.map((g) => (
@@ -245,14 +247,14 @@ export function MoveItems(
                 class="flex flex-col gap-2"
               >
                 <div class="md-title-small text-primary uppercase tracking-wide px-1">
-                  {g.category?.label ?? "Uncategorized"}
+                  {g.category?.label ?? "Zonder categorie"}
                 </div>
                 {renderRows(g.items)}
               </div>
             ))}
             {checked.length > 0 && (
               <div class="flex flex-col gap-2">
-                <div class="md-title-small text-primary px-1">In cart</div>
+                <div class="md-title-small text-primary px-1">In de kar</div>
                 {renderRows(checked)}
               </div>
             )}
@@ -274,7 +276,7 @@ export function MoveItems(
                 sheetOpen.value = true;
               }}
             >
-              Move to list{count.value ? ` (${count.value})` : ""}
+              Naar lijst verplaatsen{count.value ? ` (${count.value})` : ""}
             </Button>
           </div>
         </>
@@ -283,18 +285,19 @@ export function MoveItems(
         <Sheet
           open
           onClose={closeSheet}
-          title="Move to list"
+          title="Naar lijst verplaatsen"
           class="w-full sm:max-w-lg sm:mx-auto"
         >
           <MoveFocusScope onClose={closeSheet}>
             <div>
               <p class="md-body-large text-on-surface-variant">
-                {count.value} {count.value === 1 ? "item" : "items"} from{" "}
+                {count.value} {count.value === 1 ? "product" : "producten"} uit
+                {" "}
                 {listName}
               </p>
               <p class="md-body-medium text-on-surface-variant mt-1 truncate">
                 {chosen.slice(0, 3).map((e) => getName(e.itemId)).join(", ")}
-                {count.value > 3 ? ` +${count.value - 3} more` : ""}
+                {count.value > 3 ? ` +${count.value - 3} meer` : ""}
               </p>
             </div>
             <div class="rounded-2xl bg-surface-chigh overflow-hidden">
@@ -302,7 +305,7 @@ export function MoveItems(
                 disabled={busy.value}
                 class="max-h-32 overflow-y-auto"
               >
-                <legend class="sr-only">Destination list</legend>
+                <legend class="sr-only">Doellijst</legend>
                 {destinations.value.map((d) => (
                   <label
                     key={d.id}
@@ -325,7 +328,7 @@ export function MoveItems(
               </fieldset>
               {!destinations.value.length && (
                 <p class="px-4 pt-4 md-body-medium text-on-surface-variant">
-                  Create a list for these items.
+                  Maak een lijst aan voor deze producten.
                 </p>
               )}
               <div class="border-t border-outline-variant mx-4" />
@@ -344,7 +347,7 @@ export function MoveItems(
                   request.value = null;
                 }}
               >
-                Create new list
+                Nieuwe lijst aanmaken
               </Button>
             </div>
             {error.value && (
@@ -363,7 +366,7 @@ export function MoveItems(
               }`}
               onClick={() => void move(false)}
             >
-              Move {count.value} {count.value === 1 ? "item" : "items"}
+              Verplaats selectie
             </Button>
             <Button
               variant="text"
@@ -371,7 +374,7 @@ export function MoveItems(
               disabled={busy.value}
               onClick={closeSheet}
             >
-              Cancel
+              Annuleren
             </Button>
           </MoveFocusScope>
         </Sheet>
@@ -389,7 +392,7 @@ export function MoveItems(
       {creating.value && (
         <Dialog
           open
-          headline="Create new list"
+          headline="Nieuwe lijst aanmaken"
           onClose={() => {
             if (!busy.value) {
               creating.value = false;
@@ -406,14 +409,14 @@ export function MoveItems(
                   sheetOpen.value = true;
                 }}
               >
-                Cancel
+                Annuleren
               </Button>
               <Button
                 loading={busy.value}
                 disabled={!newName.value.trim()}
                 onClick={() => void move(true)}
               >
-                Create &amp; move
+                Aanmaken en verplaatsen
               </Button>
             </>
           }
@@ -425,7 +428,7 @@ export function MoveItems(
             }}
           >
             <label class="block md-body-medium" for="move-new-list-name">
-              List name
+              Naam van de lijst
             </label>
             <input
               ref={nameInput}
@@ -441,9 +444,9 @@ export function MoveItems(
               class="mt-2 w-full md-body-large text-on-surface bg-surface-clow rounded-xl border border-outline-variant px-4 py-3"
             />
             <p class="mt-3 md-body-medium">
-              {count.value} {count.value === 1 ? "item will" : "items will"}
-              {" "}
-              move from {listName}.
+              {count.value}{" "}
+              {count.value === 1 ? "product wordt" : "producten worden"}{" "}
+              verplaatst vanuit {listName}.
             </p>
             {error.value && (
               <p role="alert" class="mt-3 md-body-medium text-error">

@@ -8,7 +8,7 @@ export const handler = define.handlers({
     const householdId = ctx.state.householdId!;
     ctx.state.appBar = {
       mode: "detail",
-      title: "Aisle order",
+      title: "Volgorde in de winkel",
       backUrl: "/shopping/catalogue",
     };
     const categories = await CategoryRepo.getAll(householdId);

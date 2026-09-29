@@ -12,7 +12,7 @@ Deno.test("NavigationBar — renders all five tab labels", () => {
       onMore: () => {},
     }),
   );
-  for (const label of ["Home", "Shop", "To-dos", "Menu", "More"]) {
+  for (const label of ["Start", "Winkelen", "Te doen", "Menu", "Meer"]) {
     assertStringIncludes(html, label);
   }
 });

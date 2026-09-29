@@ -7,13 +7,13 @@ Deno.test("DesignShowcase — renders a section per component family", () => {
   const html = render(h(DesignShowcase, {}));
   for (
     const section of [
-      "Buttons",
-      "Text fields",
-      "Switches",
-      "Dividers &amp; lists",
-      "Dialogs",
-      "Chips &amp; segmented",
-      "Feedback",
+      "Knoppen",
+      "Tekstvelden",
+      "Schakelaars",
+      "Scheidingslijnen en lijsten",
+      "Dialoogvensters",
+      "Keuzeknoppen en segmenten",
+      "Terugkoppeling",
     ]
   ) {
     assertStringIncludes(html, section);

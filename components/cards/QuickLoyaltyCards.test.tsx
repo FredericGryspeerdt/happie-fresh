@@ -51,8 +51,8 @@ Deno.test("QuickLoyaltyCards — no cards offers the management route", () => {
     open: true,
     onClose: () => {},
   }));
-  assertStringIncludes(html, "No loyalty cards yet");
-  assertStringIncludes(html, "Add a loyalty card");
+  assertStringIncludes(html, "Nog geen klantenkaarten");
+  assertStringIncludes(html, "Een klantenkaart toevoegen");
 });
 
 Deno.test("QuickLoyaltyCards — one card skips the picker", () => {
@@ -61,8 +61,8 @@ Deno.test("QuickLoyaltyCards — one card skips the picker", () => {
     open: true,
     onClose: () => {},
   }));
-  assertStringIncludes(html, 'aria-label="Close"');
-  assertFalse(html.includes('aria-label="Choose a loyalty card"'));
+  assertStringIncludes(html, 'aria-label="Sluiten"');
+  assertFalse(html.includes('aria-label="Een klantenkaart kiezen"'));
 });
 
 Deno.test("QuickLoyaltyCards — several cards render the picker", () => {
@@ -71,7 +71,7 @@ Deno.test("QuickLoyaltyCards — several cards render the picker", () => {
     open: true,
     onClose: () => {},
   }));
-  assertStringIncludes(html, 'aria-label="Choose a loyalty card"');
+  assertStringIncludes(html, 'aria-label="Een klantenkaart kiezen"');
   assertStringIncludes(html, "Alpha");
   assertStringIncludes(html, "Beta");
 });

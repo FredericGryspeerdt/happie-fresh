@@ -5,13 +5,13 @@ import { InstallGuidance } from "@/components/shell/InstallGuidance.tsx";
 
 Deno.test("InstallGuidance — iOS variant walks through the share sheet", () => {
   const html = render(h(InstallGuidance, { variant: "ios" }));
-  assertStringIncludes(html, "Share");
-  assertStringIncludes(html, "Add to Home Screen");
+  assertStringIncludes(html, "Delen");
+  assertStringIncludes(html, "Zet op beginscherm");
   assertStringIncludes(html, "<ol");
 });
 
 Deno.test("InstallGuidance — generic variant points at the browser menu", () => {
   const html = render(h(InstallGuidance, { variant: "generic" }));
-  assertStringIncludes(html, "Install app");
-  assertStringIncludes(html, "Add to Home Screen");
+  assertStringIncludes(html, "App installeren");
+  assertStringIncludes(html, "Zet op beginscherm");
 });

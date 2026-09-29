@@ -30,5 +30,5 @@ Deno.test("PullToRefresh — idle: sr-only status present, no error snackbar", (
     h(PullToRefresh, { onRefresh: () => Promise.resolve() }, h("p", null, "x")),
   );
   assertStringIncludes(html, "aria-live");
-  assert(!html.includes("Couldn't refresh")); // error snackbar hidden at idle
+  assert(!html.includes("Vernieuwen is niet gelukt")); // error snackbar hidden at idle
 });

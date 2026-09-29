@@ -6,8 +6,8 @@ export default define.page(function Home() {
     <main class="max-w-md mx-auto">
       <ComingSoon
         icon="home"
-        title="Home"
-        blurb="Your family dashboard is on the way. For now, jump into Shopping."
+        title="Start"
+        blurb="Het overzicht voor je huishouden komt eraan. Ga intussen naar Boodschappen."
       />
     </main>
   );

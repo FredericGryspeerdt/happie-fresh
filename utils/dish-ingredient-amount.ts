@@ -7,7 +7,9 @@ import {
 
 export function formatDishIngredientAmount(amount: ShoppingAmount): string {
   if (amount.unit === "pieces") {
-    return `${amount.quantity} ${amount.quantity === 1 ? "piece" : "pieces"}`;
+    return `${formatShoppingAmount(amount.quantity)} ${
+      amount.quantity === 1 ? "stuk" : "stuks"
+    }`;
   }
   return formatShoppingAmount(amount.quantity, amount.unit);
 }

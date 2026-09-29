@@ -25,7 +25,7 @@ export default function App(
 ) {
   const activeTab = resolveActiveTab(url.pathname);
   return (
-    <html>
+    <html lang="nl-BE">
       <Head>
         <meta charset="utf-8" />
         <meta

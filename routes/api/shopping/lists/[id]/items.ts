@@ -15,14 +15,14 @@ import { authorizeList } from "@/utils/authorize-list.ts";
 export const handler = define.handlers({
   async GET(ctx) {
     const list = await authorizeList(ctx, ctx.params.id);
-    if (!list) return new Response("Forbidden", { status: 403 });
+    if (!list) return new Response("Geen toegang", { status: 403 });
     const items = await ShoppingListItemRepo.getAll(list.id);
     return json(items);
   },
 
   async POST(ctx) {
     const list = await authorizeList(ctx, ctx.params.id);
-    if (!list) return new Response("Forbidden", { status: 403 });
+    if (!list) return new Response("Geen toegang", { status: 403 });
     const { itemId } = await ctx.req.json();
     if (!itemId) return badRequest("itemId required");
     const entry = await ShoppingListItemRepo.add(list.id, itemId);
@@ -31,12 +31,12 @@ export const handler = define.handlers({
 
   async PATCH(ctx) {
     const list = await authorizeList(ctx, ctx.params.id);
-    if (!list) return new Response("Forbidden", { status: 403 });
+    if (!list) return new Response("Geen toegang", { status: 403 });
     let body: unknown;
     try {
       body = await ctx.req.json();
     } catch {
-      return badRequest("invalid JSON");
+      return badRequest("Ongeldige gegevens");
     }
     if (!body || typeof body !== "object") return badRequest("invalid item");
     const { id, quantity, unit, note, checked } = body as Record<
@@ -69,7 +69,7 @@ export const handler = define.handlers({
 
   async DELETE(ctx) {
     const list = await authorizeList(ctx, ctx.params.id);
-    if (!list) return new Response("Forbidden", { status: 403 });
+    if (!list) return new Response("Geen toegang", { status: 403 });
     const { id } = await ctx.req.json();
     if (!id) return badRequest("id required");
     await ShoppingListItemRepo.delete(list.id, id);

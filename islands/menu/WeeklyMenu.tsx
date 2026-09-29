@@ -8,7 +8,7 @@ import type {
   Weekday,
   WeeklyMenuInterface,
 } from "@/models/index.ts";
-import { WEEKDAY_ORDER } from "@/models/index.ts";
+import { WEEKDAY_LABELS, WEEKDAY_ORDER } from "@/models/index.ts";
 import { useWeeklyMenu as createWeeklyMenu } from "@/hooks/useWeeklyMenu.ts";
 import { PullToRefresh } from "@/components/md3/PullToRefresh.tsx";
 import { Card } from "@/components/md3/Card.tsx";
@@ -101,11 +101,11 @@ export default function WeeklyMenu(
       clearOpen.value = false;
       ok
         ? showSnack(
-          "Cleared this week",
-          "Undo",
+          "Deze week leeggemaakt",
+          "Ongedaan maken",
           () => void restoreEntries(prev),
         )
-        : showSnack("Couldn't clear this week");
+        : showSnack("Deze week leegmaken is niet gelukt");
     } finally {
       clearWeekPending.value = false;
     }
@@ -117,21 +117,25 @@ export default function WeeklyMenu(
     void shopping.confirm().then((out) => {
       if (!out) return; // The review shows the recoverable error beside Retry.
       if (out.count === 0) {
-        return showSnack("Everything was already on the list");
+        return showSnack("Alles stond al op de lijst");
       }
       showSnack(
-        `Added ${out.count} to ${out.list.name}`,
-        "Open list",
+        `Toegevoegd ${out.count} aan ${out.list.name}`,
+        "Lijst openen",
         () => navigateTo(`/shopping/${out.list.id}`),
       );
-    }).catch(() => showSnack("Couldn't add to the list — try again"));
+    }).catch(() =>
+      showSnack("Toevoegen aan de lijst is niet gelukt — probeer opnieuw")
+    );
   };
 
   const onStartShopping = () => {
     if (pickerOpen.value || weeklyMenu.pendingCount.value > 0) return;
     void shopping.start().then((ok) => {
-      if (!ok) showSnack("Couldn't load your lists — try again");
-    }).catch(() => showSnack("Couldn't load your lists — try again"));
+      if (!ok) showSnack("Je lijsten laden is niet gelukt — probeer opnieuw");
+    }).catch(() =>
+      showSnack("Je lijsten laden is niet gelukt — probeer opnieuw")
+    );
   };
 
   const tagsFor = (dish?: DishInterface) =>
@@ -161,13 +165,13 @@ export default function WeeklyMenu(
         {/* header */}
         <div class="flex items-center justify-between px-4 pt-4">
           <div>
-            <div class="md-title-medium text-on-surface">This week</div>
+            <div class="md-title-medium text-on-surface">Deze week</div>
             <div class="md-body-small text-on-surface-variant">
               {entries.length === 0
-                ? "Nothing planned yet"
-                : `${entries.length} dish${
-                  entries.length === 1 ? "" : "es"
-                } planned`}
+                ? "Nog niets gepland"
+                : `${entries.length} ${
+                  entries.length === 1 ? "gerecht" : "gerechten"
+                } gepland`}
             </div>
           </div>
           {entries.length > 0 && (
@@ -177,7 +181,7 @@ export default function WeeklyMenu(
                 weeklyMenu.pendingCount.value > 0}
               class="md-label-large text-on-surface-variant px-2 py-1 rounded-[var(--md-shape-full)]"
             >
-              Clear
+              Wissen
             </Pressable>
           )}
         </div>
@@ -190,7 +194,7 @@ export default function WeeklyMenu(
               disabled={shopping.loading.value}
               onClick={() => (pickerOpen.value = true)}
             >
-              Add dishes
+              Gerechten toevoegen
             </Button>
           </div>
         )}
@@ -205,9 +209,11 @@ export default function WeeklyMenu(
                 <Icon name="plate" size={40} />
               </div>
               <div>
-                <div class="md-title-medium text-on-surface">No dishes yet</div>
+                <div class="md-title-medium text-on-surface">
+                  Nog geen gerechten
+                </div>
                 <div class="md-body-medium text-on-surface-variant mt-1">
-                  Pick dishes from your catalogue to plan the week.
+                  Kies gerechten uit je catalogus voor het weekmenu.
                 </div>
               </div>
               <Button
@@ -216,7 +222,7 @@ export default function WeeklyMenu(
                 disabled={shopping.loading.value}
                 onClick={() => (pickerOpen.value = true)}
               >
-                Add dishes
+                Gerechten toevoegen
               </Button>
             </div>
           )
@@ -233,11 +239,11 @@ export default function WeeklyMenu(
                         icon={e.day ? undefined : "calendar"}
                         onClick={() => (dayPickEntryId.value = e.id)}
                       >
-                        {e.day ?? "Any"}
+                        {e.day ? WEEKDAY_LABELS[e.day] : "Vrij"}
                       </Chip>
                       <div class="flex-1 min-w-0">
                         <div class="md-title-small text-on-surface truncate">
-                          {dish?.name ?? "Unknown dish"}
+                          {dish?.name ?? "Onbekend gerecht"}
                         </div>
                         {tagsFor(dish).length > 0 && (
                           <div class="flex gap-1.5 flex-wrap mt-1.5">
@@ -254,9 +260,9 @@ export default function WeeklyMenu(
                       </div>
                       <IconButton
                         name="x"
-                        aria-label={`Remove ${
-                          dish?.name ?? "dish"
-                        } from this week`}
+                        aria-label={`Verwijderen ${
+                          dish?.name ?? "gerecht"
+                        } uit deze week`}
                         onClick={() => (entryToRemove.value = e.id)}
                       />
                     </div>
@@ -284,7 +290,7 @@ export default function WeeklyMenu(
                 paddingBottom: 8,
               }}
             >
-              Add ingredients to a shopping list
+              Ingrediënten aan boodschappenlijst toevoegen
             </Button>
           </div>
         </div>
@@ -302,19 +308,19 @@ export default function WeeklyMenu(
       <Sheet
         open={dayPickEntryId.value !== null}
         onClose={() => (dayPickEntryId.value = null)}
-        title="Pin to a day"
+        title="Aan een dag koppelen"
       >
         <div class="flex flex-wrap gap-2 pb-2">
           <Chip selected={currentDay === null} onClick={() => pickDay(null)}>
-            Any day
+            Geen vaste dag
           </Chip>
           {WEEKDAY_ORDER.map((d) => (
             <Chip
-              key={d}
+              key={WEEKDAY_LABELS[d]}
               selected={currentDay === d}
               onClick={() => pickDay(d)}
             >
-              {d}
+              {WEEKDAY_LABELS[d]}
             </Chip>
           ))}
         </div>
@@ -328,7 +334,9 @@ export default function WeeklyMenu(
         onToggle={shopping.toggleDish}
         onContinue={() =>
           void shopping.review().then((ok) => {
-            if (!ok) showSnack("Couldn't load ingredients — try again");
+            if (!ok) {
+              showSnack("Ingrediënten laden is niet gelukt — probeer opnieuw");
+            }
           })}
         onClose={shopping.cancel}
       />
@@ -365,19 +373,23 @@ export default function WeeklyMenu(
         markedListId={shopping.chosenList.value?.id ??
           shopping.rememberedListId.value}
         markedLabel={shopping.chosenList.value
-          ? "Current list"
-          : "Used last time"}
+          ? "Huidige lijst"
+          : "Vorige keer gebruikt"}
         busy={shopping.loading.value}
         onPick={(l) =>
           void shopping.chooseList(l).then((ok) => {
-            if (!ok) showSnack("Couldn't load ingredients — try again");
+            if (!ok) {
+              showSnack("Ingrediënten laden is niet gelukt — probeer opnieuw");
+            }
           })}
         onCreate={(name) =>
           shopping.createList(name).then((ok) => {
-            if (!ok) showSnack("Couldn't create the list — try again");
+            if (!ok) {
+              showSnack("De lijst aanmaken is niet gelukt — probeer opnieuw");
+            }
             return ok;
           }).catch(() => {
-            showSnack("Couldn't create the list — try again");
+            showSnack("De lijst aanmaken is niet gelukt — probeer opnieuw");
             return false;
           })}
         onClose={shopping.cancel}
@@ -385,14 +397,14 @@ export default function WeeklyMenu(
 
       <DestructiveConfirmationDialog
         open={entryToRemove.value !== null}
-        headline="Remove from this week?"
+        headline="Uit deze week verwijderen?"
         supportingText={`“${
           dishById.get(
             entries.find((entry) => entry.id === entryToRemove.value)?.dishId ??
               "",
-          )?.name ?? "This dish"
-        }” will stay in your dishes.`}
-        confirmLabel="Remove dish"
+          )?.name ?? "Dit gerecht"
+        }” blijft bij je gerechten staan.`}
+        confirmLabel="Gerecht verwijderen"
         pending={entryRemovalPending.value}
         onClose={() => (entryToRemove.value = null)}
         onConfirm={async () => {
@@ -402,7 +414,9 @@ export default function WeeklyMenu(
           try {
             const ok = await removeEntry(id);
             entryToRemove.value = null;
-            showSnack(ok ? "Removed from this week" : "Couldn't remove it");
+            showSnack(
+              ok ? "Uit deze week verwijderd" : "Verwijderen is niet gelukt",
+            );
           } finally {
             entryRemovalPending.value = false;
           }
@@ -410,9 +424,9 @@ export default function WeeklyMenu(
       />
       <DestructiveConfirmationDialog
         open={clearOpen.value}
-        headline="Clear this week?"
-        supportingText="Every planned dish will be removed. You can undo this afterwards."
-        confirmLabel="Clear week"
+        headline="Deze week leegmaken?"
+        supportingText="Alle geplande gerechten worden verwijderd. Je kunt dit achteraf ongedaan maken."
+        confirmLabel="Week leegmaken"
         pending={clearWeekPending.value}
         onClose={() => (clearOpen.value = false)}
         onConfirm={onClear}

@@ -15,7 +15,10 @@ Deno.test("DishCatalogue — failed removal keeps the dialog open and reports fa
   );
 
   assertEquals(closed, false);
-  assertEquals(message, "Couldn't remove that dish — try again");
+  assertEquals(
+    message,
+    "Het gerecht verwijderen is niet gelukt — probeer opnieuw",
+  );
 });
 
 Deno.test("DishCatalogue — renders dishes, search, and the add FAB", () => {
@@ -48,8 +51,8 @@ Deno.test("DishCatalogue — renders dishes, search, and the add FAB", () => {
   }));
   assertStringIncludes(html, "Pasta Bolognese");
   assertStringIncludes(html, "Veggie Curry");
-  assertStringIncludes(html, "Search dishes"); // search kept
-  assertStringIncludes(html, "Add dish"); // FAB label
+  assertStringIncludes(html, "Gerechten zoeken"); // search kept
+  assertStringIncludes(html, "Gerecht toevoegen"); // FAB label
 });
 
 Deno.test("DishCatalogue — empty state prompts adding a dish", () => {
@@ -57,7 +60,7 @@ Deno.test("DishCatalogue — empty state prompts adding a dish", () => {
     initialDishes: [],
     initialTagGroups: [],
   }));
-  assertStringIncludes(html, "No dishes yet");
+  assertStringIncludes(html, "Nog geen gerechten");
 });
 
 Deno.test("DishCatalogue — shows Added for a dish already in the week", () => {
@@ -72,11 +75,11 @@ Deno.test("DishCatalogue — shows Added for a dish already in the week", () => 
       entries: [{ id: "e1", dishId: "1", day: null }],
     },
   }));
-  assertStringIncludes(html, "Added"); // dish 1 is in the week
+  assertStringIncludes(html, "Toegevoegd"); // dish 1 is in the week
   // "Add" is a substring of "Added", so a plain includes() check here is
   // trivially satisfied by dish 1 alone — count exact label matches instead
   // to prove dish 2 renders the un-planned "Add" label.
-  assertEquals((html.match(/>Added</g) || []).length, 1);
-  assertEquals((html.match(/>Add</g) || []).length, 1);
-  assertStringIncludes(html, "Remove from this week?");
+  assertEquals((html.match(/>Toegevoegd</g) || []).length, 1);
+  assertEquals((html.match(/>Toevoegen</g) || []).length, 1);
+  assertStringIncludes(html, "Uit deze week verwijderen?");
 });

@@ -27,15 +27,15 @@ Deno.test("Items — wake lock is wanted only in Shop mode with open entries", (
 
 Deno.test("Items — renders Plan and Shop mode toggle", () => {
   const html = render(h(Items, base));
-  assertStringIncludes(html, "Plan");
-  assertStringIncludes(html, "Shop");
+  assertStringIncludes(html, "Plannen");
+  assertStringIncludes(html, "Winkelen");
 });
 
 Deno.test("Items — Plan mode shows the Add items FAB, no quick-add sheet", () => {
   const html = render(h(Items, base));
-  assertStringIncludes(html, "Add items"); // FAB label
-  assertFalse(html.includes('aria-label="Loyalty cards"'));
-  assert(!html.includes("Search your catalogue")); // old quick-add sheet gone
+  assertStringIncludes(html, ">Toevoegen</span>"); // FAB label
+  assertFalse(html.includes('aria-label="Klantenkaarten"'));
+  assert(!html.includes("Zoek in je catalogus")); // old quick-add sheet gone
 });
 
 Deno.test("Items — Shop mode replaces Add items with Loyalty cards", () => {
@@ -54,8 +54,8 @@ Deno.test("Items — Shop mode replaces Add items with Loyalty cards", () => {
     }],
   }));
 
-  assertStringIncludes(html, 'aria-label="Loyalty cards"');
-  assertFalse(html.includes('aria-label="Add items"'));
+  assertStringIncludes(html, 'aria-label="Klantenkaarten"');
+  assertFalse(html.includes('aria-label="Producten toevoegen"'));
 });
 
 Deno.test("Items — completed Shop mode promotes the loyalty-card action", () => {
@@ -74,8 +74,8 @@ Deno.test("Items — completed Shop mode promotes the loyalty-card action", () =
     }],
   }));
 
-  assertStringIncludes(html, "Show loyalty card");
-  assertFalse(html.includes('aria-label="Loyalty cards"'));
+  assertStringIncludes(html, "Klantenkaart tonen");
+  assertFalse(html.includes('aria-label="Klantenkaarten"'));
 });
 
 Deno.test("Items — mounts the closed quick-card surface with household cards", () => {
@@ -110,34 +110,34 @@ Deno.test("Items — canDelete: false hides the Delete list affordance", () => {
   // "Delete list" is present in a cold SSR render whenever canDelete is true,
   // making the false case directly observable here.
   const html = render(h(Items, { ...base, canDelete: false }));
-  assertFalse(html.includes("Delete list"));
+  assertFalse(html.includes("Lijst verwijderen"));
 });
 
 Deno.test("Items — list options keeps rename input out of the sheet", () => {
   const html = render(h(Items, base));
-  const sheetStart = html.indexOf('aria-label="List options"');
-  const renameDialogStart = html.indexOf('aria-label="Rename list"');
+  const sheetStart = html.indexOf('aria-label="Lijstopties"');
+  const renameDialogStart = html.indexOf('aria-label="Lijstnaam wijzigen"');
 
   assert(sheetStart >= 0);
   assert(renameDialogStart > sheetStart);
   assertStringIncludes(
     html.slice(sheetStart, renameDialogStart),
-    "Rename list",
+    "Lijstnaam wijzigen",
   );
   assertFalse(html.slice(sheetStart, renameDialogStart).includes("<input"));
 });
 
 Deno.test("Items — rename dialog uses a text field and form submit", () => {
   const html = render(h(Items, base));
-  const renameDialogStart = html.indexOf('aria-label="Rename list"');
+  const renameDialogStart = html.indexOf('aria-label="Lijstnaam wijzigen"');
   const renameDialog = html.slice(renameDialogStart);
 
   assert(renameDialogStart >= 0);
   assertStringIncludes(renameDialog, "<form");
   assertStringIncludes(renameDialog, 'id="list-name"');
   assertStringIncludes(renameDialog, 'type="submit"');
-  assertStringIncludes(renameDialog, ">Cancel</");
-  assertStringIncludes(renameDialog, ">Save</");
+  assertStringIncludes(renameDialog, ">Annuleren</");
+  assertStringIncludes(renameDialog, ">Opslaan</");
 });
 
 Deno.test("Items — item editor is a closed dialog without a note field", () => {
@@ -148,7 +148,7 @@ Deno.test("Items — item editor is a closed dialog without a note field", () =>
       5,
   );
   assertFalse(html.includes("<textarea"));
-  assertStringIncludes(html, "Delete this shopping list?");
-  assertStringIncludes(html, "Clear checked items?");
-  assertStringIncludes(html, "Remove from this list?");
+  assertStringIncludes(html, "Deze boodschappenlijst verwijderen?");
+  assertStringIncludes(html, "Afgevinkte producten wissen?");
+  assertStringIncludes(html, "Van deze lijst verwijderen?");
 });

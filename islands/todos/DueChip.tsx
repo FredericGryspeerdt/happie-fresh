@@ -26,7 +26,9 @@ export default function DueChip({ dueAt, now, onClick }: Props) {
   return (
     <Pressable
       onClick={onClick}
-      aria-label={dueAt ? "Change due date" : "Add a due date"}
+      aria-label={dueAt
+        ? "Geplande datum wijzigen"
+        : "Geplande datum toevoegen"}
       // The visible pill (the inner span below) stays exactly its previous
       // size — the padding here is invisible: no border, no background, just
       // room around it. It only grows the *tap target* to a real ≥44px
@@ -47,7 +49,7 @@ export default function DueChip({ dueAt, now, onClick }: Props) {
           : (
             <>
               <Icon name="plus" size={13} />
-              due
+              wanneer
             </>
           )}
       </span>

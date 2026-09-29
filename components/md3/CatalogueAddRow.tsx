@@ -66,7 +66,7 @@ export function CatalogueAddRow(
             <Pressable
               onClick={onRemove}
               stop
-              aria-label={`Remove ${name}`}
+              aria-label={`Verwijderen ${name}`}
               class="w-8 h-8 grid place-items-center rounded-full text-on-surface-variant"
             >
               <Icon name="x" size={18} />
@@ -76,7 +76,7 @@ export function CatalogueAddRow(
             ? <Stepper value={quantity!} onChange={onQtyChange!} />
             : (
               <span class="inline-flex items-center gap-1 text-primary md-label-medium">
-                <Icon name="check" size={18} /> Added
+                <Icon name="check" size={18} /> Toegevoegd
               </span>
             )}
         </div>

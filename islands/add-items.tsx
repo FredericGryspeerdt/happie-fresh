@@ -136,12 +136,14 @@ export default function AddItems(
       if (!out) return;
       showSnack(
         out.count === 0
-          ? "Everything was already on the list"
-          : `Added ${out.count} to ${out.list.name}`,
-        "Open list",
+          ? "Alles stond al op de lijst"
+          : `Toegevoegd ${out.count} aan ${out.list.name}`,
+        "Lijst openen",
         () => navigateTo(`/shopping/${out.list.id}`),
       );
-    }).catch(() => showSnack("Couldn't add to the list — try again"));
+    }).catch(() =>
+      showSnack("Toevoegen aan de lijst is niet gelukt — probeer opnieuw")
+    );
   };
 
   const trackAdded = (liId: string | null) => {
@@ -151,7 +153,7 @@ export default function AddItems(
   const handleAdd = async (itemId: string) => {
     const liId = await addToList(itemId);
     if (liId) trackAdded(liId);
-    else showSnack("Couldn't add that item — try again");
+    else showSnack("Toevoegen is niet gelukt — probeer opnieuw");
   };
 
   const handleCreate = async (name: string) => {
@@ -161,7 +163,7 @@ export default function AddItems(
     );
     if (!liId) {
       // Keep the typed name and chosen category so the user can retry.
-      showSnack("Couldn't create that item — try again");
+      showSnack("Aanmaken is niet gelukt — probeer opnieuw");
       return;
     }
     trackAdded(liId);
@@ -175,7 +177,7 @@ export default function AddItems(
     const li = list.value.find((entry) => entry.id === liId);
     itemToRemove.value = {
       id: liId,
-      name: li ? getItemName(li.itemId) : "This item",
+      name: li ? getItemName(li.itemId) : "Dit product",
     };
     if (editingId.value === liId) editingId.value = null;
   };
@@ -190,7 +192,7 @@ export default function AddItems(
           id !== target.id
         );
         itemToRemove.value = null;
-      } else showSnack("Couldn't remove that item — try again");
+      } else showSnack("Verwijderen is niet gelukt — probeer opnieuw");
     } finally {
       removing.value = false;
     }
@@ -205,7 +207,7 @@ export default function AddItems(
   const q = query.value.trim();
   const selectedCatLabel =
     categories.value.find((c) => c.id === selectedCategoryId.value)?.label ??
-      "Uncategorized";
+      "Zonder categorie";
 
   // Memoized so each row does a Map lookup, not an O(n) find over categories.
   const catLabelById = useComputed(() =>
@@ -250,13 +252,13 @@ export default function AddItems(
           <div class="flex items-center gap-1 px-1" style={{ height: 56 }}>
             <Pressable
               onClick={() => (catPicking.value = false)}
-              aria-label="Back to search"
+              aria-label="Terug naar zoeken"
               class="grid place-items-center text-on-surface-variant rounded-full shrink-0"
               style={{ width: 40, height: 40 }}
             >
               <Icon name="back" size={22} />
             </Pressable>
-            <div class="md-title-large text-on-surface">Choose category</div>
+            <div class="md-title-large text-on-surface">Categorie kiezen</div>
           </div>
         </header>
         <div class="px-4 pt-1 pb-28">
@@ -295,7 +297,7 @@ export default function AddItems(
             ? (
               <Pressable
                 onClick={onClose}
-                aria-label="Back"
+                aria-label="Terug"
                 class="grid place-items-center text-on-surface-variant rounded-full shrink-0"
                 style={{ width: 40, height: 40 }}
               >
@@ -305,7 +307,7 @@ export default function AddItems(
             : (
               <a
                 href={`/shopping/${listId}`}
-                aria-label="Back"
+                aria-label="Terug"
                 class="md-press grid place-items-center text-on-surface-variant rounded-full shrink-0"
                 style={{ width: 40, height: 40 }}
               >
@@ -327,7 +329,7 @@ export default function AddItems(
                 query.value = (e.target as HTMLInputElement).value;
                 createExpanded.value = false; // typing re-collapses the create row
               }}
-              placeholder="Search or add an item…"
+              placeholder="Zoek een product of voeg er een toe…"
               class="w-full md-body-large text-on-surface bg-surface-chigh border-0 rounded-[var(--md-shape-full)] py-2.5 pl-10 pr-10 outline-none"
             />
             {q && (
@@ -336,7 +338,7 @@ export default function AddItems(
                   query.value = "";
                   inputRef.current?.focus();
                 }}
-                aria-label="Clear search"
+                aria-label="Zoekveld wissen"
                 class="absolute right-2 top-1/2 -translate-y-1/2 grid place-items-center text-on-surface-variant rounded-full"
                 style={{ width: 32, height: 32 }}
               >
@@ -350,7 +352,7 @@ export default function AddItems(
       <div class="px-4 pt-2 pb-28 flex flex-col gap-2">
         {/* Context line */}
         <div class="md-label-medium text-on-surface-variant px-1">
-          Adding to {listName}
+          Toevoegen aan {listName}
         </div>
 
         {targetList && initialMenu.entries.length > 0 && (
@@ -361,7 +363,7 @@ export default function AddItems(
             disabled={menuShopping.loading.value}
             onClick={startMenuShopping}
           >
-            Add this week’s ingredients
+            Ingrediënten voor deze week toevoegen
           </Button>
         )}
 
@@ -375,7 +377,7 @@ export default function AddItems(
             >
               <Icon name="check" size={18} class="text-primary" />
               <span class="md-title-small text-on-surface flex-1">
-                Added · {addedRows.length}
+                Toegevoegd · {addedRows.length}
               </span>
               <span
                 class="text-on-surface-variant"
@@ -427,7 +429,7 @@ export default function AddItems(
                         onClick={() => (createExpanded.value = true)}
                         class="flex items-center gap-2 w-full text-left rounded-[var(--md-shape-md)] px-3 py-3 mt-1 text-primary md-label-large"
                       >
-                        <Icon name="plus" size={20} /> Create "{q}"
+                        <Icon name="plus" size={20} /> Aanmaken: "{q}"
                       </Pressable>
                     )
                     : (
@@ -437,9 +439,9 @@ export default function AddItems(
                             <Icon name="plus" size={20} />
                           </span>
                           <div class="flex-1 min-w-0">
-                            <div class="md-body-large">Create "{q}"</div>
+                            <div class="md-body-large">Aanmaken: "{q}"</div>
                             <div class="md-body-small opacity-80">
-                              New item — pick a category
+                              Nieuw product — kies een categorie
                             </div>
                           </div>
                         </div>
@@ -449,7 +451,7 @@ export default function AddItems(
                           class="flex items-center justify-between gap-2 w-full rounded-[var(--md-shape-md)] border border-on-primary-container/40 px-3.5 py-2.5"
                         >
                           <span class="md-body-medium opacity-80">
-                            Category
+                            Categorie
                           </span>
                           <span class="inline-flex items-center gap-1 md-label-large">
                             {selectedCatLabel} <Icon name="chevron" size={18} />
@@ -464,7 +466,7 @@ export default function AddItems(
                             color: "var(--md-primary-container)",
                           }}
                         >
-                          Add to {selectedCatLabel}
+                          Toevoegen aan {selectedCatLabel}
                         </Button>
                       </div>
                     ))}
@@ -475,10 +477,10 @@ export default function AddItems(
             <div class="flex flex-col items-center text-center gap-1 px-6 py-16 text-on-surface-variant">
               <Icon name="search" size={30} />
               <div class="md-body-large text-on-surface mt-2">
-                Search your catalogue
+                Zoek in je catalogus
               </div>
               <div class="md-body-medium opacity-80">
-                Find an item to add, or create a new one.
+                Zoek een product om toe te voegen of maak een nieuw product aan.
               </div>
             </div>
           )}
@@ -493,7 +495,7 @@ export default function AddItems(
         {editingLi && (
           <div class="flex flex-col gap-1.5 pb-1">
             <div class="flex items-center justify-between px-1 py-1.5">
-              <span class="md-body-large text-on-surface">Quantity</span>
+              <span class="md-body-large text-on-surface">Hoeveelheid</span>
               <Stepper
                 value={editingLi.quantity ?? 1}
                 onChange={(v) => updateListItem(editingLi.id!, { quantity: v })}
@@ -501,7 +503,7 @@ export default function AddItems(
             </div>
             <div class="h-px bg-surface-chigh mx-1" />
             <div class="px-1 py-1.5">
-              <div class="md-body-large text-on-surface mb-2">Note</div>
+              <div class="md-body-large text-on-surface mb-2">Opmerking</div>
               <TextField
                 value={editingLi.note ?? ""}
                 onInput={(note) =>
@@ -510,11 +512,11 @@ export default function AddItems(
                   })}
                 multiline
                 rows={2}
-                placeholder="e.g. the red ones, big pack, any brand…"
+                placeholder="bv. de rode, grote verpakking, merk naar keuze…"
               />
             </div>
             <Button variant="filled" full onClick={closeEditor} class="mt-2.5">
-              Done
+              Klaar
             </Button>
             <Button
               variant="error"
@@ -522,7 +524,7 @@ export default function AddItems(
               onClick={() => requestRemove(editingLi.id!)}
               class="mt-2"
             >
-              Remove from list
+              Van lijst verwijderen
             </Button>
           </div>
         )}
@@ -530,11 +532,11 @@ export default function AddItems(
 
       <DestructiveConfirmationDialog
         open={itemToRemove.value !== null}
-        headline="Remove from this list?"
+        headline="Van deze lijst verwijderen?"
         supportingText={`“${
-          itemToRemove.value?.name ?? "This item"
-        }” will stay in the catalogue.`}
-        confirmLabel="Remove item"
+          itemToRemove.value?.name ?? "Dit product"
+        }” blijft in de catalogus staan.`}
+        confirmLabel="Verwijderen"
         pending={removing.value}
         onClose={() => (itemToRemove.value = null)}
         onConfirm={confirmRemove}
@@ -548,7 +550,9 @@ export default function AddItems(
         onToggle={menuShopping.toggleDish}
         onContinue={() =>
           void menuShopping.review().then((ok) => {
-            if (!ok) showSnack("Couldn't load ingredients — try again");
+            if (!ok) {
+              showSnack("Ingrediënten laden is niet gelukt — probeer opnieuw");
+            }
           })}
         onClose={menuShopping.cancel}
       />

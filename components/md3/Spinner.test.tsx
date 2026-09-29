@@ -6,7 +6,7 @@ import { Spinner } from "./Spinner.tsx";
 Deno.test("Spinner — renders status role and a default Loading label", () => {
   const html = render(h(Spinner, {}));
   assertStringIncludes(html, 'role="status"');
-  assertStringIncludes(html, "Loading");
+  assertStringIncludes(html, "Laden");
 });
 
 Deno.test("Spinner — applies a custom size", () => {

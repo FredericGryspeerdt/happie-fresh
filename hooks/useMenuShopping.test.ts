@@ -653,7 +653,7 @@ Deno.test("incompatible dish requirements block only that ingredient until chose
   }, extra], items);
   await flow.chooseList(list("A"));
   assertEquals(
-    flow.amountError.value?.includes("Choose an amount") ?? false,
+    flow.amountError.value?.includes("Kies een hoeveelheid") ?? false,
     true,
   );
   assertEquals(await flow.confirm(), null);

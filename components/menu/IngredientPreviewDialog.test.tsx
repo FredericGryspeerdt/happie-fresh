@@ -65,17 +65,17 @@ Deno.test("IngredientPreviewDialog — rows, states, empty dishes, and the count
   const html = render(
     h(IngredientPreviewDialog, { ...base, selectedCount: 2 }),
   );
-  assertStringIncludes(html, "Check your cupboards");
+  assertStringIncludes(html, "Kijk wat je nog in huis hebt");
   assertStringIncludes(html, "Weekly shop");
-  assertStringIncludes(html, "Adding to");
-  assertStringIncludes(html, ">Change<");
+  assertStringIncludes(html, "Toevoegen aan");
+  assertStringIncludes(html, ">Wijzigen<");
   assertStringIncludes(html, "Mince");
   assertStringIncludes(html, "Lasagne · Curry");
-  assertStringIncludes(html, "Already on your list:");
-  assertStringIncludes(html, "Buy again · Curry");
-  assertStringIncludes(html, "No ingredients yet");
+  assertStringIncludes(html, "Staat al op je lijst:");
+  assertStringIncludes(html, "Opnieuw kopen · Curry");
+  assertStringIncludes(html, "Nog geen ingrediënten");
   assertStringIncludes(html, "Pizza night");
-  assertStringIncludes(html, "Add 2 items");
+  assertStringIncludes(html, "Voeg toe (2)");
 });
 
 Deno.test("IngredientPreviewDialog — no Change action when there is only one list", () => {
@@ -85,24 +85,24 @@ Deno.test("IngredientPreviewDialog — no Change action when there is only one l
     selectedCount: 2,
   }));
   assertStringIncludes(html, "Weekly shop");
-  assertStringIncludes(html, "Adding to");
-  assertEquals(html.includes(">Change<"), false);
+  assertStringIncludes(html, "Toevoegen aan");
+  assertEquals(html.includes(">Wijzigen<"), false);
 });
 
 Deno.test("IngredientPreviewDialog — singular label and disabled at zero", () => {
   assertStringIncludes(
     render(h(IngredientPreviewDialog, { ...base, selectedCount: 1 })),
-    "Add 1 item",
+    "Voeg toe (1)",
   );
   const zero = render(
     h(IngredientPreviewDialog, { ...base, selectedCount: 0 }),
   );
-  assertStringIncludes(zero, "Add 0 items");
+  assertStringIncludes(zero, "Voeg toe (0)");
   // Scoped to the confirm button itself — a bare "includes disabled" check
   // would pass even if some unrelated element carried the attribute.
   assertMatch(
     zero,
-    /<button[^>]*disabled[^>]*>[^<]*(<[^>]+>[^<]*)*Add 0 items/,
+    /<button[^>]*disabled[^>]*>[^<]*(<[^>]+>[^<]*)*Voeg toe \(0\)/,
   );
 });
 
@@ -113,8 +113,8 @@ Deno.test("IngredientPreviewDialog — nothing to add message when there are no 
     emptyDishes: [],
     selectedCount: 0,
   }));
-  assertStringIncludes(html, "Nothing to add");
-  assertEquals(html.includes("No ingredients yet"), false);
+  assertStringIncludes(html, "Niets om toe te voegen");
+  assertEquals(html.includes("Nog geen ingrediënten"), false);
 });
 
 Deno.test("existing ingredients — show editable additional amount and combined total", () => {
@@ -133,10 +133,10 @@ Deno.test("existing ingredients — show editable additional amount and combined
     amounts: { carrot: { quantity: 3, unit: "pieces" } },
     selectedCount: 1,
   }));
-  assertStringIncludes(html, "Already on your list: 1");
-  assertStringIncludes(html, "Total after adding: 4");
-  assertStringIncludes(html, 'aria-label="Edit amount for Carrots"');
-  assertStringIncludes(html, "Add 3");
+  assertStringIncludes(html, "Staat al op je lijst: 1");
+  assertStringIncludes(html, "Totaal na toevoegen: 4");
+  assertStringIncludes(html, 'aria-label="Hoeveelheid wijzigen voor Carrots"');
+  assertStringIncludes(html, "Toevoegen 3");
 });
 
 Deno.test("conflicting and missing dish amounts are shown, and an unresolved selected amount blocks adding", () => {
@@ -161,12 +161,15 @@ Deno.test("conflicting and missing dish amounts are shown, and an unresolved sel
   }));
   assertStringIncludes(html, "Lasagne: 200 g");
   assertStringIncludes(html, "Soup: 2");
-  assertStringIncludes(html, "Amount not set for Salad");
-  assertStringIncludes(html, "Choose one amount for these dishes");
-  assertStringIncludes(html, "Choose amount");
-  assertStringIncludes(html, 'aria-label="Edit amount for Tomatoes"');
+  assertStringIncludes(html, "Hoeveelheid niet ingesteld voor Salad");
+  assertStringIncludes(html, "Kies één hoeveelheid voor deze gerechten");
+  assertStringIncludes(html, "Hoeveelheid kiezen");
+  assertStringIncludes(html, 'aria-label="Hoeveelheid wijzigen voor Tomatoes"');
   assertStringIncludes(html, "min-h-12");
-  assertMatch(html, /<button[^>]*disabled[^>]*>[^<]*(<[^>]+>[^<]*)*Add 1 item/);
+  assertMatch(
+    html,
+    /<button[^>]*disabled[^>]*>[^<]*(<[^>]+>[^<]*)*Voeg toe \(1\)/,
+  );
 });
 
 Deno.test("submission failure remains visible in the review dialog", () => {
@@ -200,6 +203,6 @@ Deno.test("an unchecked entry with an incompatible dish amount shows both and as
     selectedCount: 1,
   }));
   assertStringIncludes(html, "Salad: 500 g");
-  assertStringIncludes(html, "Already on your list: 2");
-  assertStringIncludes(html, "Choose a compatible amount");
+  assertStringIncludes(html, "Staat al op je lijst: 2");
+  assertStringIncludes(html, "Kies een passende hoeveelheid");
 });

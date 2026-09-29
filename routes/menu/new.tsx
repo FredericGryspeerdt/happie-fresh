@@ -7,7 +7,11 @@ export const handler = define.handlers({
   async GET(ctx) {
     const householdId = ctx.state.householdId!;
     await DishTagGroupRepo.ensureDefaults(householdId);
-    ctx.state.appBar = { mode: "detail", title: "New dish", backUrl: "/menu" };
+    ctx.state.appBar = {
+      mode: "detail",
+      title: "Nieuw gerecht",
+      backUrl: "/menu",
+    };
     const [tagGroups, items] = await Promise.all([
       DishTagGroupRepo.getAll(householdId),
       ItemRepo.readAll(householdId),

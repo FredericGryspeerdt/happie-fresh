@@ -20,8 +20,8 @@ import { Dialog } from "@/components/md3/Dialog.tsx";
 import { TextField } from "@/components/md3/TextField.tsx";
 
 const SEGMENTED_OPTIONS: [string, "cart" | "tag", string][] = [
-  ["lists", "cart", "Lists"],
-  ["catalogue", "tag", "Catalogue"],
+  ["lists", "cart", "Lijsten"],
+  ["catalogue", "tag", "Catalogus"],
 ];
 
 const UNCAT = "__uncat__"; // sentinel for the uncategorized bucket
@@ -96,8 +96,8 @@ export default function Catalogue(
   const selectedIsUncat = selected.value === UNCAT;
   const selectedCatId = selectedIsUncat ? undefined : selected.value;
   const selectedLabel = selectedIsUncat
-    ? "Uncategorized"
-    : cats.find((c) => c.id === selected.value)?.label ?? "Uncategorized";
+    ? "Zonder categorie"
+    : cats.find((c) => c.id === selected.value)?.label ?? "Zonder categorie";
   const visibleItems = itemsForCategory(selectedCatId);
 
   const allMatches = searching
@@ -113,7 +113,7 @@ export default function Catalogue(
     !i.categoryId || !cats.some((c) => c.id === i.categoryId)
   );
   if (uncatMatches.length) {
-    matchGroups.push({ label: "Uncategorized", items: uncatMatches });
+    matchGroups.push({ label: "Zonder categorie", items: uncatMatches });
   }
 
   const itemTile = (it: ItemInterface) => (
@@ -147,7 +147,7 @@ export default function Catalogue(
           <input
             value={query.value}
             onInput={(e) => (query.value = e.currentTarget.value)}
-            placeholder="Search the catalogue"
+            placeholder="Zoek in de catalogus"
             class="flex-1 min-w-0 bg-transparent border-0 outline-none md-body-large text-on-surface"
           />
           {searching && (
@@ -155,7 +155,7 @@ export default function Catalogue(
               name="x"
               size={36}
               iconSize={18}
-              aria-label="Clear search"
+              aria-label="Zoekveld wissen"
               onClick={() => (query.value = "")}
             />
           )}
@@ -167,7 +167,7 @@ export default function Catalogue(
               ? (
                 <div class="px-2 pt-2 text-center flex flex-col items-center gap-4">
                   <div class="md-title-medium text-on-surface">
-                    No items match “{query.value.trim()}”
+                    Geen producten gevonden voor “{query.value.trim()}”
                   </div>
                   <Button
                     variant="tonal"
@@ -177,7 +177,7 @@ export default function Catalogue(
                       addOpen.value = true;
                     }}
                   >
-                    Add to catalogue
+                    Aan catalogus toevoegen
                   </Button>
                 </div>
               )
@@ -202,7 +202,7 @@ export default function Catalogue(
                   onClick={() => (pickerOpen.value = true)}
                   class="shrink-0 inline-flex items-center gap-1.5 h-8 px-3 rounded-[var(--md-shape-sm)] border border-outline-variant text-on-surface-variant md-label-large"
                 >
-                  <Icon name="tune" size={16} /> All
+                  <Icon name="tune" size={16} /> Alles
                 </Pressable>
                 <div class="flex gap-2 overflow-x-auto flex-1 pr-1">
                   {cats.map((c) => (
@@ -221,7 +221,7 @@ export default function Catalogue(
                       leadingCheck={false}
                       onClick={() => (selected.value = UNCAT)}
                     >
-                      Uncategorized
+                      Zonder categorie
                     </Chip>
                   )}
                 </div>
@@ -231,14 +231,15 @@ export default function Catalogue(
               <div class="flex items-center justify-between gap-2 pl-1">
                 <span class="md-body-medium text-on-surface-variant">
                   {visibleItems.length}{" "}
-                  item{visibleItems.length === 1 ? "" : "s"} in {selectedLabel}
+                  {visibleItems.length === 1 ? "product" : "producten"} in{" "}
+                  {selectedLabel}
                 </span>
                 {!selectedIsUncat && selected.value && (
                   <IconButton
                     name="dots"
                     size={36}
                     iconSize={20}
-                    aria-label="Category options"
+                    aria-label="Categorieopties"
                     onClick={() => {
                       menuCat.value = cats.find((c) =>
                         c.id === selected.value
@@ -262,7 +263,7 @@ export default function Catalogue(
                     visibleItems.length === 0 ? "col-span-2" : ""
                   }`}
                 >
-                  <Icon name="plus" size={20} stroke={2.3} /> Add item
+                  <Icon name="plus" size={20} stroke={2.3} /> Product toevoegen
                 </Pressable>
               </div>
             </>
@@ -306,7 +307,7 @@ export default function Catalogue(
       <Sheet
         open={pickerOpen.value}
         onClose={() => (pickerOpen.value = false)}
-        title="Categories"
+        title="Categorieën"
       >
         <CategoryPicker
           cats={cats}
@@ -344,11 +345,11 @@ export default function Catalogue(
       {canDelete && (
         <DestructiveConfirmationDialog
           open={itemToRemove.value !== null}
-          headline="Remove from the catalogue?"
+          headline="Uit de catalogus verwijderen?"
           supportingText={`“${
-            itemToRemove.value?.name ?? "This item"
-          }” will no longer be available to add to lists.`}
-          confirmLabel="Remove item"
+            itemToRemove.value?.name ?? "Dit product"
+          }” kan niet meer aan lijsten toegevoegd worden.`}
+          confirmLabel="Verwijderen"
           pending={itemRemovalPending.value}
           onClose={() => (itemToRemove.value = null)}
           onConfirm={async () => {
@@ -357,7 +358,7 @@ export default function Catalogue(
             itemRemovalPending.value = true;
             try {
               if (await removeItem(item.id)) itemToRemove.value = null;
-              else showSnack("Couldn't remove that item — try again");
+              else showSnack("Verwijderen is niet gelukt — probeer opnieuw");
             } finally {
               itemRemovalPending.value = false;
             }
@@ -367,11 +368,11 @@ export default function Catalogue(
       {canDelete && (
         <DestructiveConfirmationDialog
           open={categoryToDelete.value !== null}
-          headline="Delete this category?"
-          supportingText={`Items in “${
-            categoryToDelete.value?.label ?? "this category"
-          }” will become uncategorized.`}
-          confirmLabel="Delete category"
+          headline="Deze categorie verwijderen?"
+          supportingText={`Producten in “${
+            categoryToDelete.value?.label ?? "deze categorie"
+          }” krijgen geen categorie meer.`}
+          confirmLabel="Categorie verwijderen"
           pending={categoryDeletionPending.value}
           onClose={() => (categoryToDelete.value = null)}
           onConfirm={async () => {
@@ -382,7 +383,9 @@ export default function Catalogue(
               if (await deleteCategory(category.id)) {
                 if (selected.value === category.id) selected.value = UNCAT;
                 categoryToDelete.value = null;
-              } else showSnack("Couldn't delete that category — try again");
+              } else {showSnack(
+                  "De categorie verwijderen is niet gelukt — probeer opnieuw",
+                );}
             } finally {
               categoryDeletionPending.value = false;
             }
@@ -395,11 +398,11 @@ export default function Catalogue(
       {/* Context FAB — add an item or a new category (prototype md3-app.jsx) */}
       {!anySheetOpen && (
         <FabMenu
-          label="Add item or category"
+          label="Product of categorie toevoegen"
           actions={[
             {
               icon: "plus",
-              label: "Add item",
+              label: "Product toevoegen",
               onClick: () => {
                 addNewCat.value = false;
                 addOpen.value = true;
@@ -407,7 +410,7 @@ export default function Catalogue(
             },
             {
               icon: "tag",
-              label: "New category",
+              label: "Nieuwe categorie",
               onClick: () => {
                 addNewCat.value = true;
                 addOpen.value = true;
@@ -447,16 +450,16 @@ function EditItemDialog(
     <Dialog
       open={item !== null}
       onClose={onClose}
-      headline="Edit item"
+      headline="Product bewerken"
       actions={
         <>
-          <Button variant="text" onClick={onClose}>Cancel</Button>
+          <Button variant="text" onClick={onClose}>Annuleren</Button>
           <Button
             variant="text"
             disabled={!v || dupe || v === item?.name}
             onClick={save}
           >
-            Save
+            Opslaan
           </Button>
         </>
       }
@@ -470,14 +473,14 @@ function EditItemDialog(
       >
         <TextField
           id="catalogue-item-name"
-          label="Name"
+          label="Naam"
           value={name.value}
           onInput={(value) => (name.value = value)}
-          error={dupe ? `“${v}” is already in your catalogue` : undefined}
+          error={dupe ? `“${v}” staat al in je catalogus` : undefined}
         />
         <div>
           <div class="md-label-medium uppercase text-on-surface-variant mb-2">
-            Category
+            Categorie
           </div>
           <div class="flex gap-2 flex-wrap">
             {cats.map((c) => (
@@ -494,10 +497,10 @@ function EditItemDialog(
         </div>
         {canDelete && (
           <Button variant="error" icon="trash" onClick={onRemove}>
-            Remove from catalogue
+            Uit catalogus verwijderen
           </Button>
         )}
-        <button type="submit" class="hidden" tabindex={-1}>Save</button>
+        <button type="submit" class="hidden" tabindex={-1}>Opslaan</button>
       </form>
     </Dialog>
   );
@@ -542,11 +545,11 @@ function AddItemSheet(
   const n = name.value.trim();
   const dupe = !!n && names.has(n.toLowerCase());
   return (
-    <Sheet open={open} onClose={onClose} title="Add to catalogue">
+    <Sheet open={open} onClose={onClose} title="Aan catalogus toevoegen">
       <div class="flex flex-col gap-5 pb-1">
         <div>
           <div class="md-label-medium uppercase text-on-surface-variant mb-2">
-            Category
+            Categorie
           </div>
           <div class="flex gap-2 flex-wrap">
             {cats.map((c) => (
@@ -565,7 +568,7 @@ function AddItemSheet(
                 leadingCheck={false}
                 onClick={() => (newOpen.value = true)}
               >
-                New
+                Nieuw
               </Chip>
             )}
           </div>
@@ -574,7 +577,7 @@ function AddItemSheet(
               <input
                 value={newName.value}
                 onInput={(e) => (newName.value = e.currentTarget.value)}
-                placeholder="New category name"
+                placeholder="Naam van de nieuwe categorie"
                 class={fieldClass}
               />
               <Button
@@ -587,14 +590,14 @@ function AddItemSheet(
                   newName.value = "";
                 }}
               >
-                Create
+                Aanmaken
               </Button>
             </div>
           )}
         </div>
         <div>
           <div class="md-label-medium uppercase text-on-surface-variant mb-2">
-            Item
+            Product
           </div>
           <div class="flex gap-2 items-center">
             <input
@@ -607,7 +610,7 @@ function AddItemSheet(
                   name.value = "";
                 }
               }}
-              placeholder="Item name"
+              placeholder="Naam van het product"
               class={fieldClass}
             />
             <Button
@@ -619,7 +622,7 @@ function AddItemSheet(
                 name.value = "";
               }}
             >
-              Add
+              Toevoegen
             </Button>
           </div>
           <div
@@ -628,14 +631,14 @@ function AddItemSheet(
             }`}
           >
             {dupe
-              ? `“${n}” is already in your catalogue`
-              : "Press enter to add and keep going"}
+              ? `“${n}” staat al in je catalogus`
+              : "Druk op Enter om toe te voegen en verder te gaan"}
           </div>
         </div>
         {added.value.length > 0 && (
           <div>
             <div class="md-label-medium uppercase text-on-surface-variant mb-2">
-              Added just now · {added.value.length}
+              Net toegevoegd · {added.value.length}
             </div>
             <div class="flex flex-wrap gap-2">
               {added.value.map((a) => (
@@ -673,14 +676,14 @@ function CategoryPicker(
         color="var(--md-primary)"
         class="flex items-center gap-2.5 w-full text-left border-[1.5px] border-dashed border-outline rounded-[var(--md-shape-md)] px-4 py-3 text-primary md-label-large mb-1"
       >
-        <Icon name="plus" size={20} stroke={2.3} /> New category
+        <Icon name="plus" size={20} stroke={2.3} /> Nieuwe categorie
       </Pressable>
       {newOpen.value && (
         <div class="flex gap-2 items-center mb-2">
           <input
             value={newName.value}
             onInput={(e) => (newName.value = e.currentTarget.value)}
-            placeholder="New category name"
+            placeholder="Naam van de nieuwe categorie"
             class={fieldClass}
           />
           <Button
@@ -692,7 +695,7 @@ function CategoryPicker(
               newName.value = "";
             }}
           >
-            Create
+            Aanmaken
           </Button>
         </div>
       )}
@@ -701,7 +704,7 @@ function CategoryPicker(
         class="md-press flex items-center gap-2.5 w-full text-left rounded-[var(--md-shape-md)] px-4 py-3 text-on-surface md-label-large"
       >
         <span class="md-state" />
-        <Icon name="swap" size={20} /> Aisle order
+        <Icon name="swap" size={20} /> Volgorde in de winkel
       </a>
       <div class="max-h-[360px] overflow-y-auto -mx-1 mt-1">
         {cats.map((c) => (
@@ -709,7 +712,9 @@ function CategoryPicker(
             key={c.id}
             onClick={() => onPick(c.id)}
             headline={c.label}
-            supporting={`${counts(c.id)} item${counts(c.id) === 1 ? "" : "s"}`}
+            supporting={`${counts(c.id)} ${
+              counts(c.id) === 1 ? "product" : "producten"
+            }`}
             trailing={c.id === selected
               ? (
                 <Icon
@@ -751,21 +756,21 @@ function CategoryMenuDialog(
     <Dialog
       open={category !== null}
       onClose={onClose}
-      headline="Category"
+      headline="Categorie"
       actions={
         <>
-          <Button variant="text" onClick={onClose}>Cancel</Button>
+          <Button variant="text" onClick={onClose}>Annuleren</Button>
           {canDelete && (
             <Button variant="text" class="text-error" onClick={onDelete}>
-              Delete category{itemCount > 0
-                ? ` · ${itemCount} item${
-                  itemCount === 1 ? "" : "s"
-                } become uncategorized`
+              Categorie verwijderen{itemCount > 0
+                ? ` · ${itemCount} ${
+                  itemCount === 1 ? "product krijgt" : "producten krijgen"
+                } geen categorie meer`
                 : ""}
             </Button>
           )}
           <Button variant="text" disabled={!canSave} onClick={save}>
-            Save
+            Opslaan
           </Button>
         </>
       }
@@ -778,11 +783,11 @@ function CategoryMenuDialog(
       >
         <TextField
           id="category-name"
-          label="Name"
+          label="Naam"
           value={label.value}
           onInput={(value) => (label.value = value)}
         />
-        <button type="submit" class="hidden" tabindex={-1}>Save</button>
+        <button type="submit" class="hidden" tabindex={-1}>Opslaan</button>
       </form>
     </Dialog>
   );

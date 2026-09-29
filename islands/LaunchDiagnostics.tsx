@@ -10,8 +10,8 @@ interface StandaloneNavigator extends Navigator {
 }
 
 export default function LaunchDiagnostics() {
-  const report = useSignal("Measuring…");
-  const copyLabel = useSignal("Copy report");
+  const report = useSignal("Meten…");
+  const copyLabel = useSignal("Verslag kopiëren");
 
   useEffect(() => {
     const data = {
@@ -37,14 +37,15 @@ export default function LaunchDiagnostics() {
 
   const copy = async () => {
     await navigator.clipboard.writeText(report.value);
-    copyLabel.value = "Copied";
+    copyLabel.value = "Gekopieerd";
   };
 
   return (
     <main class="mx-auto max-w-xl px-4 py-8">
-      <h1 class="md-headline-large mb-3">Launch diagnostics</h1>
+      <h1 class="md-headline-large mb-3">Opstartdiagnose</h1>
       <p class="md-body-medium text-on-surface-variant mb-4">
-        Open this page from the installed Happie app, then copy the report.
+        Open deze pagina vanuit de geïnstalleerde Happie-app en kopieer het
+        verslag.
       </p>
       <pre class="mb-4 overflow-x-auto whitespace-pre-wrap rounded-xl bg-surface-c p-4 text-xs">
         {report.value}

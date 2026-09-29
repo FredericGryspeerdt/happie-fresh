@@ -1,8 +1,8 @@
 {
-    "name": "Happie Home",
+    "name": "Happie",
     "short_name": "Happie",
     "id": "/",
-    "description": "Your household's shared home for shopping, meals and to-dos — plan together and check things off on the go.",
+    "description": "Boodschappen, gerechten en alles wat er te doen is voor je huishouden — plan samen en vink onderweg af.",
     "theme_color": "#fdfcf9",
     "background_color": "#f7f4e8",
     "display": "standalone",
@@ -29,7 +29,7 @@
     ],
     "shortcuts": [
         {
-            "name": "Shop",
+            "name": "Boodschappen",
             "url": "/shopping",
             "icons": [
                 {
@@ -40,7 +40,7 @@
             ]
         },
         {
-            "name": "To-dos",
+            "name": "Te doen",
             "url": "/todos",
             "icons": [
                 {
@@ -61,5 +61,6 @@
                 }
             ]
         }
-    ]
+    ],
+    "lang": "nl-BE"
 }

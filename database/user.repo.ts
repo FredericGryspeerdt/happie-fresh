@@ -29,7 +29,7 @@ export class UserRepo {
     const kv = await getKv();
     const id = crypto.randomUUID();
     const household = await HouseholdRepo.create(
-      `${user.username}'s household`,
+      `Huishouden van ${user.username}`,
     );
     const member = await MemberRepo.create({
       householdId: household.id,
@@ -51,7 +51,7 @@ export class UserRepo {
       .commit();
     await ShoppingListRepo.create({
       householdId: household.id,
-      name: "Shopping List",
+      name: "Boodschappenlijst",
       createdBy: member.id,
       createdAt: new Date().toISOString(),
     });

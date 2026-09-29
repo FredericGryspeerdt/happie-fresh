@@ -117,3 +117,34 @@ independently adjustable amount.
 pinned to a weekday. A household has exactly one; it is a plan, not a record —
 it does not remember whether anyone has shopped for it. _Avoid_: meal plan,
 planner, schedule
+
+## Dutch interface language
+
+Happie uses Dutch for Flanders (`nl-BE`) as its only interface language. Code
+identifiers and the domain definitions above remain English. Use these Dutch
+terms consistently in app copy:
+
+| Domain term      | Dutch interface copy     |
+| ---------------- | ------------------------ |
+| Household        | huishouden               |
+| Member           | lid                      |
+| Manager          | beheerder                |
+| To-dos / backlog | te doen                  |
+| Done             | klaar                    |
+| Due              | geplande datum en tijd   |
+| Overdue          | voorbij de geplande tijd |
+| Assigned to      | toegewezen aan           |
+| Catalogue        | catalogus                |
+| Item             | product                  |
+| Shopping list    | boodschappenlijst        |
+| Dish             | gerecht                  |
+| Ingredient       | ingrediënt               |
+| Weekly menu      | weekmenu                 |
+| Loyalty card     | klantenkaart             |
+
+Write copy directly at its existing call site; no language selector or
+translation framework is needed. Dates and quantities use Belgian Dutch
+formatting, while scheduled moments still use the viewer's timezone (ADR 0004).
+Stored identifiers such as weekdays, units and colour keys stay stable and get
+Dutch display labels. User-entered names, notes and existing household data are
+not translated.

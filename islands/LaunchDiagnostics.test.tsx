@@ -6,7 +6,7 @@ import LaunchDiagnostics from "./LaunchDiagnostics.tsx";
 Deno.test("LaunchDiagnostics — renders a copyable device report", () => {
   const html = render(h(LaunchDiagnostics, {}));
 
-  assertStringIncludes(html, "Launch diagnostics");
-  assertStringIncludes(html, "Measuring…");
-  assertStringIncludes(html, "Copy report");
+  assertStringIncludes(html, "Opstartdiagnose");
+  assertStringIncludes(html, "Meten…");
+  assertStringIncludes(html, "Verslag kopiëren");
 });

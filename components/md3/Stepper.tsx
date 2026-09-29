@@ -22,7 +22,7 @@ export function Stepper({ value, onChange, min = 1 }: StepperProps) {
   );
   return (
     <div class="inline-flex items-center gap-2">
-      {btn("minus", "Decrease quantity", () =>
+      {btn("minus", "Hoeveelheid verlagen", () =>
         onChange(Math.max(min, value - 1)))}
       <span
         class="md-title-medium text-on-surface text-center"
@@ -30,7 +30,7 @@ export function Stepper({ value, onChange, min = 1 }: StepperProps) {
       >
         {value}
       </span>
-      {btn("plus", "Increase quantity", () =>
+      {btn("plus", "Hoeveelheid verhogen", () =>
         onChange(value + 1))}
     </div>
   );

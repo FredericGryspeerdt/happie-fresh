@@ -49,7 +49,7 @@ export default function DishEditor(
   const handoff = useSignal(false);
   const { snack, showSnack, hideSnack } = useSnack(5000);
   const showIngredientCreateError = () => {
-    const message = "Couldn't add ingredient — try again";
+    const message = "Het ingrediënt toevoegen is niet gelukt — probeer opnieuw";
     showSnack(message);
     ingredientStatus.value = message;
   };
@@ -94,8 +94,8 @@ export default function DishEditor(
     if (!ingredientIds.value.includes(itemId)) {
       ingredientIds.value = [...ingredientIds.value, itemId];
       ingredientStatus.value = `${
-        itemById(itemId)?.name ?? "Ingredient"
-      } added`;
+        itemById(itemId)?.name ?? "Ingrediënt"
+      } toegevoegd`;
     }
     reset();
   };
@@ -110,8 +110,8 @@ export default function DishEditor(
     delete nextAmounts[itemId];
     ingredientAmounts.value = nextAmounts;
     ingredientStatus.value = `${
-      itemById(itemId)?.name ?? "Ingredient"
-    } removed`;
+      itemById(itemId)?.name ?? "Ingrediënt"
+    } verwijderd`;
     if (pickerOpen.value) inputRef.current?.focus();
     ingredientToRemove.value = null;
   };
@@ -171,11 +171,11 @@ export default function DishEditor(
         navigateTo("/menu");
       } else {
         saving.value = false; // failed — re-enable so the user can retry
-        showSnack("Couldn't save this dish — try again");
+        showSnack("Het gerecht opslaan is niet gelukt — probeer opnieuw");
       }
     } catch (_) {
       saving.value = false; // network error — re-enable
-      showSnack("Couldn't save this dish — try again");
+      showSnack("Het gerecht opslaan is niet gelukt — probeer opnieuw");
     }
   };
   const remove = async () => {
@@ -185,7 +185,7 @@ export default function DishEditor(
       if (await api.dishes.delete(dish.id)) {
         navigateTo("/menu");
       } else {
-        showSnack("Couldn't delete this dish — try again");
+        showSnack("Het gerecht verwijderen is niet gelukt — probeer opnieuw");
       }
     } finally {
       deleting.value = false;
@@ -197,12 +197,12 @@ export default function DishEditor(
       {/* Name */}
       <div>
         <div class="md-label-medium uppercase text-on-surface-variant mb-2">
-          Name
+          Naam
         </div>
         <input
           value={name.value}
           onInput={(e) => (name.value = e.currentTarget.value)}
-          placeholder="Dish name"
+          placeholder="Naam van het gerecht"
           class={fieldClass}
         />
       </div>
@@ -210,7 +210,7 @@ export default function DishEditor(
       {/* Ingredients */}
       <div>
         <div class="md-label-medium uppercase text-on-surface-variant mb-2">
-          Ingredients
+          Ingrediënten
         </div>
         <div class="flex flex-col gap-2">
           {ingredientIds.value.map((id) => (
@@ -219,25 +219,29 @@ export default function DishEditor(
               class="w-full flex items-center gap-2 bg-secondary-container text-on-secondary-container rounded-[var(--md-shape-md)] px-3 py-1"
             >
               <span class="flex-1 min-w-0 md-label-large">
-                {itemById(id)?.name ?? "Unknown"}
+                {itemById(id)?.name ?? "Onbekend"}
               </span>
               <Button
                 variant="text"
                 aria-label={ingredientAmounts.value[id]
-                  ? `Edit amount for ${itemById(id)?.name ?? "ingredient"}`
-                  : `Add amount for ${itemById(id)?.name ?? "ingredient"}`}
+                  ? `Hoeveelheid wijzigen voor ${
+                    itemById(id)?.name ?? "ingrediënt"
+                  }`
+                  : `Hoeveelheid toevoegen voor ${
+                    itemById(id)?.name ?? "ingrediënt"
+                  }`}
                 onClick={() => amountEditing.value = id}
               >
                 {ingredientAmounts.value[id]
                   ? formatDishIngredientAmount(ingredientAmounts.value[id])
-                  : "Add amount"}
+                  : "Hoeveelheid toevoegen"}
               </Button>
               <IconButton
                 name="x"
                 size={44}
                 iconSize={18}
-                aria-label={`Remove ${
-                  itemById(id)?.name ?? "Unknown ingredient"
+                aria-label={`Verwijderen ${
+                  itemById(id)?.name ?? "Onbekend ingrediënt"
                 }`}
                 onClick={() => removeIngredient(id)}
               />
@@ -248,7 +252,7 @@ export default function DishEditor(
             leadingCheck={false}
             onClick={openPicker}
           >
-            Add ingredient
+            Ingrediënt toevoegen
           </Chip>
         </div>
       </div>
@@ -278,7 +282,7 @@ export default function DishEditor(
                     onInput={(
                       e,
                     ) => (newValueLabel.value = e.currentTarget.value)}
-                    placeholder="New value"
+                    placeholder="Nieuwe waarde"
                     class="md-body-large bg-surface-chighest rounded-t-[var(--md-shape-sm)] border-0 border-b-2 border-primary px-3 py-1.5 focus:outline-none"
                   />
                   <Button
@@ -290,7 +294,7 @@ export default function DishEditor(
                       newValueLabel.value = "";
                     }}
                   >
-                    Add
+                    Toevoegen
                   </Button>
                 </span>
               )
@@ -303,7 +307,7 @@ export default function DishEditor(
                     newValueLabel.value = "";
                   }}
                 >
-                  New
+                  Nieuw
                 </Chip>
               )}
           </div>
@@ -318,7 +322,7 @@ export default function DishEditor(
           loading={saving.value}
           onClick={save}
         >
-          {dish ? "Save changes" : "Create dish"}
+          {dish ? "Wijzigingen opslaan" : "Gerecht aanmaken"}
         </Button>
         {dish && canDelete && (
           <Button
@@ -328,7 +332,7 @@ export default function DishEditor(
             loading={deleting.value}
             disabled={saving.value}
           >
-            Delete dish
+            Gerecht verwijderen
           </Button>
         )}
       </div>
@@ -347,14 +351,14 @@ export default function DishEditor(
       <FullScreenDialog
         open={pickerOpen.value}
         onClose={closePicker}
-        title="Ingredients"
+        title="Ingrediënten"
         action={
           <Button
             variant="text"
             onClick={closePicker}
             disabled={creatingIngredient.value}
           >
-            Done
+            Klaar
           </Button>
         }
       >
@@ -381,18 +385,18 @@ export default function DishEditor(
       </FullScreenDialog>
       <DestructiveConfirmationDialog
         open={ingredientToRemove.value !== null}
-        headline="Remove this ingredient?"
+        headline="Dit ingrediënt verwijderen?"
         supportingText={`${
-          itemById(ingredientToRemove.value ?? "")?.name ?? "This ingredient"
-        } will be removed from the dish draft.`}
-        confirmLabel="Remove ingredient"
+          itemById(ingredientToRemove.value ?? "")?.name ?? "Dit ingrediënt"
+        } wordt uit het gerecht in bewerking verwijderd.`}
+        confirmLabel="Ingrediënt verwijderen"
         onClose={() => (ingredientToRemove.value = null)}
         onConfirm={confirmIngredientRemoval}
       />
       {amountEditing.value && (
         <ShoppingAmountDialog
           key={amountEditing.value}
-          name={itemById(amountEditing.value)?.name ?? "Ingredient"}
+          name={itemById(amountEditing.value)?.name ?? "Ingrediënt"}
           amount={ingredientAmounts.value[amountEditing.value] ?? {
             quantity: 1,
             unit: "pieces",
@@ -418,9 +422,9 @@ export default function DishEditor(
       {dish && canDelete && (
         <DestructiveConfirmationDialog
           open={deleteOpen.value}
-          headline="Delete this dish?"
-          supportingText={`“${dish.name}” will be removed for everyone.`}
-          confirmLabel="Delete dish"
+          headline="Dit gerecht verwijderen?"
+          supportingText={`“${dish.name}” wordt voor iedereen verwijderd.`}
+          confirmLabel="Gerecht verwijderen"
           pending={deleting.value}
           onClose={() => (deleteOpen.value = false)}
           onConfirm={remove}

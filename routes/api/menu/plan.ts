@@ -29,7 +29,7 @@ export const handler = define.handlers({
     const householdId = ctx.state.householdId;
     if (!householdId) return new Response("Unauthorized", { status: 401 });
     const parsed = await readJsonBody(ctx.req);
-    if (!parsed.ok) return badRequest("invalid JSON");
+    if (!parsed.ok) return badRequest("Ongeldige gegevens");
     const { dishId } = parsed.body as { dishId?: string };
     if (!dishId) return badRequest("dishId required");
     const dish = await DishRepo.getById(householdId, dishId);
@@ -41,7 +41,7 @@ export const handler = define.handlers({
     const householdId = ctx.state.householdId;
     if (!householdId) return new Response("Unauthorized", { status: 401 });
     const parsed = await readJsonBody(ctx.req);
-    if (!parsed.ok) return badRequest("invalid JSON");
+    if (!parsed.ok) return badRequest("Ongeldige gegevens");
     const { entryId, day, shoppingListId } = parsed.body as {
       entryId?: string;
       day?: Weekday | null;
@@ -69,7 +69,7 @@ export const handler = define.handlers({
     const householdId = ctx.state.householdId;
     if (!householdId) return new Response("Unauthorized", { status: 401 });
     const parsed = await readJsonBody(ctx.req);
-    if (!parsed.ok) return badRequest("invalid JSON");
+    if (!parsed.ok) return badRequest("Ongeldige gegevens");
     const { entryId, clear } = parsed.body as {
       entryId?: string;
       clear?: boolean;

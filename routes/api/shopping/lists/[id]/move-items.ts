@@ -10,22 +10,22 @@ export const handler = define.handlers({
       return new Response("Unauthorized", { status: 401 });
     }
     if (!await authorizeList(ctx, ctx.params.id)) {
-      return new Response("Forbidden", { status: 403 });
+      return new Response("Geen toegang", { status: 403 });
     }
     let body;
     try {
       body = await ctx.req.json();
     } catch {
-      return badRequest("Invalid JSON");
+      return badRequest("Ongeldige gegevens");
     }
     if (!body || typeof body !== "object" || Array.isArray(body)) {
-      return badRequest("Invalid request");
+      return badRequest("Ongeldig verzoek");
     }
     if ("undoRequestId" in body) {
       if (
         typeof body.undoRequestId !== "string" ||
         !/^[\w-]{1,64}$/.test(body.undoRequestId)
-      ) return badRequest("Invalid undo request");
+      ) return badRequest("Ongeldig verzoek om ongedaan te maken");
       const result = await ShoppingListMoveRepo.undo(
         householdId,
         ctx.params.id,
@@ -36,7 +36,7 @@ export const handler = define.handlers({
     if (
       body.destinationListId && typeof body.destinationListId === "string" &&
       !await authorizeList(ctx, body.destinationListId)
-    ) return new Response("Forbidden", { status: 403 });
+    ) return new Response("Geen toegang", { status: 403 });
     const input: MoveItemsInput = {
       requestId: body.requestId,
       itemIds: body.itemIds,

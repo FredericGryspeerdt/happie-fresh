@@ -23,18 +23,18 @@ Deno.test("ShoppingListPickerDialog — lists every list and marks the marked on
     open: true,
     lists: [list("A", "Weekly shop"), list("B", "DIY store")],
     markedListId: "B",
-    markedLabel: "Used last time",
+    markedLabel: "Vorige keer gebruikt",
     busy: false,
     onPick: noop,
     onCreate: never,
     onClose: noop,
   }));
-  assertStringIncludes(html, "Which list?");
+  assertStringIncludes(html, "Welke lijst?");
   assertStringIncludes(html, "Weekly shop");
   assertStringIncludes(html, "DIY store");
-  assertStringIncludes(html, "Used last time");
-  assertStringIncludes(html, "New list");
-  assertEquals(html.includes('value="Groceries"'), false);
+  assertStringIncludes(html, "Vorige keer gebruikt");
+  assertStringIncludes(html, "Nieuwe lijst");
+  assertEquals(html.includes('value="Boodschappen"'), false);
 });
 
 Deno.test("ShoppingListPickerDialog — marks the current list with its own label", () => {
@@ -42,13 +42,13 @@ Deno.test("ShoppingListPickerDialog — marks the current list with its own labe
     open: true,
     lists: [list("A", "Weekly shop"), list("B", "DIY store")],
     markedListId: "A",
-    markedLabel: "Current list",
+    markedLabel: "Huidige lijst",
     busy: false,
     onPick: noop,
     onCreate: never,
     onClose: noop,
   }));
-  assertStringIncludes(html, "Current list");
+  assertStringIncludes(html, "Huidige lijst");
 });
 
 Deno.test("ShoppingListPickerDialog — with no lists, opens the create dialog prefilled with Groceries", () => {
@@ -62,10 +62,10 @@ Deno.test("ShoppingListPickerDialog — with no lists, opens the create dialog p
     onCreate: never,
     onClose: noop,
   }));
-  assertStringIncludes(html, "New shopping list");
-  assertStringIncludes(html, 'value="Groceries"');
-  assertStringIncludes(html, "Create list");
-  assertEquals(html.includes("Which list?"), false);
+  assertStringIncludes(html, "Nieuwe boodschappenlijst");
+  assertStringIncludes(html, 'value="Boodschappen"');
+  assertStringIncludes(html, "Lijst aanmaken");
+  assertEquals(html.includes("Welke lijst?"), false);
 });
 
 Deno.test("ShoppingListPickerDialog — the list-name field is labelled for assistive tech", () => {
@@ -113,6 +113,6 @@ Deno.test("ShoppingListPickerDialog — creation cannot be cancelled while savin
   }));
   assertMatch(
     html,
-    /<button[^>]*disabled[^>]*>(?:(?!<\/button>)[\s\S])*Cancel<\/button>/,
+    /<button[^>]*disabled[^>]*>(?:(?!<\/button>)[\s\S])*Annuleren<\/button>/,
   );
 });

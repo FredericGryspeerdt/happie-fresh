@@ -17,11 +17,11 @@ Deno.test("DishEditor — new dish renders name, tags, add-ingredient, create bu
     items,
     canDelete: true,
   }));
-  assertStringIncludes(html, "Name");
+  assertStringIncludes(html, "Naam");
   assertStringIncludes(html, "Type"); // tag group label
   assertStringIncludes(html, "Vegetarian"); // tag value chip
-  assertStringIncludes(html, "Add ingredient");
-  assertStringIncludes(html, "Create dish");
+  assertStringIncludes(html, "Ingrediënt toevoegen");
+  assertStringIncludes(html, "Gerecht aanmaken");
 });
 
 Deno.test("DishEditor — existing dish prefills name, shows ingredient chip + delete", () => {
@@ -38,11 +38,11 @@ Deno.test("DishEditor — existing dish prefills name, shows ingredient chip + d
   }));
   assertStringIncludes(html, 'value="Pasta"'); // prefilled name field
   assertStringIncludes(html, "Onion"); // resolved ingredient chip
-  assertStringIncludes(html, 'aria-label="Remove Onion"');
-  assertStringIncludes(html, "Save changes");
-  assertStringIncludes(html, "Delete dish");
-  assertStringIncludes(html, "Delete this dish?");
-  assertStringIncludes(html, "Remove this ingredient?");
+  assertStringIncludes(html, 'aria-label="Verwijderen Onion"');
+  assertStringIncludes(html, "Wijzigingen opslaan");
+  assertStringIncludes(html, "Gerecht verwijderen");
+  assertStringIncludes(html, "Dit gerecht verwijderen?");
+  assertStringIncludes(html, "Dit ingrediënt verwijderen?");
 });
 
 Deno.test("DishEditor — ingredient rows show saved amounts and an add action", () => {
@@ -59,9 +59,9 @@ Deno.test("DishEditor — ingredient rows show saved amounts and an add action",
     canDelete: true,
   }));
 
-  assertStringIncludes(html, "0.5 kg");
-  assertStringIncludes(html, "Add amount");
-  assertStringIncludes(html, 'aria-label="Remove Onion"');
+  assertStringIncludes(html, "0,5 kg");
+  assertStringIncludes(html, "Hoeveelheid toevoegen");
+  assertStringIncludes(html, 'aria-label="Verwijderen Onion"');
 });
 
 Deno.test("DishEditor — canDelete: false hides Delete dish even for an existing dish", () => {
@@ -76,6 +76,6 @@ Deno.test("DishEditor — canDelete: false hides Delete dish even for an existin
     items,
     canDelete: false,
   }));
-  assertStringIncludes(html, "Save changes"); // editor itself still renders
-  assertFalse(html.includes("Delete dish"));
+  assertStringIncludes(html, "Wijzigingen opslaan"); // editor itself still renders
+  assertFalse(html.includes("Gerecht verwijderen"));
 });

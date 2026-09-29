@@ -49,7 +49,7 @@ export default function InstallSetting({ onOpen }: Props) {
     <>
       <ListItem
         leading={badge}
-        headline="Install the app"
+        headline="De app installeren"
         trailing={<Icon name="chevron" size={18} />}
         onClick={() => {
           onOpen?.();
@@ -60,21 +60,21 @@ export default function InstallSetting({ onOpen }: Props) {
       <Sheet
         open={open.value}
         onClose={() => (open.value = false)}
-        title="Install the app"
+        title="De app installeren"
       >
         {open.value && (
           <div class="flex flex-col gap-3 pb-1">
             {state.value === "installed" && (
               <div class="md-body-medium text-on-surface-variant">
-                Happie is already on your home screen.
+                Happie staat al op je beginscherm.
               </div>
             )}
 
             {state.value === "promptable" && (
               <>
                 <div class="md-body-medium text-on-surface-variant">
-                  Put Happie on your home screen — it opens full screen and
-                  feels like a real app.
+                  Zet Happie op je beginscherm. De app opent op het volledige
+                  scherm, net als je andere apps.
                 </div>
                 <Button
                   variant="filled"
@@ -83,13 +83,13 @@ export default function InstallSetting({ onOpen }: Props) {
                   onClick={async () => {
                     const outcome = await promptInstall();
                     message.value = outcome === "accepted"
-                      ? "It's on your home screen!"
+                      ? "Happie staat op je beginscherm!"
                       : outcome === "dismissed"
-                      ? "Maybe later — you can come back any time."
-                      : "That didn't work. Try again?";
+                      ? "Misschien later — je kunt altijd terugkomen."
+                      : "Dat is niet gelukt. Probeer opnieuw.";
                   }}
                 >
-                  Install Happie
+                  Happie installeren
                 </Button>
               </>
             )}

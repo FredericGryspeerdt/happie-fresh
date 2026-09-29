@@ -10,6 +10,16 @@ export const WEEKDAY_ORDER: Weekday[] = [
   "Sun",
 ];
 
+export const WEEKDAY_LABELS: Record<Weekday, string> = {
+  Mon: "Ma",
+  Tue: "Di",
+  Wed: "Wo",
+  Thu: "Do",
+  Fri: "Vr",
+  Sat: "Za",
+  Sun: "Zo",
+};
+
 export interface MenuEntryInterface {
   id: string; // stable entry id (crypto.randomUUID)
   dishId: string; // → ["dishes", dishId]

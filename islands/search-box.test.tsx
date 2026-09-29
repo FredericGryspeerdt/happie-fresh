@@ -14,7 +14,7 @@ Deno.test("SearchBox — renders clear button when query is non-empty", () => {
       renderEmpty: () => h("div", null, "empty"),
     }),
   );
-  assertStringIncludes(html, "Clear search");
+  assertStringIncludes(html, "Zoekveld wissen");
 });
 
 Deno.test("SearchBox — does not render clear button when query is empty", () => {
@@ -27,5 +27,5 @@ Deno.test("SearchBox — does not render clear button when query is empty", () =
       renderEmpty: () => h("div", null, "empty"),
     }),
   );
-  assertEquals(html.includes("Clear search"), false);
+  assertEquals(html.includes("Zoekveld wissen"), false);
 });

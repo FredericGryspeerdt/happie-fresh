@@ -55,7 +55,7 @@ export default function ActingMemberChip({ actingMember, claimed }: Props) {
     if (!ok) {
       // The member may have been removed on another device moments ago. Say
       // so, and re-fetch so a removed member can no longer be picked (§3).
-      showSnack("Couldn't switch — try again?");
+      showSnack("Wisselen is niet gelukt — probeer opnieuw.");
       members.value = null;
       await load();
       return;
@@ -69,7 +69,7 @@ export default function ActingMemberChip({ actingMember, claimed }: Props) {
   return (
     <>
       <Pressable
-        aria-label="Switch member"
+        aria-label="Van lid wisselen"
         onClick={() => {
           load();
           open.value = true;
@@ -90,16 +90,16 @@ export default function ActingMemberChip({ actingMember, claimed }: Props) {
       <Sheet
         open={open.value}
         onClose={() => (open.value = false)}
-        title="Who's using Happie?"
+        title="Wie gebruikt Happie?"
       >
         {(members.value ?? []).map((m) => (
           <ListItem
             key={m.id}
             leading={<MemberAvatar color={m.color} emoji={m.emoji} />}
             headline={m.name}
-            supporting={m.isManager ? "Manager" : undefined}
+            supporting={m.isManager ? "Beheerder" : undefined}
             trailing={acting.value?.id === m.id
-              ? <span class="md-label-large text-primary">That's me</span>
+              ? <span class="md-label-large text-primary">Dat ben ik</span>
               : undefined}
             onClick={() => pick(m)}
           />

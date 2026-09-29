@@ -109,8 +109,8 @@ export default function LoyaltyWallet({ initialCards, canDelete }: Props) {
     if (!saved) {
       showSnack(
         id
-          ? "Couldn't save your changes — try again."
-          : "Couldn't save that card — try again.",
+          ? "Je wijzigingen opslaan is niet gelukt — probeer opnieuw."
+          : "De kaart opslaan is niet gelukt — probeer opnieuw.",
       );
       return;
     }
@@ -123,7 +123,9 @@ export default function LoyaltyWallet({ initialCards, canDelete }: Props) {
       const ok = await removeCard(id);
       if (ok) present.value = null;
       showSnack(
-        ok ? "Card removed." : "Couldn't remove that card — try again.",
+        ok
+          ? "Kaart verwijderd."
+          : "De kaart verwijderen is niet gelukt — probeer opnieuw.",
       );
       return ok;
     } finally {
@@ -138,9 +140,9 @@ export default function LoyaltyWallet({ initialCards, canDelete }: Props) {
     <PullToRefresh onRefresh={refresh}>
       <div class="px-4 pt-4 pb-[calc(96px+env(safe-area-inset-bottom))] flex flex-col gap-4">
         <div class="flex flex-col gap-1">
-          <h1 class="md-title-large text-on-surface">Loyalty cards</h1>
+          <h1 class="md-title-large text-on-surface">Klantenkaarten</h1>
           <p class="md-body-medium text-on-surface-variant">
-            Your household's cards, ready to scan at the till.
+            De kaarten van je huishouden, klaar om te scannen aan de kassa.
           </p>
         </div>
 
@@ -153,13 +155,15 @@ export default function LoyaltyWallet({ initialCards, canDelete }: Props) {
               >
                 <Icon name="card" size={30} />
               </span>
-              <div class="md-title-medium text-on-surface">No cards yet</div>
+              <div class="md-title-medium text-on-surface">
+                Nog geen kaarten
+              </div>
               <p class="md-body-medium text-on-surface-variant max-w-xs">
-                Add your first loyalty card and Happie will show its barcode
-                whenever you shop.
+                Voeg je eerste klantenkaart toe. Happie toont de barcode wanneer
+                je gaat winkelen.
               </p>
               <Button variant="tonal" icon="plus" onClick={openAdd}>
-                Add a card
+                Een kaart toevoegen
               </Button>
             </div>
           )
@@ -171,7 +175,7 @@ export default function LoyaltyWallet({ initialCards, canDelete }: Props) {
                   <Pressable
                     key={c.id}
                     onClick={() => (present.value = c)}
-                    aria-label={`Show ${c.label} barcode`}
+                    aria-label={`Toon ${c.label} barcode`}
                     class="flex flex-col justify-between text-left rounded-[var(--md-shape-lg)] px-5 py-4 md-elevation-1"
                     style={{
                       background: color.bg,
@@ -200,8 +204,8 @@ export default function LoyaltyWallet({ initialCards, canDelete }: Props) {
       >
         <Fab
           icon="plus"
-          label="Add card"
-          aria-label="Add card"
+          label="Kaart toevoegen"
+          aria-label="Kaart toevoegen"
           onClick={openAdd}
         />
       </div>
@@ -209,13 +213,13 @@ export default function LoyaltyWallet({ initialCards, canDelete }: Props) {
       <Sheet
         open={sheetOpen.value}
         onClose={() => (sheetOpen.value = false)}
-        title={editing ? "Edit card" : "Add a card"}
+        title={editing ? "Kaart bewerken" : "Een kaart toevoegen"}
       >
         <CardForm
           form={form}
           scannerAvailable={scannerAvailable.value}
           saving={saving.value}
-          submitLabel={editing ? "Save changes" : "Save card"}
+          submitLabel={editing ? "Wijzigingen opslaan" : "Kaart opslaan"}
           submitIcon={editing ? "check" : "plus"}
           onScan={() => (scannerOpen.value = true)}
           onSubmit={handleSubmit}

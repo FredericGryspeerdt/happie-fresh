@@ -25,8 +25,14 @@ export function formatShoppingAmount(
   quantity: number,
   unit?: ShoppingUnit,
 ): string {
-  if (!unit || unit === "pieces") return String(quantity);
-  return `${quantity} ${unit === "packs" && quantity === 1 ? "pack" : unit}`;
+  const number = quantity.toLocaleString("nl-BE", {
+    useGrouping: false,
+    maximumFractionDigits: 3,
+  });
+  if (!unit || unit === "pieces") return number;
+  return `${number} ${
+    unit === "packs" ? (quantity === 1 ? "pak" : "pakken") : unit
+  }`;
 }
 
 export type { ShoppingAmount, ShoppingUnit } from "@/models/index.ts";

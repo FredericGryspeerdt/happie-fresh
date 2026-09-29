@@ -43,29 +43,29 @@ export function IngredientPicker({
     <div class="flex flex-col gap-5 pt-1">
       {dishName.trim() && (
         <p class="md-body-medium text-on-surface-variant break-words">
-          For {dishName.trim()}
+          Voor {dishName.trim()}
         </p>
       )}
-      <section aria-label="Selected ingredients">
+      <section aria-label="Geselecteerde ingrediënten">
         <h3 class="md-label-medium uppercase text-on-surface-variant mb-2">
-          In this dish · {selectedIds.length}
+          In dit gerecht · {selectedIds.length}
         </h3>
         {selectedIds.length === 0
           ? (
             <p class="md-body-medium text-on-surface-variant">
-              No ingredients yet.
+              Nog geen ingrediënten.
             </p>
           )
           : (
             <div class="flex flex-wrap gap-2 max-h-28 overflow-y-auto">
               {selectedIds.map((id) => {
                 const label = items.find((item) => item.id === id)?.name ??
-                  "Unknown ingredient";
+                  "Onbekend ingrediënt";
                 return (
                   <Pressable
                     key={id}
                     disabled={creating}
-                    aria-label={`Remove ${label}`}
+                    aria-label={`Verwijderen ${label}`}
                     onClick={() => onRemove(id)}
                     class="inline-flex items-center gap-3 min-h-11 max-w-full px-3 md-label-large rounded-[var(--md-shape-full)] bg-secondary-container text-on-secondary-container text-left"
                   >
@@ -87,8 +87,8 @@ export function IngredientPicker({
           ref={inputRef}
           value={query}
           onInput={(e) => onQuery(e.currentTarget.value)}
-          aria-label="Search ingredients"
-          placeholder="Search or add an ingredient"
+          aria-label="Ingrediënten zoeken"
+          placeholder="Zoek een ingrediënt of voeg er een toe"
           readOnly={creating}
           enterKeyHint="search"
           onKeyDown={(e) => {
@@ -100,14 +100,14 @@ export function IngredientPicker({
         {query && !creating && (
           <IconButton
             name="x"
-            aria-label="Clear ingredient search"
+            aria-label="Zoekveld voor ingrediënten wissen"
             onClick={onReset}
           />
         )}
       </div>
-      <section aria-label="Ingredient results">
+      <section aria-label="Gevonden ingrediënten">
         <h3 class="md-label-medium uppercase text-on-surface-variant mb-2">
-          {q ? "Matches" : "Ingredients"}
+          {q ? "Resultaten" : "Ingrediënten"}
         </h3>
         {matches.map((item) =>
           selected.has(item.id)
@@ -120,7 +120,7 @@ export function IngredientPicker({
                   {item.name}
                 </span>
                 <span class="md-label-medium text-on-surface-variant">
-                  Already added
+                  Al toegevoegd
                 </span>
                 <Icon name="check" size={20} class="text-primary shrink-0" />
               </div>
@@ -129,7 +129,7 @@ export function IngredientPicker({
               <Pressable
                 key={item.id}
                 disabled={creating}
-                aria-label={`Add ${item.name}`}
+                aria-label={`Toevoegen ${item.name}`}
                 onClick={() => onAdd(item.id)}
                 class="flex items-center gap-3 w-full text-left min-h-14 py-2 border-b border-outline-variant"
               >
@@ -145,8 +145,8 @@ export function IngredientPicker({
         {matches.length === 0 && (
           <p class="md-body-medium text-on-surface-variant py-3">
             {q
-              ? "No matching ingredients. Add it below."
-              : "Type an ingredient name to get started."}
+              ? "Geen passende ingrediënten. Voeg het hieronder toe."
+              : "Typ de naam van een ingrediënt om te beginnen."}
           </p>
         )}
         {q && !exactMatch && (
@@ -158,7 +158,7 @@ export function IngredientPicker({
             class="mt-2 min-h-11 h-auto py-3 px-0 whitespace-normal text-left justify-start max-w-full"
           >
             <span class="min-w-0 break-words">
-              Add new ingredient “{query.trim()}”
+              Nieuw ingrediënt toevoegen: “{query.trim()}”
             </span>
           </Button>
         )}

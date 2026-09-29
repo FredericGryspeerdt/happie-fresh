@@ -5,17 +5,18 @@
  */
 export interface CardColor {
   key: string;
+  label: string;
   bg: string;
   fg: string;
 }
 
 export const CARD_COLORS: CardColor[] = [
-  { key: "teal", bg: "#0F766E", fg: "#FFFFFF" },
-  { key: "indigo", bg: "#4338CA", fg: "#FFFFFF" },
-  { key: "rose", bg: "#BE123C", fg: "#FFFFFF" },
-  { key: "amber", bg: "#B45309", fg: "#FFFFFF" },
-  { key: "green", bg: "#15803D", fg: "#FFFFFF" },
-  { key: "slate", bg: "#334155", fg: "#FFFFFF" },
+  { key: "teal", label: "Blauwgroen", bg: "#0F766E", fg: "#FFFFFF" },
+  { key: "indigo", label: "Indigo", bg: "#4338CA", fg: "#FFFFFF" },
+  { key: "rose", label: "Roze", bg: "#BE123C", fg: "#FFFFFF" },
+  { key: "amber", label: "Amber", bg: "#B45309", fg: "#FFFFFF" },
+  { key: "green", label: "Groen", bg: "#15803D", fg: "#FFFFFF" },
+  { key: "slate", label: "Leigrijs", bg: "#334155", fg: "#FFFFFF" },
 ];
 
 export const DEFAULT_CARD_COLOR = CARD_COLORS[0].key;

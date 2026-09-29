@@ -20,15 +20,15 @@ Deno.test("Catalogue — renders segmented, categories, selected items, add tile
       { id: "b", label: "Bakery", order: 1 },
     ],
   }));
-  assertStringIncludes(html, "Lists");
-  assertStringIncludes(html, "Catalogue");
+  assertStringIncludes(html, "Lijsten");
+  assertStringIncludes(html, "Catalogus");
   assertStringIncludes(html, "Bakery"); // alphabetical-first → selected by default
   assertStringIncludes(html, "Bread"); // item in the selected (Bakery) category
-  assertStringIncludes(html, "Add item");
-  assertStringIncludes(html, "Add item or category"); // FAB speed-dial primary
-  assertStringIncludes(html, "Delete category"); // canDelete: true exposes it
-  assertStringIncludes(html, "Remove from the catalogue?");
-  assertStringIncludes(html, "Delete this category?");
+  assertStringIncludes(html, "Product toevoegen");
+  assertStringIncludes(html, "Product of categorie toevoegen"); // FAB speed-dial primary
+  assertStringIncludes(html, "Categorie verwijderen"); // canDelete: true exposes it
+  assertStringIncludes(html, "Uit de catalogus verwijderen?");
+  assertStringIncludes(html, "Deze categorie verwijderen?");
 });
 
 Deno.test("Catalogue — shows an Uncategorized chip when uncategorized items exist", () => {
@@ -37,7 +37,7 @@ Deno.test("Catalogue — shows an Uncategorized chip when uncategorized items ex
     initialItems: [{ id: "i1", name: "Salt" }],
     initialCategories: [{ id: "d", label: "Dairy", order: 0 }],
   }));
-  assertStringIncludes(html, "Uncategorized");
+  assertStringIncludes(html, "Zonder categorie");
 });
 
 Deno.test("Catalogue — canDelete: false hides the category delete affordance", () => {
@@ -54,7 +54,7 @@ Deno.test("Catalogue — canDelete: false hides the category delete affordance",
       { id: "d", label: "Dairy", order: 0 },
     ],
   }));
-  assertFalse(html.includes("Delete category"));
+  assertFalse(html.includes("Categorie verwijderen"));
 });
 
 Deno.test("Catalogue — edits a category in a dialog with a labelled field", () => {
@@ -66,7 +66,7 @@ Deno.test("Catalogue — edits a category in a dialog with a labelled field", ()
 
   assertMatch(
     html,
-    /aria-label="Category"[^>]*class="[^"]*bg-surface-chigh/,
+    /aria-label="Categorie"[^>]*class="[^"]*bg-surface-chigh/,
   );
   assertStringIncludes(html, 'for="category-name"');
   assertStringIncludes(html, 'id="category-name"');
@@ -86,7 +86,7 @@ Deno.test("Catalogue — canDelete: false hides Remove from catalogue in the edi
       { id: "d", label: "Dairy", order: 0 },
     ],
   }));
-  assertFalse(html.includes("Remove from catalogue"));
+  assertFalse(html.includes("Uit catalogus verwijderen"));
 });
 
 Deno.test("Catalogue — edits an item in a basic dialog with a TextField", () => {
@@ -99,13 +99,16 @@ Deno.test("Catalogue — edits an item in a basic dialog with a TextField", () =
       { id: "d", label: "Dairy", order: 0 },
     ],
   }));
-  const editDialogStart = html.indexOf('aria-label="Edit item"');
+  const editDialogStart = html.indexOf('aria-label="Product bewerken"');
 
   assert(editDialogStart >= 0);
-  const editDialog = html.slice(editDialogStart, editDialogStart + 2500);
+  const editDialog = html.slice(
+    editDialogStart,
+    html.indexOf('class="fixed inset-0', editDialogStart),
+  );
   assertStringIncludes(editDialog, "max-w-[560px]");
   assertStringIncludes(editDialog, 'id="catalogue-item-name"');
-  assertStringIncludes(editDialog, ">Cancel</button>");
-  assertStringIncludes(editDialog, ">Save</button>");
+  assertStringIncludes(editDialog, ">Annuleren</button>");
+  assertStringIncludes(editDialog, ">Opslaan</button>");
   assertFalse(editDialog.includes("translateY"));
 });

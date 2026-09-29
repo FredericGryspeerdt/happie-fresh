@@ -17,7 +17,7 @@ export default function SearchBox<T>({
   inputRef,
   renderItem,
   renderEmpty,
-  placeholder = "Search items...",
+  placeholder = "Zoeken…",
 }: SearchBoxProps<T>) {
   const hasSearchQuery = useComputed(() =>
     query.value.trim().length > 0 && !!renderItem && !!results
@@ -37,6 +37,9 @@ export default function SearchBox<T>({
           ref={inputRef}
           type="text"
           placeholder={placeholder}
+          aria-label={placeholder === "Zoeken…"
+            ? "Producten zoeken"
+            : placeholder}
           value={query}
           onInput={(e) => onInput(e.currentTarget.value)}
           class="w-full p-4 pl-12 bg-white border border-gray-200 rounded-2xl shadow-sm text-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow"
@@ -60,7 +63,7 @@ export default function SearchBox<T>({
         {query.value.trim().length > 0 && (
           <button
             type="button"
-            aria-label="Clear search"
+            aria-label="Zoekveld wissen"
             class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 active:scale-95 transition-all"
             onClick={() => {
               query.value = "";
@@ -83,7 +86,7 @@ export default function SearchBox<T>({
                 d="M6 18L18 6M6 6l12 12"
               />
             </svg>
-            <span class="sr-only">Clear search</span>
+            <span class="sr-only">Zoekveld wissen</span>
           </button>
         )}
       </div>
@@ -97,7 +100,7 @@ export default function SearchBox<T>({
               ? renderEmpty(query.value)
               : (
                 <div class="p-4 text-center text-gray-500">
-                  No results found
+                  Geen resultaten gevonden
                 </div>
               )}
           </Show>

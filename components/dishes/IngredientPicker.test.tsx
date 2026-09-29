@@ -28,31 +28,32 @@ const props = {
 
 Deno.test("ingredient search keeps matching selections visible and prevents duplicate creation", () => {
   const html = render(h(IngredientPicker, { ...props, query: "  TOMATO  " }));
-  assertStringIncludes(html, "Already added");
-  assertStringIncludes(html, 'aria-label="Remove Tomato"');
-  assertFalse(html.includes("Add new ingredient"));
-  assertFalse(html.includes('aria-label="Add Basil"'));
+  assertStringIncludes(html, "Al toegevoegd");
+  assertStringIncludes(html, 'aria-label="Verwijderen Tomato"');
+  assertFalse(html.includes("Nieuw ingrediënt toevoegen:"));
+  assertFalse(html.includes('aria-label="Toevoegen Basil"'));
 });
 
 Deno.test("ingredient search puts accessible matches before the create action", () => {
   const html = render(h(IngredientPicker, { ...props, query: " Basi " }));
-  assertStringIncludes(html, 'aria-label="Add Basil"');
+  assertStringIncludes(html, 'aria-label="Toevoegen Basil"');
   assert(
-    html.indexOf('aria-label="Add Basil"') < html.indexOf("Add new ingredient"),
+    html.indexOf('aria-label="Toevoegen Basil"') <
+      html.indexOf("Nieuw ingrediënt toevoegen:"),
   );
   assertStringIncludes(html, "Basi");
 });
 
 Deno.test("empty ingredient search browses the catalogue without offering an empty creation", () => {
   const html = render(h(IngredientPicker, { ...props, query: "  " }));
-  assertStringIncludes(html, 'aria-label="Add Basil"');
-  assertFalse(html.includes("Add new ingredient"));
+  assertStringIncludes(html, 'aria-label="Toevoegen Basil"');
+  assertFalse(html.includes("Nieuw ingrediënt toevoegen:"));
 });
 
 Deno.test("empty catalogue explains how to start instead of showing a blank picker", () => {
   const html = render(
     h(IngredientPicker, { ...props, items: [], selectedIds: [] }),
   );
-  assertStringIncludes(html, "Type an ingredient name to get started.");
-  assertStringIncludes(html, 'aria-label="Search ingredients"');
+  assertStringIncludes(html, "Typ de naam van een ingrediënt om te beginnen.");
+  assertStringIncludes(html, 'aria-label="Ingrediënten zoeken"');
 });
