@@ -366,8 +366,7 @@ export function MoveItems(
               }`}
               onClick={() => void move(false)}
             >
-              Verplaats {count.value}{" "}
-              {count.value === 1 ? "product" : "producten"}
+              Verplaats selectie
             </Button>
             <Button
               variant="text"

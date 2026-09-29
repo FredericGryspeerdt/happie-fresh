@@ -75,7 +75,7 @@ Deno.test("IngredientPreviewDialog — rows, states, empty dishes, and the count
   assertStringIncludes(html, "Opnieuw kopen · Curry");
   assertStringIncludes(html, "Nog geen ingrediënten");
   assertStringIncludes(html, "Pizza night");
-  assertStringIncludes(html, "Toevoegen 2 producten");
+  assertStringIncludes(html, "Voeg toe (2)");
 });
 
 Deno.test("IngredientPreviewDialog — no Change action when there is only one list", () => {
@@ -92,17 +92,17 @@ Deno.test("IngredientPreviewDialog — no Change action when there is only one l
 Deno.test("IngredientPreviewDialog — singular label and disabled at zero", () => {
   assertStringIncludes(
     render(h(IngredientPreviewDialog, { ...base, selectedCount: 1 })),
-    "Toevoegen 1 product",
+    "Voeg toe (1)",
   );
   const zero = render(
     h(IngredientPreviewDialog, { ...base, selectedCount: 0 }),
   );
-  assertStringIncludes(zero, "Toevoegen 0 producten");
+  assertStringIncludes(zero, "Voeg toe (0)");
   // Scoped to the confirm button itself — a bare "includes disabled" check
   // would pass even if some unrelated element carried the attribute.
   assertMatch(
     zero,
-    /<button[^>]*disabled[^>]*>[^<]*(<[^>]+>[^<]*)*Toevoegen 0 producten/,
+    /<button[^>]*disabled[^>]*>[^<]*(<[^>]+>[^<]*)*Voeg toe \(0\)/,
   );
 });
 
@@ -168,7 +168,7 @@ Deno.test("conflicting and missing dish amounts are shown, and an unresolved sel
   assertStringIncludes(html, "min-h-12");
   assertMatch(
     html,
-    /<button[^>]*disabled[^>]*>[^<]*(<[^>]+>[^<]*)*Toevoegen 1 product/,
+    /<button[^>]*disabled[^>]*>[^<]*(<[^>]+>[^<]*)*Voeg toe \(1\)/,
   );
 });
 

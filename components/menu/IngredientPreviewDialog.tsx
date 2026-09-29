@@ -97,9 +97,7 @@ export function IngredientPreviewDialog(p: Props) {
             >
               {p.retrying
                 ? "Opnieuw toevoegen"
-                : `Toevoegen ${p.selectedCount} ${
-                  p.selectedCount === 1 ? "product" : "producten"
-                }`}
+                : `Voeg toe (${p.selectedCount})`}
             </Button>
           </>
         }

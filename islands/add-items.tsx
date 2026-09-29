@@ -536,7 +536,7 @@ export default function AddItems(
         supportingText={`“${
           itemToRemove.value?.name ?? "Dit product"
         }” blijft in de catalogus staan.`}
-        confirmLabel="Product verwijderen"
+        confirmLabel="Verwijderen"
         pending={removing.value}
         onClose={() => (itemToRemove.value = null)}
         onConfirm={confirmRemove}

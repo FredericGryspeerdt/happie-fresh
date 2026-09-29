@@ -17,7 +17,7 @@ export default function SearchBox<T>({
   inputRef,
   renderItem,
   renderEmpty,
-  placeholder = "Producten zoeken…",
+  placeholder = "Zoeken…",
 }: SearchBoxProps<T>) {
   const hasSearchQuery = useComputed(() =>
     query.value.trim().length > 0 && !!renderItem && !!results
@@ -37,6 +37,9 @@ export default function SearchBox<T>({
           ref={inputRef}
           type="text"
           placeholder={placeholder}
+          aria-label={placeholder === "Zoeken…"
+            ? "Producten zoeken"
+            : placeholder}
           value={query}
           onInput={(e) => onInput(e.currentTarget.value)}
           class="w-full p-4 pl-12 bg-white border border-gray-200 rounded-2xl shadow-sm text-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow"

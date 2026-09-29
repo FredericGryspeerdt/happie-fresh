@@ -33,7 +33,7 @@ Deno.test("Items — renders Plan and Shop mode toggle", () => {
 
 Deno.test("Items — Plan mode shows the Add items FAB, no quick-add sheet", () => {
   const html = render(h(Items, base));
-  assertStringIncludes(html, "Producten toevoegen"); // FAB label
+  assertStringIncludes(html, ">Toevoegen</span>"); // FAB label
   assertFalse(html.includes('aria-label="Klantenkaarten"'));
   assert(!html.includes("Zoek in je catalogus")); // old quick-add sheet gone
 });

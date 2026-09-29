@@ -349,7 +349,7 @@ export default function Catalogue(
           supportingText={`“${
             itemToRemove.value?.name ?? "Dit product"
           }” kan niet meer aan lijsten toegevoegd worden.`}
-          confirmLabel="Product verwijderen"
+          confirmLabel="Verwijderen"
           pending={itemRemovalPending.value}
           onClose={() => (itemToRemove.value = null)}
           onConfirm={async () => {

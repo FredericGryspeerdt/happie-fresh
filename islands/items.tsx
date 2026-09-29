@@ -350,7 +350,7 @@ export default function Items(
               pendingItemIds.value.size > 0}
             onClick={() => selecting.value = true}
           >
-            Producten selecteren
+            Selecteren
           </Button>
         </div>
       )}
@@ -449,7 +449,7 @@ export default function Items(
 
           {groupedList.value.length === 0 && (
             <p class="md-body-large text-on-surface-variant text-center py-8">
-              Tik op Producten toevoegen om te beginnen.
+              Tik op Toevoegen om te beginnen.
             </p>
           )}
         </div>
@@ -928,7 +928,7 @@ export default function Items(
         supportingText={`“${
           itemToRemove.value?.name ?? "Dit product"
         }” blijft in de catalogus staan.`}
-        confirmLabel="Product verwijderen"
+        confirmLabel="Verwijderen"
         pending={itemRemovalPending.value}
         onClose={() => (itemToRemove.value = null)}
         onConfirm={async () => {
@@ -951,7 +951,7 @@ export default function Items(
             ? "afgevinkt product wordt"
             : "afgevinkte producten worden"
         } van deze lijst verwijderd.`}
-        confirmLabel="Producten wissen"
+        confirmLabel="Wissen"
         pending={clearCheckedPending.value}
         onClose={() => (clearCheckedOpen.value = false)}
         onConfirm={async () => {
@@ -1029,7 +1029,7 @@ export default function Items(
         >
           <Fab
             icon="plus"
-            label="Producten toevoegen"
+            label="Toevoegen"
             aria-label="Producten toevoegen"
             onClick={openAdd}
           />
