@@ -928,3 +928,36 @@ persistent preference: automatic recovery respects it until the member taps
 is skipped and explicit actions remain available. Server deletion and local
 revocation are attempted independently, so a failed DELETE does not skip local
 cleanup. Actual push delivery and recovery on iOS still require device testing.
+
+### App-icon badge
+
+The badge counts every open household to-do due **before the device's next local
+midnight**, including overdue to-dos. It does not follow the Mine filter. Both
+the foreground app and the existing push worker use
+`/api/todos/badge?before=<instant>`; the endpoint applies household scope and returns
+an uncached count. This keeps the counting rule on the server without using the
+server's timezone (ADR 0004).
+
+`utils/app-badge.ts` owns the browser lifecycle. A module-scope revision signal
+invalidates the badge after `useTodos` writes/refreshes settle; failed optimistic
+changes therefore cannot leave a guessed count behind. Mount, resume, reconnect,
+and visible midnight refresh too. Cleanup/logout invalidate pending responses.
+When an active worker is available, foreground refreshes are delegated to it, so
+push and foreground responses cannot overwrite each other out of order. The worker
+acknowledges its support; without acknowledgement (an older installed worker), the
+window falls back to its own read after 500 ms. Notification delivery runs alongside
+badge refresh. A logout message invalidates the worker's pending read.
+
+Badging is progressive enhancement: feature-detect it, never prompt for permission,
+and swallow badge failures. An unknown count (network/server/session failure)
+preserves the last badge; it is not zero. On iOS, visible badges require an
+installed web app and notification permission. Android launchers may show only
+notification-driven dots; numerical badge support is not universal. See the
+[Badging specification](https://www.w3.org/TR/badging/) and
+[WebKit's implementation notes](https://webkit.org/blog/14112/badging-for-home-screen-web-apps/).
+
+No silent pushes or periodic background work are added: while the app is closed,
+changes on another device and day rollover are reflected on the next push or app
+resume. A push received with an expired session still displays its notification,
+but cannot refresh the count until the member signs in again. Real installed-PWA
+badge display and push delivery require on-device verification.

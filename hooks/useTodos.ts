@@ -1,3 +1,4 @@
+import { todoBadgeRevision } from "@/utils/app-badge.ts";
 import { signal } from "@preact/signals";
 import type { TodoInput, TodoInterface } from "@/models/index.ts";
 import { api } from "@/services/api.ts";
@@ -52,6 +53,7 @@ export function useTodos(initialTodos: TodoInterface[]) {
   const endPending = () => {
     pendingCount.value--;
     endBusy();
+    if (pendingCount.value === 0) todoBadgeRevision.value++;
   };
 
   const findAnywhere = (id: string): TodoInterface | undefined =>
@@ -345,6 +347,7 @@ export function useTodos(initialTodos: TodoInterface[]) {
       doneTodos.value = all.filter((t) => t.completedAt !== null);
     } finally {
       pendingCount.value--;
+      if (pendingCount.value === 0) todoBadgeRevision.value++;
     }
   };
 
