@@ -58,7 +58,7 @@ export default function DishCatalogue(
 
   return (
     <PullToRefresh onRefresh={refresh}>
-      <div class="px-4 pt-4 pb-[calc(96px+env(safe-area-inset-bottom))] flex flex-col gap-4">
+      <div class="px-4 pb-[calc(96px+env(safe-area-inset-bottom))] flex flex-col gap-4">
         {/* search */}
         <div class="flex items-center gap-2 bg-surface-chighest rounded-[var(--md-shape-full)] h-12 pl-4 pr-1.5">
           <Icon name="search" size={20} class="text-on-surface-variant" />
@@ -88,14 +88,24 @@ export default function DishCatalogue(
         {/* dish grid / empty state */}
         {list.length === 0
           ? (
-            <div class="px-2 pt-2 text-center flex flex-col items-center gap-4">
-              <div class="md-title-medium text-on-surface">
-                {dishes.value.length === 0
-                  ? "Nog geen gerechten"
-                  : "Geen gerechten gevonden"}
+            <div class="py-12 text-center flex flex-col items-center gap-4">
+              <div class="w-[72px] h-[72px] rounded-full bg-secondary-container grid place-items-center text-on-secondary-container">
+                <Icon name="plate" size={32} />
+              </div>
+              <div>
+                <div class="md-title-medium text-on-surface">
+                  {dishes.value.length === 0
+                    ? "Nog geen gerechten"
+                    : "Geen gerechten gevonden"}
+                </div>
+                <div class="md-body-medium text-on-surface-variant mt-1">
+                  {dishes.value.length === 0
+                    ? "Tik op de plusknop om je eerste gerecht te maken."
+                    : "Probeer een andere zoekterm."}
+                </div>
               </div>
               <Button
-                variant="tonal"
+                variant="filled"
                 icon="plus"
                 onClick={() => navigateTo("/menu/new")}
               >
@@ -113,18 +123,25 @@ export default function DishCatalogue(
                   <Pressable
                     as="div"
                     onClick={() => navigateTo(`/menu/${d.id}`)}
-                    class="flex flex-col gap-1 px-4 py-3.5 text-left"
+                    class="flex flex-col items-stretch gap-1 px-4 py-3.5 text-left"
                   >
-                    <span class="md-body-large text-on-surface truncate">
+                    <span class="md-body-large text-on-surface line-clamp-2 break-words">
                       {d.name}
                     </span>
-                    <span class="md-body-small text-on-surface-variant truncate">
-                      {d.ingredientIds.length} {d.ingredientIds.length === 1
-                        ? "ingrediënt"
-                        : "ingrediënten"}
+                    <span class="flex items-center justify-between gap-2">
+                      <span class="md-body-small text-on-surface-variant truncate">
+                        {d.ingredientIds.length} {d.ingredientIds.length === 1
+                          ? "ingrediënt"
+                          : "ingrediënten"}
+                      </span>
+                      <Icon
+                        name="edit"
+                        size={18}
+                        class="text-on-surface-variant shrink-0"
+                      />
                     </span>
                   </Pressable>
-                  <div class="px-4 pb-3">
+                  <div class="px-4 pb-3 mt-auto">
                     {planned.has(d.id)
                       ? (
                         <Button

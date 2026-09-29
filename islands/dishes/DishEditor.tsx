@@ -9,6 +9,8 @@ import type {
   ItemInterface,
 } from "@/models/index.ts";
 import { api } from "@/services/api.ts";
+import { Card } from "@/components/md3/Card.tsx";
+import { TextField } from "@/components/md3/TextField.tsx";
 import { Chip } from "@/components/md3/Chip.tsx";
 import { Button } from "@/components/md3/Button.tsx";
 import { IconButton } from "@/components/md3/IconButton.tsx";
@@ -19,9 +21,6 @@ import { navigateTo } from "@/utils/loading.ts";
 import { ShoppingAmountDialog } from "@/components/shopping/ShoppingAmountDialog.tsx";
 import { formatDishIngredientAmount } from "@/utils/dish-ingredient-amount.ts";
 import type { ShoppingAmount } from "@/models/index.ts";
-
-const fieldClass =
-  "flex-1 min-w-0 md-body-large text-on-surface bg-surface-chighest rounded-t-[var(--md-shape-sm)] border-0 border-b-2 border-primary px-4 py-3 focus:outline-none";
 
 interface Props {
   dish?: DishInterface;
@@ -194,73 +193,76 @@ export default function DishEditor(
 
   return (
     <div class="px-4 pt-4 pb-[calc(96px+env(safe-area-inset-bottom))] flex flex-col gap-6">
-      {/* Name */}
-      <div>
-        <div class="md-label-medium uppercase text-on-surface-variant mb-2">
-          Naam
-        </div>
-        <input
-          value={name.value}
-          onInput={(e) => (name.value = e.currentTarget.value)}
-          placeholder="Naam van het gerecht"
-          class={fieldClass}
-        />
-      </div>
+      <TextField
+        id="dish-name"
+        label="Naam"
+        value={name.value}
+        onInput={(value) => (name.value = value)}
+        placeholder="Naam van het gerecht"
+      />
 
       {/* Ingredients */}
       <div>
-        <div class="md-label-medium uppercase text-on-surface-variant mb-2">
+        <div class="md-title-small text-primary uppercase tracking-wide px-1 mb-2">
           Ingrediënten
         </div>
         <div class="flex flex-col gap-2">
-          {ingredientIds.value.map((id) => (
-            <div
-              key={id}
-              class="w-full flex items-center gap-2 bg-secondary-container text-on-secondary-container rounded-[var(--md-shape-md)] px-3 py-1"
-            >
-              <span class="flex-1 min-w-0 md-label-large">
-                {itemById(id)?.name ?? "Onbekend"}
-              </span>
-              <Button
-                variant="text"
-                aria-label={ingredientAmounts.value[id]
-                  ? `Hoeveelheid wijzigen voor ${
-                    itemById(id)?.name ?? "ingrediënt"
-                  }`
-                  : `Hoeveelheid toevoegen voor ${
-                    itemById(id)?.name ?? "ingrediënt"
+          {ingredientIds.value.length > 0 && (
+            <Card variant="filled" pad={0} radius={16}>
+              {ingredientIds.value.map((id, index) => (
+                <div
+                  key={id}
+                  class={`flex items-center gap-2 px-4 py-3 ${
+                    index ? "border-t border-outline-variant" : ""
                   }`}
-                onClick={() => amountEditing.value = id}
-              >
-                {ingredientAmounts.value[id]
-                  ? formatDishIngredientAmount(ingredientAmounts.value[id])
-                  : "Hoeveelheid toevoegen"}
-              </Button>
-              <IconButton
-                name="x"
-                size={44}
-                iconSize={18}
-                aria-label={`Verwijderen ${
-                  itemById(id)?.name ?? "Onbekend ingrediënt"
-                }`}
-                onClick={() => removeIngredient(id)}
-              />
-            </div>
-          ))}
-          <Chip
-            icon="plus"
-            leadingCheck={false}
-            onClick={openPicker}
-          >
+                >
+                  <div class="flex-1 min-w-0 flex flex-col items-start">
+                    <span class="md-body-large text-on-surface break-words max-w-full">
+                      {itemById(id)?.name ?? "Onbekend"}
+                    </span>
+                    <Button
+                      variant="text"
+                      style={{ paddingInline: 0 }}
+                      aria-label={ingredientAmounts.value[id]
+                        ? `Hoeveelheid wijzigen voor ${
+                          itemById(id)?.name ?? "ingrediënt"
+                        }`
+                        : `Hoeveelheid toevoegen voor ${
+                          itemById(id)?.name ?? "ingrediënt"
+                        }`}
+                      onClick={() => amountEditing.value = id}
+                    >
+                      {ingredientAmounts.value[id]
+                        ? formatDishIngredientAmount(
+                          ingredientAmounts.value[id],
+                        )
+                        : "Hoeveelheid toevoegen"}
+                    </Button>
+                  </div>
+                  <IconButton
+                    name="x"
+                    size={44}
+                    iconSize={18}
+                    aria-label={`Verwijderen ${
+                      itemById(id)?.name ?? "Onbekend ingrediënt"
+                    }`}
+                    onClick={() =>
+                      removeIngredient(id)}
+                  />
+                </div>
+              ))}
+            </Card>
+          )}
+          <Button variant="outlined" icon="plus" onClick={openPicker}>
             Ingrediënt toevoegen
-          </Chip>
+          </Button>
         </div>
       </div>
 
       {/* Tags — one chip group per dimension */}
       {localGroups.value.map((g) => (
         <div key={g.id}>
-          <div class="md-label-medium uppercase text-on-surface-variant mb-2">
+          <div class="md-title-small text-primary uppercase tracking-wide px-1 mb-2">
             {g.label}
           </div>
           <div class="flex flex-wrap gap-2 items-center">
@@ -276,14 +278,13 @@ export default function DishEditor(
             ))}
             {newValueFor.value === g.id
               ? (
-                <span class="inline-flex items-center gap-2">
-                  <input
+                <div class="flex flex-wrap items-end gap-2 w-full">
+                  <TextField
+                    id={`new-tag-${g.id}`}
+                    label="Nieuwe waarde"
                     value={newValueLabel.value}
-                    onInput={(
-                      e,
-                    ) => (newValueLabel.value = e.currentTarget.value)}
-                    placeholder="Nieuwe waarde"
-                    class="md-body-large bg-surface-chighest rounded-t-[var(--md-shape-sm)] border-0 border-b-2 border-primary px-3 py-1.5 focus:outline-none"
+                    onInput={(value) => (newValueLabel.value = value)}
+                    class="flex-1 min-w-0"
                   />
                   <Button
                     variant="filled"
@@ -296,7 +297,7 @@ export default function DishEditor(
                   >
                     Toevoegen
                   </Button>
-                </span>
+                </div>
               )
               : (
                 <Chip

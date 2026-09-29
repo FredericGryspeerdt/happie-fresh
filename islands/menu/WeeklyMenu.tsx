@@ -163,7 +163,7 @@ export default function WeeklyMenu(
     >
       <div class="pb-[calc(168px+env(safe-area-inset-bottom))]">
         {/* header */}
-        <div class="flex items-center justify-between px-4 pt-4">
+        <div class="flex items-center justify-between px-4 pt-2">
           <div>
             <div class="md-title-medium text-on-surface">Deze week</div>
             <div class="md-body-small text-on-surface-variant">
@@ -201,12 +201,9 @@ export default function WeeklyMenu(
 
         {entries.length === 0
           ? (
-            <div class="px-6 pt-10 flex flex-col items-center text-center gap-4">
-              <div
-                class="grid place-items-center rounded-[var(--md-shape-xl)] bg-primary-container text-on-primary-container"
-                style={{ width: 80, height: 80 }}
-              >
-                <Icon name="plate" size={40} />
+            <div class="px-4 py-12 flex flex-col items-center text-center gap-4">
+              <div class="w-[72px] h-[72px] rounded-full bg-secondary-container text-on-secondary-container grid place-items-center">
+                <Icon name="plate" size={32} />
               </div>
               <div>
                 <div class="md-title-medium text-on-surface">
@@ -227,11 +224,11 @@ export default function WeeklyMenu(
             </div>
           )
           : (
-            <div class="px-4 pt-3 flex flex-col gap-2.5">
+            <div class="px-4 pt-3 flex flex-col gap-3">
               {entries.map((e) => {
                 const dish = dishById.get(e.dishId);
                 return (
-                  <Card key={e.id} variant="filled" radius={16}>
+                  <Card key={e.id} variant="filled" radius={20}>
                     <div class="flex items-center gap-3">
                       <Chip
                         selected={!!e.day}
@@ -242,7 +239,7 @@ export default function WeeklyMenu(
                         {e.day ? WEEKDAY_LABELS[e.day] : "Vrij"}
                       </Chip>
                       <div class="flex-1 min-w-0">
-                        <div class="md-title-small text-on-surface truncate">
+                        <div class="md-title-medium text-on-surface truncate">
                           {dish?.name ?? "Onbekend gerecht"}
                         </div>
                         {tagsFor(dish).length > 0 && (
