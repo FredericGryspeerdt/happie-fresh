@@ -1,3 +1,4 @@
+import { clearAppBadgeOnLogout } from "@/utils/app-badge.ts";
 import { Sheet } from "@/components/md3/Sheet.tsx";
 import { ListItem } from "@/components/md3/ListItem.tsx";
 import { Icon, type IconName } from "@/components/md3/Icon.tsx";
@@ -52,7 +53,7 @@ export default function MoreSheet({ open, onClose }: MoreSheetProps) {
     let timer: ReturnType<typeof setTimeout> | undefined;
     try {
       await Promise.race([
-        unsubscribeThisDevice(),
+        Promise.allSettled([unsubscribeThisDevice(), clearAppBadgeOnLogout()]),
         new Promise((resolve) => {
           timer = setTimeout(resolve, UNSUBSCRIBE_BUDGET_MS);
         }),

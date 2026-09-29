@@ -1,3 +1,4 @@
+import { startAppBadgeSync } from "@/utils/app-badge.ts";
 import { useSignal } from "@preact/signals";
 import { useEffect, useMemo } from "preact/hooks";
 import { usePushNotifications } from "./usePushNotifications.ts";
@@ -39,6 +40,8 @@ export default function AppChrome(
   useEffect(() => {
     syncIfGranted();
   }, []);
+
+  useEffect(() => startAppBadgeSync(), []);
 
   // Full-screen routes (e.g. the add-items search) own the whole viewport:
   // no top bar and no bottom navigation.

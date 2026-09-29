@@ -6,6 +6,20 @@ import type {
 import { deleteResource } from "./delete-resource.ts";
 
 export const todos = {
+  /** A failed background read is unknown, never a zero badge. */
+  getBadgeCount: async (before: Date): Promise<number | null> => {
+    try {
+      const query = new URLSearchParams({ before: before.toISOString() });
+      const res = await fetch(`/api/todos/badge?${query}`, {
+        cache: "no-store",
+      });
+      if (!res.ok) return null;
+      const { count } = await res.json();
+      return Number.isSafeInteger(count) && count >= 0 ? count : null;
+    } catch {
+      return null;
+    }
+  },
   getAll: async (): Promise<TodoInterface[]> => {
     const res = await fetch("/api/todos");
     if (!res.ok) return [];

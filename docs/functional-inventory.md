@@ -125,6 +125,7 @@ A user can:
 - See recently done to-dos (last 7 days) and reveal older ones on request.
 - Delete a to-do (manager only) after a confirmation that explains this is for "never needed doing", not for "done".
 - Be prompted, once, to turn on reminders when they have due to-dos and have not decided about notifications yet.
+- See an app-icon badge with the number of open household to-dos due today or earlier, using the device’s local day. Done, undated and future to-dos do not count; the Mine filter does not affect the badge. The badge refreshes on opening/resuming the app, after to-do writes or refreshes, at midnight while visible, and when a push arrives. Zero and explicit logout clear it, where supported.
 
 Display rule for due moments: weekday, day and month, and time, in the device locale. Year only when it is not the current year. Overdue is shown distinctly but not alarmingly.
 
