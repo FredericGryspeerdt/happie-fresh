@@ -366,7 +366,7 @@ export function MoveItems(
               }`}
               onClick={() => void move(false)}
             >
-              Verplaatsen {count.value}{" "}
+              Verplaats {count.value}{" "}
               {count.value === 1 ? "artikel" : "artikelen"}
             </Button>
             <Button

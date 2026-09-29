@@ -522,8 +522,8 @@ export default function TodoBacklog(
       >
         <Fab
           icon="plus"
-          label="Iets te doen toevoegen"
-          aria-label="Iets te doen toevoegen"
+          label="Te doen toevoegen"
+          aria-label="Te doen toevoegen"
           onClick={openCreate}
         />
       </div>
@@ -558,7 +558,7 @@ export default function TodoBacklog(
       <FullScreenDialog
         open={createOpen.value}
         onClose={closeCreate}
-        title="Iets te doen toevoegen"
+        title="Te doen toevoegen"
         action={<Button variant="text" onClick={submitNew}>Toevoegen</Button>}
       >
         {createOpen.value && (

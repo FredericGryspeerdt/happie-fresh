@@ -112,7 +112,7 @@ Deno.test("TodoBacklog — renders open and done to-dos, and the FAB", () => {
   assertStringIncludes(html, "09 123 45 67"); // notes hint on the row
   assertStringIncludes(html, "Pay the water bill");
   assertStringIncludes(html, ">Klaar<"); // done section heading
-  assertStringIncludes(html, "Iets te doen toevoegen"); // FAB label
+  assertStringIncludes(html, "Te doen toevoegen"); // FAB label
 });
 
 Deno.test("TodoBacklog — empty state when the household has no to-dos", () => {
@@ -124,7 +124,7 @@ Deno.test("TodoBacklog — empty state when the household has no to-dos", () => 
   }));
 
   assertStringIncludes(html, "Niets te doen");
-  assertStringIncludes(html, "Iets te doen toevoegen"); // FAB is still offered
+  assertStringIncludes(html, "Te doen toevoegen"); // FAB is still offered
 });
 
 Deno.test("TodoBacklog — no Done heading when nothing is done yet", () => {
@@ -334,7 +334,7 @@ Deno.test("TodoBacklog — create and edit surfaces are dialogs, not sheets", ()
     canDelete: true,
   }));
   // FullScreenDialog renders role="dialog" with an aria-label per title.
-  assertStringIncludes(html, 'aria-label="Iets te doen toevoegen"');
+  assertStringIncludes(html, 'aria-label="Te doen toevoegen"');
   assertStringIncludes(html, 'aria-label="Bewerken wat er te doen is"');
   // Rapid capture is retired: no body-level Close button in the create flow.
   assertFalse(html.includes(">Sluiten<"));
