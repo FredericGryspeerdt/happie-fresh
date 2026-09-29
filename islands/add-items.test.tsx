@@ -55,14 +55,14 @@ Deno.test("AddItems — matching query: results first, then a slim Create row (n
   // "But" has no exact match, so a Create affordance shows too — but BELOW the
   // results and as a slim row, NOT the prominent card.
   assert(html.indexOf("Butter") < html.indexOf("Aanmaken: &quot;But&quot;"));
-  assert(!html.includes("Nieuw artikel")); // de-emphasized: slim row, not the full card
+  assert(!html.includes("Nieuw product")); // de-emphasized: slim row, not the full card
 });
 
 Deno.test("AddItems — no-match query shows the full Create card", () => {
   const html = render(h(AddItems, { ...base, initialQuery: "Tofu" }));
   // preact-render-to-string HTML-escapes the literal quotes in Create "{q}".
   assertStringIncludes(html, "Aanmaken: &quot;Tofu&quot;");
-  assertStringIncludes(html, "Nieuw artikel"); // no matches → the prominent card
+  assertStringIncludes(html, "Nieuw product"); // no matches → the prominent card
 });
 
 Deno.test("AddItems — item editor is a closed dialog without a note field", () => {

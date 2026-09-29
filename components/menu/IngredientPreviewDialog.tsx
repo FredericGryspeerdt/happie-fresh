@@ -48,7 +48,7 @@ export function IngredientPreviewDialog(p: Props) {
   const locked = p.adding || p.draftLocked;
   const categoryByItem = new Map(p.items.map((i) => [i.id, i.categoryId]));
   const known = new Set(p.categories.map((c) => c.id));
-  const groups = [...p.categories, { id: "", label: "Overige artikelen" }].map(
+  const groups = [...p.categories, { id: "", label: "Overige producten" }].map(
     (c) => ({
       ...c,
       rows: eligible.filter((r) => {
@@ -98,7 +98,7 @@ export function IngredientPreviewDialog(p: Props) {
               {p.retrying
                 ? "Opnieuw toevoegen"
                 : `Toevoegen ${p.selectedCount} ${
-                  p.selectedCount === 1 ? "artikel" : "artikelen"
+                  p.selectedCount === 1 ? "product" : "producten"
                 }`}
             </Button>
           </>

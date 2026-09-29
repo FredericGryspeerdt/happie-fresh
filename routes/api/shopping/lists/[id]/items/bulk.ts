@@ -56,7 +56,7 @@ export const handler = define.handlers({
       return badRequest("Ongeldige gegevens");
     }
     const items = parseItems(body);
-    if (!items) return badRequest("Selecteer artikelen om toe te voegen");
+    if (!items) return badRequest("Selecteer producten om toe te voegen");
     const { addToExisting, requestId } = body as {
       addToExisting?: unknown;
       requestId?: unknown;

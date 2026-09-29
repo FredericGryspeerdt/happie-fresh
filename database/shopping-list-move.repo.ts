@@ -57,7 +57,7 @@ export class ShoppingListMoveRepo {
           input.destinationListId === sourceId))
     ) {
       return fail(
-        `Kies 1–${MAX_MOVE_ITEMS} artikelen en een andere lijst, of een nieuwe lijstnaam (maximaal 100 tekens).`,
+        `Kies 1–${MAX_MOVE_ITEMS} producten en een andere lijst, of een nieuwe lijstnaam (maximaal 100 tekens).`,
       );
     }
     const kv = await getKv();
@@ -108,7 +108,7 @@ export class ShoppingListMoveRepo {
     );
     if (entries.some((e) => !e.value || e.value.listId !== sourceId)) {
       return fail(
-        "Sommige geselecteerde artikelen zijn gewijzigd. Vernieuw de lijst en probeer opnieuw.",
+        "Sommige geselecteerde producten zijn gewijzigd. Vernieuw de lijst en probeer opnieuw.",
       );
     }
     // Stay comfortably under KV's 800 KiB transaction limit, including overhead.
@@ -117,7 +117,7 @@ export class ShoppingListMoveRepo {
         .byteLength > 600_000
     ) {
       return fail(
-        "Deze artikelen bevatten te veel tekst om samen te verplaatsen. Selecteer minder artikelen.",
+        "Deze producten bevatten te veel tekst om samen te verplaatsen. Selecteer minder producten.",
       );
     }
     let atomic = kv.atomic().check(source, destination, receipt, ...revisions);
@@ -178,7 +178,7 @@ export class ShoppingListMoveRepo {
       !record || record.sourceId !== sourceId || record.expiresAt < Date.now()
     ) {
       return fail(
-        "Ongedaan maken is niet meer mogelijk. Je kunt de artikelen terugplaatsen vanuit hun nieuwe lijst.",
+        "Ongedaan maken is niet meer mogelijk. Je kunt de producten terugplaatsen vanuit hun nieuwe lijst.",
       );
     }
     if (record.undone) {
@@ -219,7 +219,7 @@ export class ShoppingListMoveRepo {
       entries.some((e) => !e.value || e.versionstamp !== receipt.versionstamp)
     ) {
       return fail(
-        "Deze artikelen zijn gewijzigd na de verplaatsing. Plaats ze terug vanuit hun nieuwe lijst.",
+        "Deze producten zijn gewijzigd na de verplaatsing. Plaats ze terug vanuit hun nieuwe lijst.",
       );
     }
     let atomic = kv.atomic().check(source, destination, receipt, ...revisions);

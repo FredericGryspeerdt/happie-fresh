@@ -110,7 +110,7 @@ export function MoveItems(
     if (next.has(id)) next.delete(id);
     else if (next.size < MAX_MOVE_ITEMS) next.add(id);
     else {
-      showSnack(`Verplaats maximaal ${MAX_MOVE_ITEMS} artikelen tegelijk`);
+      showSnack(`Verplaats maximaal ${MAX_MOVE_ITEMS} producten tegelijk`);
       return;
     }
     selected.value = next;
@@ -127,7 +127,7 @@ export function MoveItems(
       const result = await api.shoppingList.undoMove(listId, requestId);
       if (result?.ok) {
         onRestored(result.items);
-        showSnack("Artikelen teruggeplaatst");
+        showSnack("Producten teruggeplaatst");
       } else {
         showSnack(
           result?.error ??
@@ -182,7 +182,7 @@ export function MoveItems(
       active.value = false;
       showSnack(
         `${result.count} ${
-          result.count === 1 ? "artikel" : "artikelen"
+          result.count === 1 ? "product" : "producten"
         } verplaatst naar ${result.destination.name}`,
         "Ongedaan maken",
         () => void undo(result.requestId),
@@ -238,7 +238,7 @@ export function MoveItems(
             </div>
           </div>
           <p class="md-body-small text-on-surface-variant">
-            Kies maximaal {MAX_MOVE_ITEMS} artikelen om te verplaatsen.
+            Kies maximaal {MAX_MOVE_ITEMS} producten om te verplaatsen.
           </p>
           <div class="flex flex-col gap-4">
             {groups.map((g) => (
@@ -291,7 +291,7 @@ export function MoveItems(
           <MoveFocusScope onClose={closeSheet}>
             <div>
               <p class="md-body-large text-on-surface-variant">
-                {count.value} {count.value === 1 ? "artikel" : "artikelen"} uit
+                {count.value} {count.value === 1 ? "product" : "producten"} uit
                 {" "}
                 {listName}
               </p>
@@ -328,7 +328,7 @@ export function MoveItems(
               </fieldset>
               {!destinations.value.length && (
                 <p class="px-4 pt-4 md-body-medium text-on-surface-variant">
-                  Maak een lijst aan voor deze artikelen.
+                  Maak een lijst aan voor deze producten.
                 </p>
               )}
               <div class="border-t border-outline-variant mx-4" />
@@ -367,7 +367,7 @@ export function MoveItems(
               onClick={() => void move(false)}
             >
               Verplaats {count.value}{" "}
-              {count.value === 1 ? "artikel" : "artikelen"}
+              {count.value === 1 ? "product" : "producten"}
             </Button>
             <Button
               variant="text"
@@ -446,7 +446,7 @@ export function MoveItems(
             />
             <p class="mt-3 md-body-medium">
               {count.value}{" "}
-              {count.value === 1 ? "artikel wordt" : "artikelen worden"}{" "}
+              {count.value === 1 ? "product wordt" : "producten worden"}{" "}
               verplaatst vanuit {listName}.
             </p>
             {error.value && (

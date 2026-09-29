@@ -167,7 +167,7 @@ export default function Catalogue(
               ? (
                 <div class="px-2 pt-2 text-center flex flex-col items-center gap-4">
                   <div class="md-title-medium text-on-surface">
-                    Geen artikelen gevonden voor “{query.value.trim()}”
+                    Geen producten gevonden voor “{query.value.trim()}”
                   </div>
                   <Button
                     variant="tonal"
@@ -231,7 +231,7 @@ export default function Catalogue(
               <div class="flex items-center justify-between gap-2 pl-1">
                 <span class="md-body-medium text-on-surface-variant">
                   {visibleItems.length}{" "}
-                  {visibleItems.length === 1 ? "artikel" : "artikelen"} in{" "}
+                  {visibleItems.length === 1 ? "product" : "producten"} in{" "}
                   {selectedLabel}
                 </span>
                 {!selectedIsUncat && selected.value && (
@@ -263,7 +263,7 @@ export default function Catalogue(
                     visibleItems.length === 0 ? "col-span-2" : ""
                   }`}
                 >
-                  <Icon name="plus" size={20} stroke={2.3} /> Artikel toevoegen
+                  <Icon name="plus" size={20} stroke={2.3} /> Product toevoegen
                 </Pressable>
               </div>
             </>
@@ -347,9 +347,9 @@ export default function Catalogue(
           open={itemToRemove.value !== null}
           headline="Uit de catalogus verwijderen?"
           supportingText={`“${
-            itemToRemove.value?.name ?? "Dit artikel"
+            itemToRemove.value?.name ?? "Dit product"
           }” kan niet meer aan lijsten toegevoegd worden.`}
-          confirmLabel="Artikel verwijderen"
+          confirmLabel="Product verwijderen"
           pending={itemRemovalPending.value}
           onClose={() => (itemToRemove.value = null)}
           onConfirm={async () => {
@@ -369,7 +369,7 @@ export default function Catalogue(
         <DestructiveConfirmationDialog
           open={categoryToDelete.value !== null}
           headline="Deze categorie verwijderen?"
-          supportingText={`Artikelen in “${
+          supportingText={`Producten in “${
             categoryToDelete.value?.label ?? "deze categorie"
           }” krijgen geen categorie meer.`}
           confirmLabel="Categorie verwijderen"
@@ -398,11 +398,11 @@ export default function Catalogue(
       {/* Context FAB — add an item or a new category (prototype md3-app.jsx) */}
       {!anySheetOpen && (
         <FabMenu
-          label="Artikel of categorie toevoegen"
+          label="Product of categorie toevoegen"
           actions={[
             {
               icon: "plus",
-              label: "Artikel toevoegen",
+              label: "Product toevoegen",
               onClick: () => {
                 addNewCat.value = false;
                 addOpen.value = true;
@@ -450,7 +450,7 @@ function EditItemDialog(
     <Dialog
       open={item !== null}
       onClose={onClose}
-      headline="Artikel bewerken"
+      headline="Product bewerken"
       actions={
         <>
           <Button variant="text" onClick={onClose}>Annuleren</Button>
@@ -597,7 +597,7 @@ function AddItemSheet(
         </div>
         <div>
           <div class="md-label-medium uppercase text-on-surface-variant mb-2">
-            Artikel
+            Product
           </div>
           <div class="flex gap-2 items-center">
             <input
@@ -610,7 +610,7 @@ function AddItemSheet(
                   name.value = "";
                 }
               }}
-              placeholder="Naam van het artikel"
+              placeholder="Naam van het product"
               class={fieldClass}
             />
             <Button
@@ -713,7 +713,7 @@ function CategoryPicker(
             onClick={() => onPick(c.id)}
             headline={c.label}
             supporting={`${counts(c.id)} ${
-              counts(c.id) === 1 ? "artikel" : "artikelen"
+              counts(c.id) === 1 ? "product" : "producten"
             }`}
             trailing={c.id === selected
               ? (
@@ -764,7 +764,7 @@ function CategoryMenuDialog(
             <Button variant="text" class="text-error" onClick={onDelete}>
               Categorie verwijderen{itemCount > 0
                 ? ` · ${itemCount} ${
-                  itemCount === 1 ? "artikel krijgt" : "artikelen krijgen"
+                  itemCount === 1 ? "product krijgt" : "producten krijgen"
                 } geen categorie meer`
                 : ""}
             </Button>

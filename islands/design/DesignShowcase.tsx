@@ -157,9 +157,12 @@ export default function DesignShowcase() {
       <Section title="Scheidingslijnen en lijsten">
         <Card pad={0}>
           <ListSubheader>Algemeen</ListSubheader>
-          <ListItem headline="Een lijstartikel" supporting="Met toelichting" />
+          <ListItem
+            headline="Een product op de lijst"
+            supporting="Met toelichting"
+          />
           <Divider inset />
-          <ListItem headline="Nog een artikel" trailing="Informatie" />
+          <ListItem headline="Nog een product" trailing="Informatie" />
           <Divider />
           <ListSubheader>Gevarenzone</ListSubheader>
           <ListItem headline="Scheidingslijn over de volledige breedte hierboven" />

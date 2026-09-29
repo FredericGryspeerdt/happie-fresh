@@ -135,7 +135,7 @@ terms consistently in app copy:
 | Overdue          | voorbij de geplande tijd |
 | Assigned to      | toegewezen aan           |
 | Catalogue        | catalogus                |
-| Item             | artikel                  |
+| Item             | product                  |
 | Shopping list    | boodschappenlijst        |
 | Dish             | gerecht                  |
 | Ingredient       | ingrediënt               |

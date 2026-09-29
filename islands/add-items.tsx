@@ -177,7 +177,7 @@ export default function AddItems(
     const li = list.value.find((entry) => entry.id === liId);
     itemToRemove.value = {
       id: liId,
-      name: li ? getItemName(li.itemId) : "Dit artikel",
+      name: li ? getItemName(li.itemId) : "Dit product",
     };
     if (editingId.value === liId) editingId.value = null;
   };
@@ -329,7 +329,7 @@ export default function AddItems(
                 query.value = (e.target as HTMLInputElement).value;
                 createExpanded.value = false; // typing re-collapses the create row
               }}
-              placeholder="Zoek een artikel of voeg er een toe…"
+              placeholder="Zoek een product of voeg er een toe…"
               class="w-full md-body-large text-on-surface bg-surface-chigh border-0 rounded-[var(--md-shape-full)] py-2.5 pl-10 pr-10 outline-none"
             />
             {q && (
@@ -441,7 +441,7 @@ export default function AddItems(
                           <div class="flex-1 min-w-0">
                             <div class="md-body-large">Aanmaken: "{q}"</div>
                             <div class="md-body-small opacity-80">
-                              Nieuw artikel — kies een categorie
+                              Nieuw product — kies een categorie
                             </div>
                           </div>
                         </div>
@@ -480,7 +480,7 @@ export default function AddItems(
                 Zoek in je catalogus
               </div>
               <div class="md-body-medium opacity-80">
-                Zoek een artikel om toe te voegen of maak een nieuw artikel aan.
+                Zoek een product om toe te voegen of maak een nieuw product aan.
               </div>
             </div>
           )}
@@ -534,9 +534,9 @@ export default function AddItems(
         open={itemToRemove.value !== null}
         headline="Van deze lijst verwijderen?"
         supportingText={`“${
-          itemToRemove.value?.name ?? "Dit artikel"
+          itemToRemove.value?.name ?? "Dit product"
         }” blijft in de catalogus staan.`}
-        confirmLabel="Artikel verwijderen"
+        confirmLabel="Product verwijderen"
         pending={removing.value}
         onClose={() => (itemToRemove.value = null)}
         onConfirm={confirmRemove}

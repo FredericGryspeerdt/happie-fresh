@@ -17,7 +17,7 @@ export default function SearchBox<T>({
   inputRef,
   renderItem,
   renderEmpty,
-  placeholder = "Artikelen zoeken…",
+  placeholder = "Producten zoeken…",
 }: SearchBoxProps<T>) {
   const hasSearchQuery = useComputed(() =>
     query.value.trim().length > 0 && !!renderItem && !!results

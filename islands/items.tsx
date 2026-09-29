@@ -350,7 +350,7 @@ export default function Items(
               pendingItemIds.value.size > 0}
             onClick={() => selecting.value = true}
           >
-            Artikelen selecteren
+            Producten selecteren
           </Button>
         </div>
       )}
@@ -449,7 +449,7 @@ export default function Items(
 
           {groupedList.value.length === 0 && (
             <p class="md-body-large text-on-surface-variant text-center py-8">
-              Tik op Artikelen toevoegen om te beginnen.
+              Tik op Producten toevoegen om te beginnen.
             </p>
           )}
         </div>
@@ -621,7 +621,7 @@ export default function Items(
 
             {shoppingTotal.value === 0 && (
               <p class="md-body-large text-on-surface-variant text-center py-8">
-                Kies Plannen om artikelen toe te voegen.
+                Kies Plannen om producten toe te voegen.
               </p>
             )}
           </div>
@@ -659,7 +659,7 @@ export default function Items(
                   selecting.value = true;
                 }}
               >
-                Artikelen selecteren om te verplaatsen
+                Producten selecteren om te verplaatsen
               </Button>
               {/* Rename */}
               <ListItem
@@ -694,7 +694,7 @@ export default function Items(
 
               {/* Clear checked */}
               <ListItem
-                headline="Afgevinkte artikelen wissen"
+                headline="Afgevinkte producten wissen"
                 supporting={checkedItems.value.length
                   ? `${checkedItems.value.length} afgevinkt`
                   : "Nog niets afgevinkt"}
@@ -926,9 +926,9 @@ export default function Items(
         open={itemToRemove.value !== null}
         headline="Van deze lijst verwijderen?"
         supportingText={`“${
-          itemToRemove.value?.name ?? "Dit artikel"
+          itemToRemove.value?.name ?? "Dit product"
         }” blijft in de catalogus staan.`}
-        confirmLabel="Artikel verwijderen"
+        confirmLabel="Product verwijderen"
         pending={itemRemovalPending.value}
         onClose={() => (itemToRemove.value = null)}
         onConfirm={async () => {
@@ -945,13 +945,13 @@ export default function Items(
       />
       <DestructiveConfirmationDialog
         open={clearCheckedOpen.value}
-        headline="Afgevinkte artikelen wissen?"
+        headline="Afgevinkte producten wissen?"
         supportingText={`${checkedItems.value.length} ${
           checkedItems.value.length === 1
-            ? "afgevinkt artikel wordt"
-            : "afgevinkte artikelen worden"
+            ? "afgevinkt product wordt"
+            : "afgevinkte producten worden"
         } van deze lijst verwijderd.`}
-        confirmLabel="Artikelen wissen"
+        confirmLabel="Producten wissen"
         pending={clearCheckedPending.value}
         onClose={() => (clearCheckedOpen.value = false)}
         onConfirm={async () => {
@@ -960,7 +960,7 @@ export default function Items(
             const ok = await clearCheckedItems();
             clearCheckedOpen.value = false;
             if (!ok) {showSnack(
-                "Afgevinkte artikelen wissen is niet gelukt — probeer opnieuw",
+                "Afgevinkte producten wissen is niet gelukt — probeer opnieuw",
               );}
           } finally {
             clearCheckedPending.value = false;
@@ -971,7 +971,7 @@ export default function Items(
         <DestructiveConfirmationDialog
           open={deleteListOpen.value}
           headline="Deze boodschappenlijst verwijderen?"
-          supportingText={`“${listName}” en alle artikelen erop worden voor iedereen verwijderd.`}
+          supportingText={`“${listName}” en alle producten erop worden voor iedereen verwijderd.`}
           confirmLabel="Lijst verwijderen"
           pending={listDeletionPending.value}
           onClose={() => (deleteListOpen.value = false)}
@@ -1029,8 +1029,8 @@ export default function Items(
         >
           <Fab
             icon="plus"
-            label="Artikelen toevoegen"
-            aria-label="Artikelen toevoegen"
+            label="Producten toevoegen"
+            aria-label="Producten toevoegen"
             onClick={openAdd}
           />
         </div>

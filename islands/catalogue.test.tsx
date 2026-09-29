@@ -24,8 +24,8 @@ Deno.test("Catalogue — renders segmented, categories, selected items, add tile
   assertStringIncludes(html, "Catalogus");
   assertStringIncludes(html, "Bakery"); // alphabetical-first → selected by default
   assertStringIncludes(html, "Bread"); // item in the selected (Bakery) category
-  assertStringIncludes(html, "Artikel toevoegen");
-  assertStringIncludes(html, "Artikel of categorie toevoegen"); // FAB speed-dial primary
+  assertStringIncludes(html, "Product toevoegen");
+  assertStringIncludes(html, "Product of categorie toevoegen"); // FAB speed-dial primary
   assertStringIncludes(html, "Categorie verwijderen"); // canDelete: true exposes it
   assertStringIncludes(html, "Uit de catalogus verwijderen?");
   assertStringIncludes(html, "Deze categorie verwijderen?");
@@ -99,7 +99,7 @@ Deno.test("Catalogue — edits an item in a basic dialog with a TextField", () =
       { id: "d", label: "Dairy", order: 0 },
     ],
   }));
-  const editDialogStart = html.indexOf('aria-label="Artikel bewerken"');
+  const editDialogStart = html.indexOf('aria-label="Product bewerken"');
 
   assert(editDialogStart >= 0);
   const editDialog = html.slice(
