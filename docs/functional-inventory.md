@@ -25,6 +25,19 @@ capability.
 
 ---
 
+## Start
+
+- Open the app on a shared household overview; direct links still open their destination.
+- See up to five open to-dos due today or earlier, with today's work first, and mark
+  them done directly. Open the matching filtered backlog or a particular to-do.
+- Choose which shopping lists appear on Start, shared across the household. Lists
+  start hidden; selected lists stay visible even when everything is bought.
+- Add products to a shown list through the existing picker without leaving Start;
+  the remaining count updates after saving.
+- Preview up to seven weekly-menu dishes, including dishes without a weekday.
+
+---
+
 ## 1. Signing in and acting as a member
 
 A user can:

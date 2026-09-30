@@ -1,3 +1,4 @@
+import { home } from "./api/home.ts";
 import { cards } from "./api/cards.ts";
 import { categories, items } from "./api/catalogue.ts";
 import { dishes, dishTagGroups, weeklyMenu } from "./api/menu.ts";
@@ -6,6 +7,7 @@ import { shoppingList, shoppingLists } from "./api/shopping-lists.ts";
 import { todos } from "./api/todos.ts";
 
 export const api = {
+  home,
   items,
   categories,
   shoppingLists,

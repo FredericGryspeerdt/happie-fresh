@@ -1,6 +1,9 @@
 # Start: gedeeld huishoudenoverzicht
 
-Status: bevestigd ontwerp, nog niet geïmplementeerd.
+Status: geïmplementeerd op branch `codex/home-dashboard`.
+
+Visuele basis: [verfijnde optie 3](assets/2026-09-30-home-selected.png). De
+bestaande appbalk, ledenchip en MD3-iconen blijven behouden.
 
 ## Doel en bereik
 
@@ -68,7 +71,7 @@ mutatiepatronen uit `docs/ui-ux-patterns.md`, ook bij acties op Start.
 
 ## Documentatiegrens
 
-Dit document beschrijft het bevestigde productontwerp, geen geleverde
-functionaliteit of technisch implementatieplan. Het introduceert geen nieuw
-domeinbegrip voor `CONTEXT.md`. De keuzes zijn omkeerbare presentatiekeuzes;
-daarom is geen aparte ADR nodig. Bestaande domeinafspraken blijven gelden.
+Dit document beschrijft het bevestigde productontwerp. Het introduceert geen
+nieuw domeinbegrip voor `CONTEXT.md`. De keuzes zijn omkeerbare
+presentatiekeuzes; daarom is geen aparte ADR nodig. Bestaande domeinafspraken
+blijven gelden.

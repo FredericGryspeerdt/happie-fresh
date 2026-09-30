@@ -1,3 +1,4 @@
+import { StartListToggle } from "@/components/home/StartListToggle.tsx";
 import { MoveItems } from "@/components/shopping/MoveItems.tsx";
 import { QuickLoyaltyCards } from "@/components/cards/QuickLoyaltyCards.tsx";
 import { useEffect, useMemo, useRef } from "preact/hooks";
@@ -133,6 +134,7 @@ export default function Items(
   // only moment browsers allow the soft keyboard to open. Focus then transfers to
   // the overlay's search field (keeping the keyboard up). A cross-document route
   // navigation loses the tap's user-activation, so the keyboard never appears.
+  const showOnHome = useSignal(targetList?.showOnHome === true);
   const addOpen = useSignal(false);
   const primerRef = useRef<HTMLInputElement>(null);
   // Set once the overlay's search field has taken focus, i.e. the keyboard
@@ -661,6 +663,13 @@ export default function Items(
               >
                 Producten selecteren om te verplaatsen
               </Button>
+              <StartListToggle
+                id={listId}
+                initial={showOnHome.value}
+                onSaved={(value) => showOnHome.value = value}
+                onError={() =>
+                  showSnack("Opslaan is niet gelukt. Probeer opnieuw.")}
+              />
               {/* Rename */}
               <ListItem
                 headline="Lijstnaam wijzigen"
