@@ -1,14 +1,16 @@
+import { page } from "fresh";
 import { define } from "@/utils/index.ts";
-import { ComingSoon } from "@/components/md3/ComingSoon.tsx";
-
-export default define.page(function Home() {
+import { loadHome } from "@/services/home.ts";
+import Home from "@/islands/home/Home.tsx";
+export const handler = define.handlers({
+  async GET(ctx) {
+    return page({ initial: await loadHome(ctx.state.householdId!) });
+  },
+});
+export default define.page<typeof handler>(function HomePage({ data }) {
   return (
     <main class="max-w-md mx-auto">
-      <ComingSoon
-        icon="home"
-        title="Start"
-        blurb="Het overzicht voor je huishouden komt eraan. Ga intussen naar Boodschappen."
-      />
+      <Home initial={data.initial} />
     </main>
   );
 });

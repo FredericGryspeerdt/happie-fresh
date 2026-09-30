@@ -40,7 +40,7 @@ export const handler = define.handlers<Data>({
     const headers = new Headers();
     setSessionCookie(headers, session.id, SESSION_IDLE_TTL_MS / 1000);
 
-    headers.set("location", "/shopping");
+    headers.set("location", "/home");
     return new Response(null, {
       status: 303,
       headers,

@@ -36,6 +36,21 @@ export const shoppingLists = {
     if (!res.ok) return null;
     return res.json();
   },
+  setShowOnHome: async (
+    id: string,
+    showOnHome: boolean,
+  ): Promise<ShoppingListInterface | null> => {
+    try {
+      const res = await fetch(`/api/shopping/lists/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ showOnHome }),
+      });
+      return res.ok ? await res.json() : null;
+    } catch {
+      return null;
+    }
+  },
   rename: async (
     id: string,
     name: string,

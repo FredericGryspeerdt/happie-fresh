@@ -114,3 +114,97 @@ Deno.test({
     assertEquals((await ShoppingListItemRepo.getAll(source.id)).length, 1);
   },
 });
+
+const patch = (body: unknown) =>
+  new Request("http://x/api/shopping/lists/x", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+
+Deno.test({
+  name: "PATCH — Start selection is shared, optional and household-scoped",
+  sanitizeResources: false,
+  async fn() {
+    const list = await seed();
+    assertEquals(
+      (await handler.PATCH(ctx(patch({ showOnHome: true }), list.id, AUTH_KID)))
+        .status,
+      200,
+    );
+    assertEquals(
+      (await ShoppingListRepo.getById("h1", list.id))?.showOnHome,
+      true,
+    );
+    assertEquals(
+      (await handler.PATCH(
+        ctx(patch({ name: "Renamed" }), list.id, AUTH_MANAGER),
+      )).status,
+      200,
+    );
+    assertEquals(
+      (await ShoppingListRepo.getById("h1", list.id))?.showOnHome,
+      true,
+    );
+    assertEquals(
+      (await handler.PATCH(
+        ctx(patch({ showOnHome: false }), list.id, { householdId: "other" }),
+      )).status,
+      404,
+    );
+    assertEquals(
+      (await handler.PATCH(
+        ctx(patch({ showOnHome: false }), list.id, AUTH_KID),
+      )).status,
+      200,
+    );
+    assertEquals(
+      (await ShoppingListRepo.getById("h1", list.id))?.showOnHome,
+      false,
+    );
+  },
+});
+
+Deno.test({
+  name:
+    "PATCH — reject malformed Start selection and do not apply partial invalid patches",
+  sanitizeResources: false,
+  async fn() {
+    const list = await seed();
+    for (
+      const body of [
+        { showOnHome: "true" },
+        { showOnHome: null },
+        { name: 42 },
+        { name: "", showOnHome: true },
+        {},
+        null,
+        [],
+      ]
+    ) {
+      assertEquals(
+        (await handler.PATCH(ctx(patch(body), list.id, AUTH_MANAGER))).status,
+        400,
+      );
+    }
+    assertEquals(
+      (await ShoppingListRepo.getById("h1", list.id))?.name,
+      list.name,
+    );
+  },
+});
+
+Deno.test({
+  name: "PATCH — simultaneous rename and Start selection preserve both changes",
+  sanitizeResources: false,
+  async fn() {
+    const list = await seed();
+    await Promise.all([
+      handler.PATCH(ctx(patch({ name: "New name" }), list.id, AUTH_MANAGER)),
+      handler.PATCH(ctx(patch({ showOnHome: true }), list.id, AUTH_KID)),
+    ]);
+    const saved = await ShoppingListRepo.getById("h1", list.id);
+    assertEquals(saved?.name, "New name");
+    assertEquals(saved?.showOnHome, true);
+  },
+});

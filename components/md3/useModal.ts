@@ -30,6 +30,10 @@ export function useModal(
   onClose: () => void,
   surface: RefObject<HTMLElement>,
   focusSurface = false,
+  focusOptions?: {
+    preserveInitialFocus?: boolean;
+    returnFocus?: RefObject<HTMLElement>;
+  },
 ) {
   // Consumers pass inline `onClose` arrows whose identity changes every
   // render. Depending on it would tear down and re-run the effect on each
@@ -40,7 +44,8 @@ export function useModal(
   useEffect(() => {
     if (!open) return;
     const host = surface.current;
-    const restoreTo = document.activeElement as HTMLElement | null;
+    const restoreTo = focusOptions?.returnFocus?.current ??
+      document.activeElement as HTMLElement | null;
     if (!host) return;
     if (modalStack.length === 0) {
       originalOverflow = document.body.style.overflow;
@@ -51,10 +56,14 @@ export function useModal(
     const focusables = () =>
       host
         ? [...host.querySelectorAll<HTMLElement>(FOCUSABLE)].filter(
-          (el) => !el.hasAttribute("disabled") && el.offsetParent !== null,
+          (el) =>
+            !el.hasAttribute("disabled") && !el.closest("[inert]") &&
+            el.offsetParent !== null,
         )
         : [];
-    (focusSurface ? host : (focusables()[0] ?? host))?.focus();
+    if (!focusOptions?.preserveInitialFocus) {
+      (focusSurface ? host : (focusables()[0] ?? host))?.focus();
+    }
 
     const onKey = (e: KeyboardEvent) => {
       if (modalStack.at(-1) !== host) return;

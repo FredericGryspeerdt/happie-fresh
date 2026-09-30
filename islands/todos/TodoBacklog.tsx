@@ -1,3 +1,4 @@
+import { homeTodos } from "@/utils/home.ts";
 import { useEffect, useMemo, useRef } from "preact/hooks";
 import { useSignal } from "@preact/signals";
 import type { JSX, Ref } from "preact";
@@ -24,6 +25,8 @@ import { usePushNotifications } from "@/islands/shell/usePushNotifications.ts";
 
 interface Props {
   initialTodos: TodoInterface[];
+  initialView?: "home" | "all";
+  initialTodoId?: string | null;
   members: MemberInterface[];
   actingMemberId: string | null;
   canDelete: boolean;
@@ -110,6 +113,8 @@ export function TodoDateTimeInput(
 export default function TodoBacklog(
   {
     initialTodos,
+    initialView = "all",
+    initialTodoId = null,
     members,
     actingMemberId,
     canDelete,
@@ -154,6 +159,12 @@ export default function TodoBacklog(
   const { snack, showSnack: say } = useSnack(4000);
 
   const filter = useSignal<"all" | "mine">("all");
+  const homeView = useSignal(initialView === "home");
+  useEffect(() => {
+    if (initialTodoId && initialTodos.some((t) => t.id === initialTodoId)) {
+      editingId.value = initialTodoId;
+    }
+  }, []);
   const memberById = new Map(members.map((m) => [m.id, m]));
 
   // ── create-dialog focus handoff ──────────────────────────────────────────
@@ -215,8 +226,16 @@ export default function TodoBacklog(
   const mineOnly = filter.value === "mine";
   const mine = (t: TodoInterface) =>
     t.assignedTo !== null && t.assignedTo === actingMemberId;
-  const visibleOpen = mineOnly ? open.filter(mine) : open;
-  const filteredDone = mineOnly ? done.filter(mine) : done;
+  const visibleOpen = homeView.value
+    ? homeTodos(open, now)
+    : mineOnly
+    ? open.filter(mine)
+    : open;
+  const filteredDone = homeView.value
+    ? []
+    : mineOnly
+    ? done.filter(mine)
+    : done;
 
   const groups = groupOpenTodos(visibleOpen, now);
 
@@ -259,6 +278,7 @@ export default function TodoBacklog(
     ) {
       say("Toegevoegd — kies Alles om het te zien.");
     }
+    homeView.value = false;
     closeCreate();
   };
 
@@ -441,6 +461,16 @@ export default function TodoBacklog(
           )
           : (
             <>
+              {homeView.value && (
+                <div class="flex items-center justify-between gap-3">
+                  <p class="md-body-medium text-on-surface-variant">
+                    Vandaag en eerder
+                  </p>
+                  <Button variant="text" onClick={() => homeView.value = false}>
+                    Alle to-do’s
+                  </Button>
+                </div>
+              )}
               <Segmented
                 options={[["all", "people", "Alles"], [
                   "mine",
@@ -448,7 +478,10 @@ export default function TodoBacklog(
                   "Voor mij",
                 ]]}
                 value={filter.value}
-                onChange={(k) => (filter.value = k as "all" | "mine")}
+                onChange={(k) => {
+                  homeView.value = false;
+                  filter.value = k as "all" | "mine";
+                }}
               />
               {mineOnly && visibleOpen.length === 0 &&
                 filteredDone.length === 0 && (

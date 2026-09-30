@@ -39,6 +39,7 @@ interface AddItemsProps {
   // navigating. Its presence is what switches the back control from a link to a
   // button.
   onClose?: () => void;
+  onChanged?: () => void;
   // Called when the search field first receives focus. The overlay host uses
   // this to retire its keyboard primer once the focus hand-off is complete —
   // see the primer comment in islands/items.tsx.
@@ -57,6 +58,7 @@ export default function AddItems(
     initialMenu = { householdId: "", entries: [] },
     initialDishes = [],
     onClose,
+    onChanged,
     onSearchFocus,
   }: AddItemsProps,
 ) {
@@ -134,6 +136,7 @@ export default function AddItems(
   const confirmMenuShopping = () => {
     void menuShopping.confirm().then((out) => {
       if (!out) return;
+      onChanged?.();
       showSnack(
         out.count === 0
           ? "Alles stond al op de lijst"
@@ -152,8 +155,10 @@ export default function AddItems(
 
   const handleAdd = async (itemId: string) => {
     const liId = await addToList(itemId);
-    if (liId) trackAdded(liId);
-    else showSnack("Toevoegen is niet gelukt — probeer opnieuw");
+    if (liId) {
+      trackAdded(liId);
+      onChanged?.();
+    } else showSnack("Toevoegen is niet gelukt — probeer opnieuw");
   };
 
   const handleCreate = async (name: string) => {
@@ -167,6 +172,7 @@ export default function AddItems(
       return;
     }
     trackAdded(liId);
+    onChanged?.();
     selectedCategoryId.value = "";
     query.value = "";
     createExpanded.value = false;
@@ -192,6 +198,7 @@ export default function AddItems(
           id !== target.id
         );
         itemToRemove.value = null;
+        onChanged?.();
       } else showSnack("Verwijderen is niet gelukt — probeer opnieuw");
     } finally {
       removing.value = false;

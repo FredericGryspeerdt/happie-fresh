@@ -25,12 +25,24 @@ export const handler = define.handlers({
   async PATCH(ctx) {
     const list = await authorizeList(ctx, ctx.params.id);
     if (!list) return notFound();
-    const { name } = await ctx.req.json();
-    if (!name?.trim()) return badRequest("name required");
+    const body = await ctx.req.json().catch(() => null);
+    if (!body || typeof body !== "object" || Array.isArray(body)) {
+      return badRequest("Invalid patch");
+    }
+    const { name, showOnHome } = body;
+    if (name !== undefined && (typeof name !== "string" || !name.trim())) {
+      return badRequest("name required");
+    }
+    if (showOnHome !== undefined && typeof showOnHome !== "boolean") {
+      return badRequest("showOnHome must be a boolean");
+    }
+    if (name === undefined && showOnHome === undefined) {
+      return badRequest("Empty patch");
+    }
     const updated = await ShoppingListRepo.update(
       ctx.state.householdId!,
       list.id,
-      { name: name.trim() },
+      { name: name?.trim(), showOnHome },
     );
     return json(updated);
   },

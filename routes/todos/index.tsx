@@ -13,6 +13,10 @@ export const handler = define.handlers({
     return page({
       todos,
       members,
+      initialView: ctx.url.searchParams.get("view") === "home"
+        ? "home" as const
+        : "all" as const,
+      initialTodoId: ctx.url.searchParams.get("todo"),
       actingMemberId: ctx.state.actingMember?.id ?? null,
       canDelete: ctx.state.actingMember?.isManager === true,
     });
@@ -24,6 +28,8 @@ export default define.page<typeof handler>(function Todos({ data }) {
     <main class="max-w-md mx-auto">
       <TodoBacklog
         initialTodos={data.todos}
+        initialView={data.initialView}
+        initialTodoId={data.initialTodoId}
         members={data.members}
         actingMemberId={data.actingMemberId}
         canDelete={data.canDelete}

@@ -961,3 +961,19 @@ changes on another device and day rollover are reflected on the next push or app
 resume. A push received with an expired session still displays its notification,
 but cannot refresh the count until the member signs in again. Real installed-PWA
 badge display and push delivery require on-device verification.
+
+### Start overview and inline product picker
+
+Start derives today's to-dos only after hydration, using the device's local calendar
+and refreshing its clock on resume and every 30 seconds. Background reads preserve
+known data on failure and cannot overwrite an intervening local mutation. The
+shopping-list `showOnHome` preference is household-wide; absent means hidden.
+
+Start reuses `AddItems` as an in-page overlay with the existing keyboard primer.
+`onChanged` refreshes the household snapshot after a successful add, creation,
+removal or menu-shopping submission, including submissions that settle after the
+picker closes. Closing also refreshes. The shared modal helper can preserve the
+primer's focus and restore the add button; inert nested dialogs are excluded from
+its focus loop. Resume/reconnect reads wait until the picker or list selection is
+closed. See `islands/home/Home.tsx`, `hooks/useHome.ts` and
+`components/md3/useModal.ts`.

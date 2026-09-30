@@ -1,3 +1,4 @@
+import { getKv } from "./db.ts";
 import {
   CreateShoppingListDto,
   ShoppingListInterface,
@@ -38,11 +39,17 @@ export class ShoppingListRepo {
     id: string,
     patch: Partial<ShoppingListInterface>,
   ): Promise<ShoppingListInterface | null> {
-    const existing = await this.getById(householdId, id);
-    if (!existing) return null;
-    const updated = mergeDefinedPatch(existing, patch);
-    await setKvValue(["shopping_lists", householdId, id], updated);
-    return updated;
+    const kv = await getKv();
+    const key = ["shopping_lists", householdId, id];
+    for (let attempt = 0; attempt < 8; attempt++) {
+      const current = await kv.get<ShoppingListInterface>(key);
+      if (!current.value) return null;
+      const updated = mergeDefinedPatch(current.value, patch);
+      const result = await kv.atomic().check(current).set(key, updated)
+        .commit();
+      if (result.ok) return updated;
+    }
+    throw new Error("Shopping list update conflict");
   }
 
   static async delete(householdId: string, id: string): Promise<void> {
