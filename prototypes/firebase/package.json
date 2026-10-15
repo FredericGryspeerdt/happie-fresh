@@ -1,0 +1,18 @@
+{
+  "name": "happie-firebase-spike",
+  "private": true,
+  "description": "THROWAWAY: feasibility probe for Firebase Hosting + Hono on Cloud Run + Firestore",
+  "type": "module",
+  "engines": { "node": "24" },
+  "scripts": {
+    "init": "node src/init.ts",
+    "start": "node src/server.ts",
+    "smoke": "node src/smoke.ts"
+  },
+  "dependencies": {
+    "@hono/node-server": "2.1.5",
+    "firebase-admin": "14.5.0",
+    "hono": "4.13.13",
+    "web-push": "3.6.7"
+  }
+}

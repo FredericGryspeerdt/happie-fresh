@@ -1,0 +1,6 @@
+node_modules/
+.env.spike
+env.yaml
+results/
+public/
+.firebase/

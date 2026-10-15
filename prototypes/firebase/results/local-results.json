@@ -1,0 +1,77 @@
+{
+  "checkedAt": "2026-10-15T07:47:20.924Z",
+  "base": "http://localhost:8099",
+  "functionalProbesPassed": false,
+  "note": "ms values are wall-clock; Cloud Run billing is per vCPU-second of instance time",
+  "reports": [
+    {
+      "name": "cold-start",
+      "passed": true,
+      "clientMs": 23,
+      "serverCold": true,
+      "serverUptimeMs": 2078,
+      "moduleLoadMs": 211,
+      "revision": "local"
+    },
+    {
+      "name": "warm-health",
+      "clientMs": 1
+    },
+    {
+      "name": "probe-auth",
+      "passed": true
+    },
+    {
+      "name": "login:right",
+      "passed": true,
+      "serverMs": 23,
+      "clientMs": 25
+    },
+    {
+      "name": "login-node:right",
+      "passed": true,
+      "serverMs": 20,
+      "clientMs": 21
+    },
+    {
+      "name": "login:wrong",
+      "passed": true,
+      "serverMs": 20,
+      "clientMs": 21
+    },
+    {
+      "name": "login-node:wrong",
+      "passed": true,
+      "serverMs": 20,
+      "clientMs": 21
+    },
+    {
+      "name": "firestore-transactions",
+      "passed": false,
+      "result": "Unable to detect a Project Id in the current environment. \nTo learn more about authentication and Google APIs, visit: \nhttps://cloud.google.com/docs/authentication/getting-started",
+      "serverMs": 2150
+    },
+    {
+      "name": "push-encryption",
+      "passed": true
+    },
+    {
+      "name": "session-cookie",
+      "passed": false,
+      "setCookieNames": [],
+      "cookiesReceivedByApi": [],
+      "apiCacheControl": "private, no-store"
+    },
+    {
+      "name": "session-unknown-rejected",
+      "passed": false
+    },
+    {
+      "name": "scheduled-runs",
+      "data": {
+        "status": 500,
+        "text": "Internal Server Error"
+      }
+    }
+  ]
+}

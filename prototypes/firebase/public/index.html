@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <title>Happie Firebase spike</title>
+  <style>
+    body { font: 16px/1.4 system-ui; margin: 16px; background: #fff8f0; color: #222; }
+    button, input { font: inherit; padding: 8px 12px; margin: 4px 0; width: 100%; box-sizing: border-box; }
+    pre { white-space: pre-wrap; background: #fff; padding: 8px; border-radius: 8px; }
+  </style>
+</head>
+<body>
+  <h1>Prototype: Firebase spike</h1>
+  <p>THROWAWAY. On iOS: add to home screen first, then enrol from the installed app.</p>
+  <input id="token" type="password" placeholder="PROTOTYPE_TOKEN" autocomplete="off">
+  <button id="enrol">Enrol this device for push</button>
+  <button id="send">Send a test push now</button>
+  <button id="results">Show scheduled runs</button>
+  <pre id="out"></pre>
+  <script type="module">
+    const out = document.querySelector("#out");
+    const tokenInput = document.querySelector("#token");
+    tokenInput.value = localStorage.getItem("spike-token") ?? "";
+    tokenInput.onchange = () => localStorage.setItem("spike-token", tokenInput.value);
+    const call = async (path, init = {}) => {
+      const res = await fetch(`/api/prototype/${path}`, {
+        ...init,
+        headers: { "content-type": "application/json", authorization: `Bearer ${tokenInput.value}` },
+      });
+      const text = await res.text();
+      out.textContent = `${res.status}\n${text}`;
+      return JSON.parse(text);
+    };
+    const toKey = (b64) => Uint8Array.from(atob(b64.replace(/-/g, "+").replace(/_/g, "/")), (c) => c.charCodeAt(0));
+    document.querySelector("#enrol").onclick = async () => {
+      const reg = await navigator.serviceWorker.register("/sw.js");
+      await navigator.serviceWorker.ready;
+      if (await Notification.requestPermission() !== "granted") return (out.textContent = "Permission denied");
+      const { publicKey } = await call("config", { method: "GET" });
+      const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: toKey(publicKey) });
+      await call("subscribe", { method: "POST", body: JSON.stringify(sub) });
+    };
+    document.querySelector("#send").onclick = () => call("push", { method: "POST", body: "{}" });
+    document.querySelector("#results").onclick = () => call("results", { method: "GET" });
+  </script>
+</body>
+</html>
