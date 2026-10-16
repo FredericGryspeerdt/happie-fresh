@@ -1,0 +1,91 @@
+{
+  "checkedAt": "2026-10-16T18:25:28.779Z",
+  "base": "<hosting-url>",
+  "functionalProbesPassed": true,
+  "note": "ms values are wall-clock; Cloud Run billing is per vCPU-second of instance time",
+  "reports": [
+    {
+      "name": "cold-start",
+      "passed": true,
+      "clientMs": 532,
+      "serverCold": true,
+      "serverUptimeMs": 25223,
+      "moduleLoadMs": 2069,
+      "revision": "happie-spike-00001-kj6"
+    },
+    {
+      "name": "warm-health",
+      "clientMs": 122
+    },
+    {
+      "name": "probe-auth",
+      "passed": true
+    },
+    {
+      "name": "login:right",
+      "passed": true,
+      "serverMs": 56,
+      "clientMs": 122
+    },
+    {
+      "name": "login-node:right",
+      "passed": true,
+      "serverMs": 63,
+      "clientMs": 125
+    },
+    {
+      "name": "login:wrong",
+      "passed": true,
+      "serverMs": 69,
+      "clientMs": 129
+    },
+    {
+      "name": "login-node:wrong",
+      "passed": true,
+      "serverMs": 54,
+      "clientMs": 126
+    },
+    {
+      "name": "firestore-transactions",
+      "passed": true,
+      "result": {
+        "raceWinners": 1,
+        "moved": {
+          "listId": "destination",
+          "revision": 1
+        },
+        "rollbackRejected": true,
+        "rollbackPreserved": true,
+        "claimWinners": 1,
+        "staleRenewalRejected": true,
+        "recreated": false,
+        "passed": true
+      },
+      "serverMs": 3633
+    },
+    {
+      "name": "push-encryption",
+      "passed": true
+    },
+    {
+      "name": "session-cookie",
+      "passed": true,
+      "setCookieNames": [
+        "__session",
+        "other"
+      ],
+      "cookiesReceivedByApi": [
+        "__session"
+      ],
+      "apiCacheControl": "private, no-store"
+    },
+    {
+      "name": "session-unknown-rejected",
+      "passed": true
+    },
+    {
+      "name": "scheduled-runs",
+      "data": []
+    }
+  ]
+}
