@@ -1,0 +1,12 @@
+{
+  "checkedAt": "2026-10-16T18:36:00Z",
+  "scheduler": "Cloud Scheduler europe-west1, */5 * * * *, POST run.app/api/sweep with x-sweep-token",
+  "runs": [
+    { "at": "2026-10-16T18:28:01Z", "ok": true, "result": "skipped: no device subscribed", "serverMs": 481, "httpStatus": 200, "requestLatencyS": 0.73 },
+    { "at": "2026-10-16T18:30:19Z", "ok": true, "result": "skipped: no device subscribed", "serverMs": 46 },
+    { "at": "2026-10-16T18:32:13Z", "kind": "manual test push", "ok": true, "result": "claimed=1 sent=1", "serverMs": 596 },
+    { "at": "2026-10-16T18:35:14Z", "ok": true, "result": "claimed=1 sent=1", "serverMs": 811 }
+  ],
+  "deviceReport": "User confirmed on 2026-10-16: the manual test push arrived on the enrolled iOS home-screen PWA, and the 18:35 scheduled notification arrived with the app swiped closed.",
+  "note": "The sweep finishes its work before responding; serverMs is wall-clock inside the handler."
+}
