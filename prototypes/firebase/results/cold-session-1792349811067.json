@@ -1,0 +1,28 @@
+{
+  "checkedAt": "2026-10-18T18:56:51.066Z",
+  "base": "<hosting-url>",
+  "functionalProbesPassed": false,
+  "note": "ms values are wall-clock; Cloud Run billing is per vCPU-second of instance time",
+  "reports": [
+    {
+      "name": "cold-start-session",
+      "passed": false,
+      "clientMs": 2492,
+      "status": 401,
+      "serverCold": "true"
+    },
+    {
+      "name": "cold-start",
+      "passed": true,
+      "clientMs": 124,
+      "serverCold": false,
+      "serverUptimeMs": 2173,
+      "moduleLoadMs": 526,
+      "revision": "happie-spike-00002-9dg"
+    },
+    {
+      "name": "warm-health",
+      "clientMs": 196
+    }
+  ]
+}
