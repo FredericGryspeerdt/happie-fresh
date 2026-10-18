@@ -1,10 +1,16 @@
-// Lazy so module load (cold start) does not pay for Firestore client setup.
-import { initializeApp } from "firebase-admin/app";
-import { type Firestore, getFirestore } from "firebase-admin/firestore";
+// Lazy so module load (cold start) does not pay for loading or setting up
+// firebase-admin: the import itself happens on the first Firestore call.
+import type { Firestore } from "firebase-admin/firestore";
 
-let instance: Firestore | undefined;
+let instance: Promise<Firestore> | undefined;
 
 export function db() {
-  instance ??= getFirestore(initializeApp());
+  instance ??= (async () => {
+    const [{ initializeApp }, { getFirestore }] = await Promise.all([
+      import("firebase-admin/app"),
+      import("firebase-admin/firestore"),
+    ]);
+    return getFirestore(initializeApp());
+  })();
   return instance;
 }

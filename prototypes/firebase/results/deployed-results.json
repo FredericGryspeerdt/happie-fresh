@@ -1,5 +1,5 @@
 {
-  "checkedAt": "2026-10-16T18:25:28.779Z",
+  "checkedAt": "2026-10-18T09:05:39.594Z",
   "base": "<hosting-url>",
   "functionalProbesPassed": true,
   "note": "ms values are wall-clock; Cloud Run billing is per vCPU-second of instance time",
@@ -7,15 +7,15 @@
     {
       "name": "cold-start",
       "passed": true,
-      "clientMs": 532,
+      "clientMs": 242,
       "serverCold": true,
-      "serverUptimeMs": 25223,
-      "moduleLoadMs": 2069,
-      "revision": "happie-spike-00001-kj6"
+      "serverUptimeMs": 7155,
+      "moduleLoadMs": 702,
+      "revision": "happie-spike-00002-9dg"
     },
     {
       "name": "warm-health",
-      "clientMs": 122
+      "clientMs": 116
     },
     {
       "name": "probe-auth",
@@ -24,26 +24,26 @@
     {
       "name": "login:right",
       "passed": true,
-      "serverMs": 56,
-      "clientMs": 122
+      "serverMs": 66,
+      "clientMs": 131
     },
     {
       "name": "login-node:right",
       "passed": true,
-      "serverMs": 63,
-      "clientMs": 125
+      "serverMs": 62,
+      "clientMs": 119
     },
     {
       "name": "login:wrong",
       "passed": true,
-      "serverMs": 69,
-      "clientMs": 129
+      "serverMs": 63,
+      "clientMs": 132
     },
     {
       "name": "login-node:wrong",
       "passed": true,
-      "serverMs": 54,
-      "clientMs": 126
+      "serverMs": 62,
+      "clientMs": 146
     },
     {
       "name": "firestore-transactions",
@@ -61,7 +61,7 @@
         "recreated": false,
         "passed": true
       },
-      "serverMs": 3633
+      "serverMs": 3586
     },
     {
       "name": "push-encryption",
@@ -85,7 +85,32 @@
     },
     {
       "name": "scheduled-runs",
-      "data": []
+      "data": [
+        {
+          "createdAt": {
+            "_seconds": 1792175713,
+            "_nanoseconds": 628000000
+          },
+          "kind": "scheduled",
+          "result": "{\"name\":\"scheduled-push\",\"ok\":true,\"wallMs\":810.6579619999975,\"result\":{\"claimed\":1,\"sent\":1}}"
+        },
+        {
+          "createdAt": {
+            "_seconds": 1792175419,
+            "_nanoseconds": 242000000
+          },
+          "kind": "scheduled",
+          "result": "{\"name\":\"scheduled-push\",\"ok\":true,\"wallMs\":46.4725529999705,\"result\":{\"skipped\":\"no device subscribed\"}}"
+        },
+        {
+          "createdAt": {
+            "_seconds": 1792175281,
+            "_nanoseconds": 371000000
+          },
+          "kind": "scheduled",
+          "result": "{\"name\":\"scheduled-push\",\"ok\":true,\"wallMs\":480.8599809999869,\"result\":{\"skipped\":\"no device subscribed\"}}"
+        }
+      ]
     }
   ]
 }

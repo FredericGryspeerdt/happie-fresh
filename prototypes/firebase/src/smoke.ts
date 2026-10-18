@@ -3,7 +3,9 @@
 import { writeFileSync } from "node:fs";
 
 const base = process.argv[2] ?? "http://localhost:8080";
-const coldOnly = process.argv.includes("--cold");
+const coldOnly = process.argv.some((a) => a.startsWith("--cold"));
+// --cold=session: first request is a Firestore session lookup, like a real page.
+const coldSession = process.argv.includes("--cold=session");
 const token = process.env.PROTOTYPE_TOKEN;
 const reports: Record<string, unknown>[] = [];
 let passed = true;
@@ -23,9 +25,19 @@ const timed = async (url: string, init?: RequestInit) => {
 };
 
 // Cold start: run after ≥15 min idle. The first request is the measurement.
+if (coldSession) {
+  const s = await timed(`${base}/api/session/me`, {
+    headers: { cookie: `__session=${crypto.randomUUID()}` },
+  });
+  check("cold-start-session", s.response.status === 401 && s.ms <= 2000, {
+    clientMs: s.ms,
+    status: s.response.status,
+    serverCold: s.response.headers.get("x-prototype-cold"),
+  });
+}
 const first = await timed(`${base}/api/health`);
 const health = JSON.parse(first.body);
-check("cold-start", !health.cold || first.ms <= 2000, {
+check("cold-start", coldSession || !health.cold || first.ms <= 2000, {
   clientMs: first.ms,
   serverCold: health.cold,
   serverUptimeMs: health.uptimeMs,
@@ -100,7 +112,7 @@ const evidence = {
   note: "ms values are wall-clock; Cloud Run billing is per vCPU-second of instance time",
   reports,
 };
-const file = local ? "local-results.json" : coldOnly ? `cold-${Date.now()}.json` : "deployed-results.json";
+const file = local ? "local-results.json" : coldOnly ? `cold-${coldSession ? "session-" : ""}${Date.now()}.json` : "deployed-results.json";
 writeFileSync(new URL(`../results/${file}`, import.meta.url), JSON.stringify(evidence, null, 2) + "\n");
 console.info(JSON.stringify(evidence, null, 2));
 if (!passed) process.exitCode = 1;

@@ -3,16 +3,22 @@
   "private": true,
   "description": "THROWAWAY: feasibility probe for Firebase Hosting + Hono on Cloud Run + Firestore",
   "type": "module",
-  "engines": { "node": "24" },
+  "engines": {
+    "node": "24"
+  },
   "scripts": {
     "init": "node src/init.ts",
-    "start": "node src/server.ts",
-    "smoke": "node src/smoke.ts"
+    "start": "node dist/server.mjs",
+    "smoke": "node src/smoke.ts",
+    "build": "esbuild src/server.ts --bundle --platform=node --target=node24 --format=esm --outfile=dist/server.mjs --external:firebase-admin --banner:js=\"import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);\""
   },
   "dependencies": {
     "@hono/node-server": "2.1.5",
     "firebase-admin": "14.5.0",
     "hono": "4.13.13",
     "web-push": "3.6.7"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
   }
 }

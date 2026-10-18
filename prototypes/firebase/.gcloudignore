@@ -4,3 +4,4 @@ env.yaml
 results/
 public/
 .firebase/
+dist/

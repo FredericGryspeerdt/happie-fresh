@@ -35,7 +35,7 @@ async function measure<T>(name: string, run: () => Promise<T> | T) {
 }
 
 async function push(scheduledTime: number) {
-  const subscriptions = await db().collection("prototype_subscriptions").get();
+  const subscriptions = await (await db()).collection("prototype_subscriptions").get();
   if (subscriptions.empty) return { skipped: "no device subscribed" };
   webpush.setVapidDetails(
     "https://example.com/happie-prototype",
@@ -49,7 +49,7 @@ async function push(scheduledTime: number) {
   for (const doc of subscriptions.docs) {
     const subscription = JSON.parse(doc.get("subscription"));
     try {
-      await db().collection("prototype_claims").doc(`push-${slot}-${doc.id}`)
+      await (await db()).collection("prototype_claims").doc(`push-${slot}-${doc.id}`)
         .create({ at: new Date() });
     } catch {
       continue;
@@ -100,7 +100,7 @@ app.post("/api/session/login", async (c) => {
   const ok = await verifyPassword(password, env("PROTOTYPE_PASSWORD_HASH"));
   if (!ok) return c.json({ ok: false }, 401);
   const id = crypto.randomUUID();
-  await db().collection("prototype_sessions").doc(id).set({
+  await (await db()).collection("prototype_sessions").doc(id).set({
     createdAt: new Date(),
     expiresAt: new Date(Date.now() + 30 * 86_400_000),
   });
@@ -113,7 +113,7 @@ app.post("/api/session/login", async (c) => {
 app.get("/api/session/me", async (c) => {
   const id = getCookie(c, "__session");
   if (!id) return c.json({ authenticated: false, reason: "no __session" }, 401);
-  const ref = db().collection("prototype_sessions").doc(id);
+  const ref = (await db()).collection("prototype_sessions").doc(id);
   const session = await ref.get();
   if (!session.exists) return c.json({ authenticated: false }, 401);
   // Sliding renewal that must not recreate a deleted session.
@@ -128,7 +128,7 @@ app.post("/api/sweep", async (c) => {
     return c.text("Unauthorized", 401);
   }
   const report = await measure("scheduled-push", () => push(Date.now()));
-  await db().collection("prototype_runs").add({
+  await (await db()).collection("prototype_runs").add({
     createdAt: new Date(),
     kind: "scheduled",
     result: JSON.stringify(report),
@@ -146,7 +146,7 @@ probes.use(async (c, next) => {
 });
 probes.get("/config", (c) => c.json({ publicKey: env("VAPID_PUBLIC_KEY") }));
 probes.get("/results", async (c) => {
-  const runs = await db().collection("prototype_runs")
+  const runs = await (await db()).collection("prototype_runs")
     .orderBy("createdAt", "desc").limit(20).get();
   return c.json(runs.docs.map((d) => d.data()));
 });
@@ -178,7 +178,7 @@ probes.post("/login-node", async (c) => {
   );
 });
 probes.post("/storage", async (c) =>
-  c.json(await measure("firestore-transactions", () => probeStorage(db()))));
+  c.json(await measure("firestore-transactions", async () => probeStorage(await db()))));
 probes.post("/push", async (c) =>
   c.json(await measure("push", () => push(Date.now()))));
 probes.post("/push-encryption", async (c) =>
@@ -212,7 +212,7 @@ probes.post("/push-encryption", async (c) =>
   ));
 probes.post("/subscribe", async (c) => {
   // One manually enrolled test device; no production subscriptions.
-  await db().collection("prototype_subscriptions").doc("device").set({
+  await (await db()).collection("prototype_subscriptions").doc("device").set({
     subscription: JSON.stringify(await c.req.json()),
   });
   return c.json({ subscribed: true });
