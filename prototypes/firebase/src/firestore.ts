@@ -6,11 +6,13 @@ let instance: Promise<Firestore> | undefined;
 
 export function db() {
   instance ??= (async () => {
-    const [{ initializeApp }, { getFirestore }] = await Promise.all([
+    const [{ initializeApp }, { initializeFirestore }] = await Promise.all([
       import("firebase-admin/app"),
       import("firebase-admin/firestore"),
     ]);
-    return getFirestore(initializeApp());
+    // REST over HTTP/1.1 skips gRPC channel setup on the first call; it
+    // switches to gRPC only for streaming methods, which Happie does not use.
+    return initializeFirestore(initializeApp(), { preferRest: true });
   })();
   return instance;
 }

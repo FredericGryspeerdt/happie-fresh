@@ -1,5 +1,5 @@
 {
-  "checkedAt": "2026-10-18T09:05:39.594Z",
+  "checkedAt": "2026-10-18T19:42:45.553Z",
   "base": "<hosting-url>",
   "functionalProbesPassed": true,
   "note": "ms values are wall-clock; Cloud Run billing is per vCPU-second of instance time",
@@ -7,15 +7,15 @@
     {
       "name": "cold-start",
       "passed": true,
-      "clientMs": 242,
+      "clientMs": 208,
       "serverCold": true,
-      "serverUptimeMs": 7155,
-      "moduleLoadMs": 702,
-      "revision": "happie-spike-00002-9dg"
+      "serverUptimeMs": 5190,
+      "moduleLoadMs": 577,
+      "revision": "happie-spike-00003-7d8"
     },
     {
       "name": "warm-health",
-      "clientMs": 116
+      "clientMs": 128
     },
     {
       "name": "probe-auth",
@@ -24,26 +24,26 @@
     {
       "name": "login:right",
       "passed": true,
-      "serverMs": 66,
-      "clientMs": 131
+      "serverMs": 78,
+      "clientMs": 146
     },
     {
       "name": "login-node:right",
       "passed": true,
-      "serverMs": 62,
-      "clientMs": 119
+      "serverMs": 75,
+      "clientMs": 169
     },
     {
       "name": "login:wrong",
       "passed": true,
-      "serverMs": 63,
-      "clientMs": 132
+      "serverMs": 70,
+      "clientMs": 129
     },
     {
       "name": "login-node:wrong",
       "passed": true,
-      "serverMs": 62,
-      "clientMs": 146
+      "serverMs": 78,
+      "clientMs": 139
     },
     {
       "name": "firestore-transactions",
@@ -61,7 +61,7 @@
         "recreated": false,
         "passed": true
       },
-      "serverMs": 3586
+      "serverMs": 4605
     },
     {
       "name": "push-encryption",
