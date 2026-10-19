@@ -19,9 +19,9 @@ on Node 24 / Cloud Run `europe-west1`, with Firestore `(default)` in
 | Cold start | `/api/health` reports `cold` on the first request of an instance; smoke measures client time (bar ≈ 2 s) |
 | API not cached by CDN | every `/api/*` response sends `Cache-Control: private, no-store` |
 
-Node 24 runs the `.ts` sources directly (type stripping): no build step.
-Firestore is initialised lazily on first use, so it does not count toward
-module load.
+The image runs an esbuild bundle (`npm run build`) of our code, Hono and
+web-push; firebase-admin stays in `node_modules` and is imported on the first
+Firestore call, using the REST transport (`preferRest: true`).
 
 ## Local evidence
 
@@ -29,6 +29,43 @@ module load.
 wrong password) and push encryption pass on local Node; Firestore, session and
 scheduled checks fail locally because there is no emulator (no Java) or
 credentials. Firestore is only tested deployed.
+
+## Deployed evidence (2026-10-16 → 2026-10-19)
+
+Project `happie-spike`, Firestore `(default)` and Cloud Run in `europe-west1`,
+Hosting at `happie-spike.web.app`. `results/deployed-results.json`: all 12
+functional probes pass through the Hosting rewrite, on every revision.
+
+- **PBKDF2-SHA256 310k:** verifies right/wrong passwords in 55–80 ms server-side
+  (WebCrypto and `node:crypto` alike).
+- **`__session`:** Hosting forwards only `__session` (`other` is stripped); the
+  session round trip works; API responses carry `Cache-Control: private,
+  no-store`.
+- **Firestore:** one winner for competing moves, rollback leaves no partial
+  write, `create()` claims are atomic, a stale renewal cannot recreate a
+  deleted document. Also passes over the REST transport.
+- **Scheduled push:** `results/scheduled-results.json`. The 5-minute Cloud
+  Scheduler sweep completes in the request (0.05–0.8 s) and delivered a
+  notification to the iOS home-screen PWA with the app swiped closed
+  (confirmed by the user, 2026-10-16).
+- **Cold start** (`results/cold-*.json`, first request after ≥ 22 min idle, via
+  Hosting):
+
+  | Revision | First request | Client time |
+  | --- | --- | --- |
+  | 1: `.ts` sources, eager firebase-admin | health | 2.40 s |
+  | 2: esbuild bundle, lazy firebase-admin | health | 1.11 s |
+  | 2 | session lookup (Firestore) | 2.49 s, 2.61 s |
+  | 3: as 2 + `preferRest` | session lookup | 2.36 s, 2.89 s |
+
+  Cloud Run logs for a revision 3 cold request: ~0.65 s container start to
+  listening, ~1.4 s for the first Firestore call (firebase-admin load, token,
+  request), ~0.3 s Hosting/network. The bundle halves module load but moves the
+  cost to the first Firestore call; `preferRest` makes no measurable
+  difference. The owner **accepted ~2.5 s** for the first request after idle
+  (2026-10-19) rather than replace firebase-admin with a hand-written REST
+  client; `min-instances` stays 0. With the 5-minute sweep an instance usually
+  stays warm between requests.
 
 ## Deploy checklist (human)
 
