@@ -31,3 +31,8 @@ certs/
 
 # Large design handoff archive — kept locally, not committed
 docs/Happie-handoff.zip
+
+# KV exports (scripts/db-export.ts) hold production data — never commit them
+exports/
+*.ndjson
+*.ndjson.age

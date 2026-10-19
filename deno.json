@@ -12,6 +12,9 @@
     "db:view": "deno run --env-file --unstable-kv -A scripts/db-viewer.ts",
     "db:login": "deno run --env-file --unstable-kv -A scripts/provision-login.ts",
     "db:dedupe-menu-tags": "deno run --env-file --unstable-kv -A scripts/dedupe-dish-tag-groups.ts",
+    "db:export": "deno run --env-file --unstable-kv -A scripts/db-export.ts",
+    "db:verify": "deno run --env-file --unstable-kv -A scripts/db-verify.ts",
+    "db:import": "deno run --env-file --unstable-kv -A scripts/db-import.ts",
     "update": "deno run -A -r jsr:@fresh/update ."
   },
   "lint": {

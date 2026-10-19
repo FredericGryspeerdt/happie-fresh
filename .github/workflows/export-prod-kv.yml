@@ -1,0 +1,121 @@
+name: Export production KV
+
+# Read-only export of every production Deno KV entry as typed NDJSON
+# (scripts/db-export.ts, issue #153), verified against the source and uploaded
+# as an artifact ENCRYPTED with age. Run it MANUALLY — never from the Deno
+# Deploy build/pre-deploy command, which connects to an empty build-sandbox
+# database, not production. See docs/running-migrations.md.
+#
+# ⚠️ This repository is public: any signed-in GitHub user can download its
+# workflow artifacts and read its logs. The plaintext export never leaves the
+# runner; only the age-encrypted file is uploaded, and the scripts print
+# collection counts only (no keys or values).
+#
+# Required configuration (Settings → Secrets and variables → Actions, scoped to
+# the "production" Environment like migrate-prod-kv.yml):
+#   vars.DENO_KV_DATABASE_ID       the production KV database id (Variable)
+#   secrets.DENO_KV_ACCESS_TOKEN   a Deno Deploy organization token (Secret)
+#   vars.KV_EXPORT_AGE_RECIPIENT   the age PUBLIC key (age1…) to encrypt to
+#                                  (Variable). The private key stays on the
+#                                  owner's machine only.
+#
+# NOTE: the "Run workflow" button only appears once this file is on the default
+# branch (main), so merge it first, then trigger it from the Actions tab.
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: "Type EXPORT to confirm you are reading PRODUCTION data"
+        required: true
+        type: string
+
+# Never let two runs read production at once (and never alongside a migration).
+concurrency:
+  group: export-prod-kv
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    name: Export production KV
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Require explicit confirmation
+        if: ${{ inputs.confirm != 'EXPORT' }}
+        run: |
+          echo "::error::Confirmation failed — re-run and type EXPORT in the confirm field."
+          exit 1
+
+      - name: Require an age recipient
+        env:
+          AGE_RECIPIENT: ${{ vars.KV_EXPORT_AGE_RECIPIENT }}
+        run: |
+          if [[ "$AGE_RECIPIENT" != age1* ]]; then
+            echo "::error::Set the KV_EXPORT_AGE_RECIPIENT variable to an age public key (age1…)."
+            exit 1
+          fi
+
+      - name: Clone repository
+        uses: actions/checkout@v4
+
+      - name: Install Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Install dependencies
+        run: deno install
+
+      - name: Install age
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq age
+
+      - name: Export and verify production KV
+        env:
+          # Locally (isDeploy=false) getKv() honors KV_PATH; an https:// value
+          # connects to the remote production KV via KV Connect.
+          KV_PATH: "https://api.deno.com/v2/databases/${{ vars.DENO_KV_DATABASE_ID }}/connect"
+          DENO_KV_ACCESS_TOKEN: ${{ secrets.DENO_KV_ACCESS_TOKEN }}
+        # --verify re-reads the source and compares counts, value hashes and
+        # versionstamps: a mismatch means a write slipped in, so the run fails.
+        run: |
+          umask 077
+          mkdir -p "$RUNNER_TEMP/plain"
+          deno run --unstable-kv -A scripts/db-export.ts \
+            --out "$RUNNER_TEMP/plain/kv-export.ndjson" --verify
+
+      - name: Encrypt export
+        env:
+          AGE_RECIPIENT: ${{ vars.KV_EXPORT_AGE_RECIPIENT }}
+        run: |
+          umask 077
+          mkdir -p "$RUNNER_TEMP/encrypted"
+          name="kv-export-${{ github.run_id }}"
+          age --encrypt -r "$AGE_RECIPIENT" \
+            -o "$RUNNER_TEMP/encrypted/$name.ndjson.age" \
+            "$RUNNER_TEMP/plain/kv-export.ndjson"
+          # Checksum of the plaintext, to confirm the decrypted file locally.
+          (cd "$RUNNER_TEMP/plain" && sha256sum kv-export.ndjson) \
+            > "$RUNNER_TEMP/encrypted/$name.ndjson.sha256"
+          cat "$RUNNER_TEMP/encrypted/$name.ndjson.sha256"
+
+      - name: Remove plaintext export
+        if: always()
+        run: |
+          if [ -d "$RUNNER_TEMP/plain" ]; then
+            find "$RUNNER_TEMP/plain" -type f -exec shred -u {} +
+            rm -rf "$RUNNER_TEMP/plain"
+          fi
+
+      - name: Upload encrypted export
+        uses: actions/upload-artifact@v4
+        with:
+          name: kv-export-${{ github.run_id }}
+          path: ${{ runner.temp }}/encrypted/
+          if-no-files-found: error
+          retention-days: 3
+          compression-level: 0
