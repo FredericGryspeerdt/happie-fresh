@@ -36,7 +36,28 @@ interface PressableProps {
   stop?: boolean; // stopPropagation on click
   type?: string;
   "aria-label"?: string;
+  // Escape hatches: callers can override the button-role a11y defaults added
+  // for non-<button> hosts (spread last, so these win over the defaults).
+  role?: string;
+  tabIndex?: number;
+  onKeyDown?: (e: KeyboardEvent) => void;
   children?: ComponentChildren;
+}
+
+/**
+ * Activate a synthetic button on the keyboard, the way a native <button> does:
+ * Enter and Space fire the click handler, and both prevent the default (Space
+ * would otherwise scroll the page). Exported so the behavior is unit-testable
+ * without a DOM.
+ */
+export function activateOnKey(
+  e: Pick<KeyboardEvent, "key" | "preventDefault">,
+  activate: (e: Event) => void,
+) {
+  if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") {
+    e.preventDefault();
+    activate(e as unknown as Event);
+  }
 }
 
 export function Pressable(
@@ -55,16 +76,30 @@ export function Pressable(
   const { rips, add } = useRipple();
   // deno-lint-ignore no-explicit-any
   const Tag = as as any;
+
+  const isButton = as === "button";
+  // A non-<button> host with an onClick is a synthetic button: give it the
+  // button role, keyboard focus, and Enter/Space activation a native button
+  // would have for free. Native <button> keeps its own semantics untouched.
+  const synthetic = !isButton && !!onClick;
+  const activate = disabled ? undefined : (e: Event) => {
+    if (stop) e.stopPropagation();
+    onClick?.(e);
+  };
+
   return (
     <Tag
       class={cn("md-press", cls)}
-      disabled={as === "button" ? disabled : undefined}
-      type={as === "button" ? (rest.type ?? "button") : undefined}
+      disabled={isButton ? disabled : undefined}
+      type={isButton ? (rest.type ?? "button") : undefined}
+      role={synthetic ? "button" : undefined}
+      tabIndex={synthetic ? (disabled ? -1 : 0) : undefined}
+      aria-disabled={synthetic && disabled ? "true" : undefined}
       onPointerDown={disabled ? undefined : add}
-      onClick={disabled ? undefined : (e: Event) => {
-        if (stop) e.stopPropagation();
-        onClick?.(e);
-      }}
+      onClick={activate}
+      onKeyDown={synthetic && activate
+        ? (e: KeyboardEvent) => activateOnKey(e, activate)
+        : undefined}
       style={{
         cursor: disabled ? "default" : "pointer",
         ...style,
