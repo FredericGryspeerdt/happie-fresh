@@ -106,3 +106,60 @@ the confirm field.
 
 Against the local file KV, `deno task db:migrate` reads `.env`. For a fresh dev
 database you normally just reseed instead: `deno task db:seed`.
+
+## Exporting production KV
+
+`deno task db:export` writes every KV entry as typed NDJSON, one line per entry
+(`{"key": […], "value": …, "versionstamp": "…"}`). Values JSON cannot hold —
+`Date`, `undefined`, `bigint`, `Uint8Array` and other typed arrays, `Map`,
+`Set`, `RegExp`, `Deno.KvU64`, `NaN`/`±Infinity`/`-0` — are written as tagged
+objects (`{"$t": "Date", "v": "…"}`) and decode back to the same value
+([`scripts/kv-export/codec.ts`](../scripts/kv-export/codec.ts)). TTLs
+(`expireIn`) are not exported, so restored sessions and receipts never expire.
+
+| Task | Does |
+|------|------|
+| `db:export [--out <file>] [--verify]` | Read-only export of the KV selected by `KV_PATH`. `--verify` re-reads the source and compares counts per collection, a SHA-256 per entry and versionstamps; any mismatch (e.g. a write during the export) exits non-zero. Fails on an empty source unless `--allow-empty`. |
+| `db:import --in <file>` | Restores an export into an **empty, local** KV (`KV_PATH` must be a file or `:memory:`; remote URLs and Deno Deploy are refused). |
+| `db:verify --in <file> [--versionstamps] [--shapes]` | Compares a file against the KV at `KV_PATH` (use after `db:import`). `--shapes` prints field names and types per collection, never values. |
+
+The scripts only ever print collection names and counts. Exports land in
+`exports/` (git-ignored, file mode 600) — **never commit one or paste its
+contents anywhere**.
+
+`list()` is consistent only within a 500-key batch, so for a cutover copy stop
+writes first; `--verify` then proves nothing changed between the two passes.
+
+### Production export — GitHub Actions
+
+Use the **Export production KV** workflow
+(`.github/workflows/export-prod-kv.yml`). The repository is public, so anyone
+signed in to GitHub can download its artifacts and read its logs: the job
+encrypts the export with [age](https://age-encryption.org) before uploading
+and deletes the plaintext.
+
+One-time setup:
+
+```bash
+brew install age
+mkdir -p ~/.config/happie && age-keygen -o ~/.config/happie/kv-export.key
+# prints "Public key: age1…" — store it as the KV_EXPORT_AGE_RECIPIENT variable:
+gh variable set KV_EXPORT_AGE_RECIPIENT --env production --body "age1…"
+```
+
+Keep `~/.config/happie/kv-export.key` on your machine only (back it up in a
+password manager); without it the artifact is unreadable.
+
+To run: **Actions → Export production KV → Run workflow**, type `EXPORT` in the
+confirm field. Then restore it locally:
+
+```bash
+gh run download <run-id> -D exports/
+age -d -i ~/.config/happie/kv-export.key \
+  -o exports/prod.ndjson exports/kv-export-<run-id>/kv-export-<run-id>.ndjson.age
+(cd exports && sed 's/kv-export.ndjson/prod.ndjson/' kv-export-<run-id>/*.sha256 | shasum -a 256 -c)
+KV_PATH=exports/prod-restore.db deno task db:import --in exports/prod.ndjson
+KV_PATH=exports/prod-restore.db deno task db:verify --in exports/prod.ndjson --shapes
+```
+
+Artifacts expire after 3 days. Delete `exports/` when you are done.
