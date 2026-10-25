@@ -67,6 +67,35 @@ functional probes pass through the Hosting rewrite, on every revision.
   client; `min-instances` stays 0. With the 5-minute sweep an instance usually
   stays warm between requests.
 
+## Free-tier usage (2026-10-19 07:12 → 2026-10-25 07:12 UTC)
+
+Read from Cloud Monitoring on 2026-10-25 with the 5-minute sweep running, one
+enrolled device, no other traffic. The 24 h window from 07:12 UTC is the first
+column; the six days that followed are flat, so it is representative. Monthly
+figures are 30 × the daily one. Billing account `018564-…` has only this
+project, so the per-account free tiers are all ours.
+
+| Service | Per day (24 h window) | Per month | Free tier | Share |
+| --- | --- | --- | --- | --- |
+| Cloud Run requests | 288 (285–288 over 6 days) | ~8,640 | 2 M / month | 0.4 % |
+| Cloud Run billable instance time (1 vCPU, 512 MiB) | 109 s (71–113 s) | ~3,300 vCPU-s, ~1,650 GiB-s | 180k vCPU-s, 360k GiB-s / month | 1.8 %, 0.5 % |
+| Cloud Run sent bytes | 1.73 MB | ~52 MB | none for EU egress (1 GiB only from North America) | billed, see below |
+| Firestore writes | 288 | | 20k / day | 1.4 % |
+| Firestore deletes | 1 | | 20k / day | ~0 % |
+| Firestore reads | 0 reported (an empty query bills 1 read, so ≤ 288) | | 50k / day | ≤ 0.6 % |
+| Firebase Hosting sent | 1.8 KB | | 360 MB / day | ~0 % |
+| Cloud Scheduler | 1 job | | 3 jobs per billing account | free |
+| Artifact Registry | 152 MB (`cloud-run-source-deploy`) | | 0.5 GB | free |
+
+The only non-free line is Cloud Run egress. Part of the 1.73 MB/day goes to
+Firestore and FCM/APNs; even if all of it is billed internet egress
+(~$0.12/GiB) that is ~0.05 GiB × $0.12 ≈ **$0.006/month**. The real household
+traffic (a few households, ~600 KV entries) adds page loads through Hosting
+(free up to 360 MB/day) and API responses from Cloud Run (EU egress, cents).
+
+Billed amount: _pending — read Billing → Reports for project `happie-spike`,
+19–25 Oct 2026, grouped by SKU._
+
 ## Deploy checklist (human)
 
 Run from `prototypes/firebase/`. Use **disposable** credentials only.
