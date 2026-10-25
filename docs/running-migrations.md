@@ -163,3 +163,24 @@ KV_PATH=exports/prod-restore.db deno task db:verify --in exports/prod.ndjson --s
 ```
 
 Artifacts expire after 3 days. Delete `exports/` when you are done.
+
+### Troubleshooting
+
+- **`could not deserialize value`** when reading production directly (KV
+  Connect from your machine): your Deno is older than the one Deploy writes
+  with. Use **Deno ≥ 2.9** (`deno upgrade`). The workflow installs the latest
+  `v2.x`, and restoring an export file works on any version.
+- **`401 INVALID_TOKEN`** in the workflow: `DENO_KV_ACCESS_TOKEN` is wrong,
+  expired, or was pasted with stray characters (locally that shows as a panic
+  with `InvalidHeaderValue`). Test a token in a real terminal before storing
+  it — the prompt keeps it out of your shell history and reads one entry only:
+
+  ```bash
+  read -rs "DENO_KV_ACCESS_TOKEN?Token: " && export DENO_KV_ACCESS_TOKEN && \
+    deno eval --unstable-kv 'const kv = await Deno.openKv("https://api.deno.com/v2/databases/<DB_ID>/connect"); for await (const _ of kv.list({ prefix: [] }, { limit: 1 })) {} console.log("✅ token works")'
+  ```
+
+  Then store it with `gh secret set DENO_KV_ACCESS_TOKEN --env production`
+  (also from a real terminal: the paste prompt needs keyboard input).
+- **`502 Bad Gateway`** from the connect endpoint: a transient Deno error;
+  re-run the workflow (`gh run rerun <run-id>`).
