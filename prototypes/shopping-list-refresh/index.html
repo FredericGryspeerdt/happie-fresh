@@ -1,0 +1,511 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Refresh vs pending edits</title>
+<!-- PROTOTYPE for issue #155 — throwaway, not production code. -->
+<style>
+  :root {
+    --bg: #fbfaf7; --fg: #1f1d1a; --muted: #6b665e; --line: #e4e0d8; --card: #fff;
+    --accent: #2f6f5e; --accent-soft: #e3f0ec; --bad: #b3261e; --bad-soft: #fbe7e5;
+    --warn: #8a5a00; --warn-soft: #fbf0d9; --stale: #6b665e; --stale-soft: #efede8;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #171614; --fg: #ece9e3; --muted: #a29d94; --line: #34312c; --card: #201f1c;
+      --accent: #7cc4ad; --accent-soft: #1f3a32; --bad: #ff8a80; --bad-soft: #43201d;
+      --warn: #f0c060; --warn-soft: #3d3016; --stale: #a29d94; --stale-soft: #2a2825;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 1320px; margin: 0 auto; padding: 24px 16px 64px; }
+  h1 { font-size: 24px; margin: 0 0 6px; }
+  h2 { font-size: 16px; margin: 0 0 10px; }
+  h3 { font-size: 14px; margin: 0 0 4px; }
+  p { margin: 0 0 8px; }
+  .muted { color: var(--muted); }
+  .small { font-size: 13px; }
+  .intro { max-width: 900px; margin-bottom: 20px; }
+  .tag { display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--warn); background: var(--warn-soft); padding: 2px 8px; border-radius: 99px; margin-bottom: 8px; }
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 24px; align-items: start; }
+  @media (max-width: 1000px) { .layout { grid-template-columns: 1fr; } }
+  .side { position: sticky; top: 16px; display: grid; gap: 16px; max-height: calc(100vh - 32px); overflow: auto; }
+  @media (max-width: 1000px) { .side { position: static; max-height: none; } }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px; }
+  .grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 12px; }
+  .grid4 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  @media (max-width: 640px) { .grid2, .grid4 { grid-template-columns: 1fr; } }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th { text-align: left; font-weight: 600; color: var(--muted); font-size: 12px; padding: 2px 4px; }
+  td { padding: 3px 4px; border-top: 1px solid var(--line); }
+  td.lost { background: var(--bad-soft); color: var(--bad); font-weight: 600; }
+  td.stale { background: var(--stale-soft); color: var(--stale); font-style: italic; }
+  .notice { margin-top: 8px; font-size: 13px; padding: 6px 8px; border-radius: 8px; background: var(--warn-soft); color: var(--warn); }
+  .verdict { margin-top: 8px; font-size: 13px; font-weight: 600; }
+  .verdict.ok { color: var(--accent); }
+  .verdict.bad { color: var(--bad); }
+  .verdict.meh { color: var(--stale); }
+  .chip { display: inline-block; font-size: 12px; padding: 1px 8px; border-radius: 99px; background: var(--accent-soft); color: var(--accent); margin-left: 6px; }
+  .how { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+  code { font-size: 12px; }
+  button { font: inherit; font-size: 14px; border: 1px solid var(--line); background: var(--card); color: var(--fg); border-radius: 8px; padding: 6px 10px; cursor: pointer; }
+  button:hover { border-color: var(--accent); }
+  button.primary { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+  button:disabled { opacity: .45; cursor: default; }
+  .btns { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+  .group-label { font-size: 12px; color: var(--muted); margin: 6px 0 4px; }
+  .msg { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 6px 0; border-top: 1px solid var(--line); font-size: 13px; }
+  .msg:first-child { border-top: 0; }
+  .msg .acts { display: flex; gap: 4px; flex-shrink: 0; }
+  .msg button { font-size: 12px; padding: 3px 8px; }
+  .tabs { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 10px; }
+  .tabs button { font-size: 12px; padding: 4px 8px; }
+  .tabs button.active { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+  ol.steps { margin: 8px 0 0; padding-left: 20px; }
+  ol.steps li { margin-bottom: 6px; }
+  ol.steps li.done { color: var(--muted); text-decoration: line-through; }
+  .log { font-size: 12px; color: var(--muted); max-height: 160px; overflow: auto; }
+  .log div.fresh { color: var(--fg); font-weight: 600; }
+  .legend span { display: inline-block; padding: 0 6px; border-radius: 4px; margin-right: 6px; font-size: 12px; }
+</style>
+</head>
+<body>
+<main>
+  <div class="intro">
+    <span class="tag">Prototype · issue #155 · throwaway</span>
+    <h1>Does a pull-to-refresh wipe out edits that haven't been saved yet?</h1>
+    <p>You tick items off and change quantities on the shopping list. Each change shows up on screen straight away, and is saved half a second later (ticking off saves immediately). If you pull to refresh in between, the fresh list from the server can arrive <em>before</em> your change was saved, or a slow refresh can arrive <em>after</em> it was saved but still hold the old list.</p>
+    <p>The four cards below run the <strong>same</strong> clicks through four ways of building the list in Angular 22. You decide when time passes and when the network delivers each message, so you can put a refresh exactly in between.</p>
+    <p class="legend small muted"><span style="background:var(--bad-soft);color:var(--bad)">red</span>your change is missing from the screen &nbsp; <span style="background:var(--stale-soft);color:var(--stale)">grey</span>someone else's change isn't loaded yet (fine until the next refresh)</p>
+  </div>
+
+  <div class="layout">
+    <section id="state"></section>
+    <aside class="side">
+      <div class="panel" id="walk"></div>
+      <div class="panel" id="play"></div>
+      <div class="panel" id="net"></div>
+      <div class="panel"><h2>What happened</h2><div class="log" id="log"></div></div>
+    </aside>
+  </div>
+</main>
+
+<script>
+/* ===================== Pure logic module (no DOM) ===================== */
+const Model = (() => {
+  const STRATEGIES = {
+    resource: {
+      title: "A · Edit the httpResource directly",
+      how: "<code>list = httpResource(...)</code>, edits call <code>list.value.update(...)</code>.",
+    },
+    copy: {
+      title: "B · Copy the server list on every load",
+      how: "<code>linkedSignal(() =&gt; res.value())</code> (or a plain <code>signal</code> fed by an <code>effect</code>), edits <code>.update()</code> it.",
+    },
+    linked: {
+      title: "C · linkedSignal re-applies edits still waiting or saving",
+      how: "<code>linkedSignal({ source: res.value, computation: s =&gt; apply(s, pending()) })</code>; an edit leaves <code>pending</code> once its save settles.",
+    },
+    keep: {
+      title: "D · linkedSignal keeps edits until a newer load has seen them",
+      how: "Same as C, but a saved edit stays in <code>pending</code> until a refresh <em>sent after</em> the save was confirmed arrives. A failed save stays too.",
+    },
+  };
+  const FIELDS = ["qty", "checked", "note"];
+
+  const clone = (o) => JSON.parse(JSON.stringify(o));
+  const apply = (list, patches) => {
+    const out = clone(list);
+    for (const [id, p] of Object.entries(patches)) if (p && out[id]) Object.assign(out[id], p);
+    return out;
+  };
+  const merge = (a, b) => (a || b ? { ...(a || {}), ...(b || {}) } : null);
+
+  function init() {
+    const server = {
+      milk: { name: "Milk", qty: 1, checked: false, note: "" },
+      bread: { name: "Bread", qty: 2, checked: false, note: "" },
+      eggs: { name: "Eggs", qty: 6, checked: false, note: "" },
+    };
+    const strategies = {};
+    for (const k of Object.keys(STRATEGIES)) {
+      strategies[k] = { view: clone(server), reloadingReq: null, notice: "", pending: {}, overlay: {} };
+    }
+    return {
+      seq: 0, nextId: 1, server, net: [], strategies,
+      // Shared debounced-merge scheduler, mirroring createDebouncedMergeScheduler + failedPatches.
+      sched: {}, // id -> { queued, inflight (msg id), waiting, failed }
+      intent: {}, // id -> { field: last value you set }
+      log: [],
+    };
+  }
+
+  const slot = (s, id) => (s.sched[id] ??= { queued: null, inflight: null, waiting: null, failed: null });
+  const busy = (s, id) => {
+    const q = s.sched[id];
+    return !!q && !!(q.queued || q.inflight || q.waiting);
+  };
+
+  /** What you should see: the server now, plus every change of yours it doesn't have yet. */
+  function expected(s) {
+    const patches = {};
+    // A retry in flight already carries the failed fields.
+    for (const [id, q] of Object.entries(s.sched)) if (!q.inflight) patches[id] = merge(patches[id], q.failed);
+    for (const m of s.net) if (m.kind === "save" && m.dir === "out") patches[m.entry] = merge(patches[m.entry], m.patch);
+    for (const [id, q] of Object.entries(s.sched)) patches[id] = merge(merge(patches[id], q.waiting), q.queued);
+    return apply(s.server, patches);
+  }
+
+  function classify(s, key) {
+    const exp = expected(s);
+    const view = s.strategies[key].view;
+    const cells = {};
+    let lost = 0, stale = 0;
+    for (const id of Object.keys(exp)) {
+      for (const f of FIELDS) {
+        const v = view[id]?.[f], e = exp[id][f];
+        let c = "";
+        if (v !== e) {
+          const mine = s.intent[id] && f in s.intent[id] && s.intent[id][f] === e;
+          c = mine ? "lost" : "stale";
+          mine ? lost++ : stale++;
+        }
+        cells[id + "." + f] = c;
+      }
+    }
+    return { cells, lost, stale };
+  }
+
+  // ---- strategy reactions ----
+  function onEdit(s, id, patch) {
+    for (const [k, st] of Object.entries(s.strategies)) {
+      st.view = apply(st.view, { [id]: patch });
+      if (k === "resource" && st.reloadingReq) {
+        st.reloadingReq = null;
+        st.notice = "Your edit cancelled the pull-to-refresh (resource.set aborts the load). Its answer will be ignored.";
+      }
+      if (k === "linked") st.pending[id] = merge(st.pending[id], patch);
+      if (k === "keep") st.overlay[id] = { patch: merge(st.overlay[id]?.patch, patch), state: "pending", savedSeq: null };
+    }
+  }
+  function onRefresh(s, req) {
+    for (const st of Object.values(s.strategies)) {
+      if (st.reloadingReq) st.notice = "Pulled again while still refreshing: reload() ignores it.";
+      else { st.reloadingReq = req; st.notice = ""; }
+    }
+  }
+  function onLoaded(s, req, snapshot, sentSeq) {
+    for (const [k, st] of Object.entries(s.strategies)) {
+      if (st.reloadingReq !== req) continue;
+      st.reloadingReq = null;
+      st.notice = "";
+      if (k === "resource" || k === "copy") st.view = clone(snapshot);
+      if (k === "linked") st.view = apply(snapshot, st.pending);
+      if (k === "keep") {
+        for (const [id, o] of Object.entries(st.overlay)) {
+          if (o.state === "saved" && o.savedSeq < sentSeq) delete st.overlay[id];
+        }
+        st.view = apply(snapshot, Object.fromEntries(Object.entries(st.overlay).map(([id, o]) => [id, o.patch])));
+      }
+    }
+  }
+  function onSettled(s, id, ok) {
+    const still = busy(s, id);
+    for (const [k, st] of Object.entries(s.strategies)) {
+      if (still) continue;
+      if (k === "linked") delete st.pending[id];
+      if (k === "keep" && st.overlay[id]) {
+        st.overlay[id].state = ok ? "saved" : "failed";
+        st.overlay[id].savedSeq = ok ? s.seq : null;
+      }
+    }
+  }
+
+  // ---- scheduler + network ----
+  function send(s, id, patch) {
+    const q = slot(s, id);
+    if (q.inflight) { q.waiting = merge(q.waiting, patch); return; }
+    const combined = merge(q.failed, patch);
+    const m = { id: s.nextId++, dir: "out", kind: "save", entry: id, patch: combined };
+    q.inflight = m.id;
+    s.net.push(m);
+  }
+  function settle(s, id, ok, patch) {
+    const q = slot(s, id);
+    q.inflight = null;
+    q.failed = ok ? null : patch;
+    if (q.waiting) { const w = q.waiting; q.waiting = null; send(s, id, w); }
+    onSettled(s, id, ok);
+  }
+  const describe = (p) => Object.entries(p).map(([f, v]) => f === "checked" ? (v ? "ticked off" : "unticked") : f === "qty" ? "quantity " + v : `note "${v}"`).join(", ");
+
+  /** (state, action) => state */
+  function reduce(prev, a) {
+    const s = clone(prev);
+    s.seq++;
+    const log = (t) => s.log.unshift({ seq: s.seq, t });
+    const exp = expected(prev);
+    const remember = (id, patch) => { s.intent[id] = { ...(s.intent[id] || {}), ...patch }; };
+    switch (a.type) {
+      case "toggle": {
+        const patch = { checked: !exp[a.id].checked };
+        remember(a.id, patch);
+        onEdit(s, a.id, patch);
+        const q = slot(s, a.id);
+        const queued = merge(q.queued, patch);
+        q.queued = null;
+        send(s, a.id, queued);
+        log(`You ${patch.checked ? "tick off" : "untick"} ${exp[a.id].name}; it saves right away.`);
+        break;
+      }
+      case "qty": {
+        const patch = { qty: exp[a.id].qty + a.delta };
+        remember(a.id, patch);
+        onEdit(s, a.id, patch);
+        const q = slot(s, a.id);
+        q.queued = merge(q.queued, patch);
+        log(`You set ${exp[a.id].name} to ${patch.qty}; it waits ½ s before saving.`);
+        break;
+      }
+      case "tick": {
+        let n = 0;
+        for (const [id, q] of Object.entries(s.sched)) {
+          if (q.queued) { const p = q.queued; q.queued = null; send(s, id, p); n++; }
+        }
+        log(n ? `½ second passes: ${n} waiting change(s) start saving.` : "½ second passes: nothing was waiting.");
+        break;
+      }
+      case "refresh": {
+        const m = { id: s.nextId++, dir: "out", kind: "load", sentSeq: s.seq };
+        s.net.push(m);
+        onRefresh(s, m.id);
+        log("You pull to refresh: the list is requested.");
+        break;
+      }
+      case "deliver": {
+        const m = s.net.find((x) => x.id === a.msg);
+        if (!m) break;
+        s.net = s.net.filter((x) => x !== m);
+        if (m.kind === "load" && m.dir === "out") {
+          s.net.push({ id: m.id, dir: "in", kind: "load", snapshot: clone(s.server), sentSeq: m.sentSeq });
+          log("The server reads the list now and sends it back.");
+        } else if (m.kind === "load") {
+          onLoaded(s, m.id, m.snapshot, m.sentSeq);
+          log("The refreshed list arrives on the phone.");
+        } else if (m.dir === "out") {
+          Object.assign(s.server[m.entry], m.patch);
+          s.net.push({ ...m, dir: "in" });
+          log(`The server stores ${s.server[m.entry].name}: ${describe(m.patch)}.`);
+        } else {
+          settle(s, m.entry, true, m.patch);
+          log(`The phone hears that ${s.server[m.entry].name} was saved.`);
+        }
+        break;
+      }
+      case "lose": {
+        const m = s.net.find((x) => x.id === a.msg);
+        if (!m) break;
+        s.net = s.net.filter((x) => x !== m);
+        settle(s, m.entry, false, m.patch);
+        log(`Saving ${s.server[m.entry].name} fails (no signal). "Couldn't save" snackbar.`);
+        break;
+      }
+      case "other": {
+        Object.assign(s.server[a.id], a.patch);
+        log(`Someone else in the household changes ${s.server[a.id].name}: ${describe(a.patch)}.`);
+        break;
+      }
+    }
+    return s;
+  }
+
+  return { STRATEGIES, FIELDS, init, reduce, expected, classify, describe };
+})();
+</script>
+
+<script>
+/* ===================== Throwaway page shell ===================== */
+let state = Model.init();
+let lastSeq = 0;
+const $ = (id) => document.getElementById(id);
+const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+function dispatch(a) { lastSeq = state.seq; state = Model.reduce(state, a); render(); }
+const firstMsg = (dir, kind) => state.net.find((m) => m.dir === dir && m.kind === kind)?.id;
+
+const SCENARIOS = [
+  {
+    name: "Refresh while still typing",
+    text: "You bump the bread up twice. Before the half second is over, you pull to refresh. Watch what the bread shows when the refresh arrives, and again after the save goes through.",
+    steps: [
+      ["Bread +1", () => dispatch({ type: "qty", id: "bread", delta: 1 })],
+      ["Bread +1 again", () => dispatch({ type: "qty", id: "bread", delta: 1 })],
+      ["Pull to refresh", () => dispatch({ type: "refresh" })],
+      ["Server reads the list", () => dispatch({ type: "deliver", msg: firstMsg("out", "load") })],
+      ["Refreshed list arrives", () => dispatch({ type: "deliver", msg: firstMsg("in", "load") })],
+      ["½ second passes", () => dispatch({ type: "tick" })],
+      ["Server stores the bread", () => dispatch({ type: "deliver", msg: firstMsg("out", "save") })],
+      ["Phone hears it was saved", () => dispatch({ type: "deliver", msg: firstMsg("in", "save") })],
+    ],
+  },
+  {
+    name: "Refresh while saving",
+    text: "You tick off milk; it starts saving at once. The refresh reaches the server first, so the server still says milk is not ticked.",
+    steps: [
+      ["Tick off Milk", () => dispatch({ type: "toggle", id: "milk" })],
+      ["Pull to refresh", () => dispatch({ type: "refresh" })],
+      ["Server reads the list (before the milk is stored)", () => dispatch({ type: "deliver", msg: firstMsg("out", "load") })],
+      ["Refreshed list arrives", () => dispatch({ type: "deliver", msg: firstMsg("in", "load") })],
+      ["Server stores the milk", () => dispatch({ type: "deliver", msg: firstMsg("out", "save") })],
+      ["Phone hears it was saved", () => dispatch({ type: "deliver", msg: firstMsg("in", "save") })],
+    ],
+  },
+  {
+    name: "Slow refresh, quick save",
+    text: "You pull to refresh on a slow connection. While it's on its way back, you change the bread and that save completes. Then the old refresh finally arrives, holding the list from before your change.",
+    steps: [
+      ["Pull to refresh", () => dispatch({ type: "refresh" })],
+      ["Server reads the list", () => dispatch({ type: "deliver", msg: firstMsg("out", "load") })],
+      ["Bread +1", () => dispatch({ type: "qty", id: "bread", delta: 1 })],
+      ["½ second passes", () => dispatch({ type: "tick" })],
+      ["Server stores the bread", () => dispatch({ type: "deliver", msg: firstMsg("out", "save") })],
+      ["Phone hears it was saved", () => dispatch({ type: "deliver", msg: firstMsg("in", "save") })],
+      ["The old refresh finally arrives", () => dispatch({ type: "deliver", msg: firstMsg("in", "load") })],
+    ],
+  },
+  {
+    name: "Someone else edits too",
+    text: "You bump the bread. Meanwhile your partner adds a note to the bread and ticks off the eggs on their phone. You refresh before your bread is saved. Ideally you see both: your quantity and their changes.",
+    steps: [
+      ["Bread +1", () => dispatch({ type: "qty", id: "bread", delta: 1 })],
+      ["Partner notes \"wholegrain\" on Bread", () => dispatch({ type: "other", id: "bread", patch: { note: "wholegrain" } })],
+      ["Partner ticks off Eggs", () => dispatch({ type: "other", id: "eggs", patch: { checked: true } })],
+      ["Pull to refresh", () => dispatch({ type: "refresh" })],
+      ["Server reads the list", () => dispatch({ type: "deliver", msg: firstMsg("out", "load") })],
+      ["Refreshed list arrives", () => dispatch({ type: "deliver", msg: firstMsg("in", "load") })],
+      ["½ second passes", () => dispatch({ type: "tick" })],
+      ["Server stores the bread", () => dispatch({ type: "deliver", msg: firstMsg("out", "save") })],
+      ["Phone hears it was saved", () => dispatch({ type: "deliver", msg: firstMsg("in", "save") })],
+    ],
+  },
+  {
+    name: "Save fails, then refresh",
+    text: "You bump the bread, but the save fails (no signal in the shop). You pull to refresh. Today's app keeps a failed change and retries it with your next edit. Does the screen keep showing it?",
+    steps: [
+      ["Bread +1", () => dispatch({ type: "qty", id: "bread", delta: 1 })],
+      ["½ second passes", () => dispatch({ type: "tick" })],
+      ["The save is lost", () => dispatch({ type: "lose", msg: firstMsg("out", "save") })],
+      ["Pull to refresh", () => dispatch({ type: "refresh" })],
+      ["Server reads the list", () => dispatch({ type: "deliver", msg: firstMsg("out", "load") })],
+      ["Refreshed list arrives", () => dispatch({ type: "deliver", msg: firstMsg("in", "load") })],
+      ["Bread +1 (signal is back)", () => dispatch({ type: "qty", id: "bread", delta: 1 })],
+      ["½ second passes", () => dispatch({ type: "tick" })],
+      ["Server stores the bread", () => dispatch({ type: "deliver", msg: firstMsg("out", "save") })],
+      ["Phone hears it was saved", () => dispatch({ type: "deliver", msg: firstMsg("in", "save") })],
+    ],
+  },
+  {
+    name: "Pull twice",
+    text: "You pull to refresh, then pull again before the first answer arrives. Angular's reload() ignores a second reload while one is still loading.",
+    steps: [
+      ["Pull to refresh", () => dispatch({ type: "refresh" })],
+      ["Partner ticks off Eggs", () => dispatch({ type: "other", id: "eggs", patch: { checked: true } })],
+      ["Pull to refresh again", () => dispatch({ type: "refresh" })],
+      ["Server reads the first request", () => dispatch({ type: "deliver", msg: firstMsg("out", "load") })],
+      ["First answer arrives", () => dispatch({ type: "deliver", msg: firstMsg("in", "load") })],
+      ["Server reads the second request", () => dispatch({ type: "deliver", msg: firstMsg("out", "load") })],
+      ["Second answer arrives", () => dispatch({ type: "deliver", msg: firstMsg("in", "load") })],
+    ],
+  },
+];
+let scenario = 0, step = 0;
+
+function startScenario(i) { scenario = i; step = 0; state = Model.init(); lastSeq = 0; render(); }
+function runStep() { SCENARIOS[scenario].steps[step][1](); step++; render(); }
+
+function listTable(view, cells) {
+  const rows = Object.entries(view).map(([id, e]) => {
+    const c = (f) => cells ? cells[id + "." + f] : "";
+    return `<tr><td>${esc(e.name)}</td><td class="${c("qty")}">${e.qty}</td><td class="${c("checked")}">${e.checked ? "✓ ticked" : "—"}</td><td class="${c("note")}">${esc(e.note) || "—"}</td></tr>`;
+  }).join("");
+  return `<table><tr><th>Item</th><th>Qty</th><th>Ticked</th><th>Note</th></tr>${rows}</table>`;
+}
+
+function schedLine(id, q) {
+  const name = state.server[id].name;
+  const parts = [];
+  if (q.queued) parts.push(`waiting ½ s: ${Model.describe(q.queued)}`);
+  if (q.inflight) parts.push("saving…");
+  if (q.waiting) parts.push(`queued behind it: ${Model.describe(q.waiting)}`);
+  if (q.failed) parts.push(`not saved, retried with next edit: ${Model.describe(q.failed)}`);
+  return parts.length ? `<div class="small">${esc(name)}: ${esc(parts.join(" · "))}</div>` : "";
+}
+
+function render() {
+  const exp = Model.expected(state);
+  const sched = Object.entries(state.sched).map(([id, q]) => schedLine(id, q)).join("") || `<div class="small muted">Nothing waiting or saving.</div>`;
+  let html = `<div class="grid2">
+    <div class="panel"><h2>On the server</h2>${listTable(state.server)}</div>
+    <div class="panel"><h2>What you should see</h2>${listTable(exp)}<div class="group-label">Your changes not saved yet</div>${sched}</div>
+  </div><div class="grid4">`;
+  for (const [k, meta] of Object.entries(Model.STRATEGIES)) {
+    const st = state.strategies[k];
+    const { cells, lost, stale } = Model.classify(state, k);
+    const refreshing = st.reloadingReq ? `<span class="chip">refreshing…</span>` : "";
+    let extra = "";
+    if (k === "linked") {
+      const p = Object.entries(st.pending).map(([id, v]) => `${state.server[id].name}: ${Model.describe(v)}`);
+      extra = `<div class="small muted">Re-applied on load: ${esc(p.join("; ") || "nothing")}</div>`;
+    }
+    if (k === "keep") {
+      const p = Object.entries(st.overlay).map(([id, o]) => `${state.server[id].name}: ${Model.describe(o.patch)} (${o.state})`);
+      extra = `<div class="small muted">Re-applied on load: ${esc(p.join("; ") || "nothing")}</div>`;
+    }
+    const verdict = lost ? `<div class="verdict bad">Your change is missing on screen (${lost})</div>`
+      : stale ? `<div class="verdict meh">Matches your changes; someone else's not loaded yet</div>`
+      : `<div class="verdict ok">Shows exactly what you expect</div>`;
+    html += `<div class="panel"><h3>${meta.title}${refreshing}</h3><div class="how">${meta.how}</div>${listTable(st.view, cells)}${extra}${verdict}${st.notice ? `<div class="notice">${esc(st.notice)}</div>` : ""}</div>`;
+  }
+  $("state").innerHTML = html + "</div>";
+
+  // Walkthroughs
+  const sc = SCENARIOS[scenario];
+  $("walk").innerHTML = `<h2>Guided walkthroughs</h2>
+    <div class="tabs">${SCENARIOS.map((s, i) => `<button class="${i === scenario ? "active" : ""}" onclick="startScenario(${i})">${i + 1}. ${esc(s.name)}</button>`).join("")}</div>
+    <p class="small">${esc(sc.text)}</p>
+    <ol class="steps">${sc.steps.map((s, i) => `<li class="${i < step ? "done" : ""}">${i === step ? `<button class="primary" onclick="runStep()">${esc(s[0])}</button>` : esc(s[0])}</li>`).join("")}</ol>
+    ${step >= sc.steps.length ? `<p class="small muted" style="margin-top:8px">Done. Compare the four cards. <button onclick="startScenario(${scenario})">Run again</button></p>` : ""}`;
+
+  // Free play
+  const items = Object.entries(exp);
+  $("play").innerHTML = `<h2>Free play</h2>
+    <div class="group-label">You (changes show immediately)</div>
+    <div class="btns">${items.map(([id, e]) => `<button onclick="dispatch({type:'toggle',id:'${id}'})">${e.checked ? "Untick" : "Tick off"} ${esc(e.name)}</button>`).join("")}</div>
+    <div class="btns">${items.map(([id, e]) => `<button onclick="dispatch({type:'qty',id:'${id}',delta:1})">${esc(e.name)} +1</button>`).join("")}</div>
+    <div class="btns"><button onclick="dispatch({type:'refresh'})">Pull to refresh</button><button onclick="dispatch({type:'tick'})">½ second passes</button></div>
+    <div class="group-label">Someone else in the household</div>
+    <div class="btns">
+      <button onclick="dispatch({type:'other',id:'bread',patch:{note:'wholegrain'}})">Note "wholegrain" on Bread</button>
+      <button onclick="dispatch({type:'other',id:'bread',patch:{qty:10}})">Bread to 10</button>
+      <button onclick="dispatch({type:'other',id:'eggs',patch:{checked:true}})">Tick off Eggs</button>
+    </div>
+    <div class="btns"><button onclick="startScenario(scenario)">Start over</button></div>`;
+
+  // Network
+  const label = (m) => m.kind === "load"
+    ? (m.dir === "out" ? "→ Refresh request on its way to the server" : "← Refreshed list on its way back")
+    : (m.dir === "out" ? `→ Save ${state.server[m.entry].name} (${Model.describe(m.patch)})` : `← "${state.server[m.entry].name} saved" on its way back`);
+  const msgs = state.net.map((m) => `<div class="msg"><span>${esc(label(m))}</span><span class="acts">
+      <button onclick="dispatch({type:'deliver',msg:${m.id}})">Deliver</button>
+      ${m.kind === "save" && m.dir === "out" ? `<button onclick="dispatch({type:'lose',msg:${m.id}})">Lose it</button>` : ""}
+    </span></div>`).join("");
+  $("net").innerHTML = `<h2>Network</h2><p class="small muted">Messages travel in any order you choose.</p>${msgs || `<div class="small muted">Nothing in transit.</div>`}`;
+
+  $("log").innerHTML = state.log.map((l) => `<div class="${l.seq > lastSeq ? "fresh" : ""}">${esc(l.t)}</div>`).join("") || "Nothing yet.";
+}
+render();
+</script>
+</body>
+</html>
