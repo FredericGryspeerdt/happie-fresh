@@ -662,3 +662,153 @@ Deno.test("debounced edits — rejected writes do not report Saved", async () =>
   assertEquals(hook.lastSaved.value, 0);
   assertEquals(hook.savingIds.value.size, 0);
 });
+
+// ── refresh keeps own edits (issue #155) ─────────────────────────────────────
+
+function stubRefresh(
+  getItems: () => Promise<ShoppingListItemInterface[]>,
+) {
+  return [
+    stub(api.shoppingList, "getItems", getItems),
+    stub(api.items, "getAll", () => Promise.resolve([])),
+    stub(api.categories, "getAll", () => Promise.resolve([])),
+  ];
+}
+
+Deno.test("refresh — keeps a quantity edit whose debounced save has not flushed yet", async () => {
+  using time = new FakeTime();
+  using _patch = stub(
+    api.shoppingList,
+    "updateItem",
+    (_listId, id, patch) =>
+      Promise.resolve({ ...makeListItem(id, "item-1"), ...patch }),
+  );
+  const [a, b, c] = stubRefresh(() =>
+    Promise.resolve([makeListItem("sl-1", "item-1")])
+  );
+  using _a = a, _b = b, _c = c;
+  const hook = useShoppingList(TEST_LIST_ID, [], [
+    makeListItem("sl-1", "item-1"),
+  ]);
+
+  hook.updateListItem("sl-1", { quantity: 3 });
+  await hook.refresh();
+
+  const actual = hook.list.value[0].quantity;
+  const expected = 3;
+  assertEquals(actual, expected);
+
+  await time.tickAsync(500);
+  assertEquals(hook.list.value[0].quantity, 3);
+});
+
+Deno.test("refresh — keeps an in-flight edit when the server copy predates its confirmation", async () => {
+  let confirm!: () => void;
+  using _patch = stub(
+    api.shoppingList,
+    "updateItem",
+    (_listId, id, patch) =>
+      new Promise((resolve) =>
+        confirm = () => resolve({ ...makeListItem(id, "item-1"), ...patch })
+      ),
+  );
+  let respond!: () => void;
+  const [a, b, c] = stubRefresh(() =>
+    new Promise((resolve) =>
+      respond = () => resolve([makeListItem("sl-1", "item-1")])
+    )
+  );
+  using _a = a, _b = b, _c = c;
+  const hook = useShoppingList(TEST_LIST_ID, [], [
+    makeListItem("sl-1", "item-1"),
+  ]);
+
+  hook.updateListItem("sl-1", { quantity: 3 });
+  const saving = hook.flushListItem("sl-1");
+  const refreshing = hook.refresh();
+  confirm();
+  await saving;
+  respond();
+  await refreshing;
+
+  const actual = hook.list.value[0].quantity;
+  const expected = 3;
+  assertEquals(actual, expected);
+});
+
+Deno.test("refresh — keeps an edit whose save failed", async () => {
+  using _patch = stub(
+    api.shoppingList,
+    "updateItem",
+    () => Promise.resolve(null),
+  );
+  const [a, b, c] = stubRefresh(() =>
+    Promise.resolve([makeListItem("sl-1", "item-1")])
+  );
+  using _a = a, _b = b, _c = c;
+  const hook = useShoppingList(TEST_LIST_ID, [], [
+    makeListItem("sl-1", "item-1"),
+  ]);
+
+  hook.updateListItem("sl-1", { note: "Large pack" });
+  await hook.flushListItem("sl-1");
+  await hook.refresh();
+
+  const actual = hook.list.value[0].note;
+  const expected = "Large pack";
+  assertEquals(actual, expected);
+});
+
+Deno.test("refresh — keeps a check-off whose save has not been confirmed", async () => {
+  using time = new FakeTime();
+  let confirm!: () => void;
+  using _patch = stub(
+    api.shoppingList,
+    "updateItem",
+    (_listId, id, patch) =>
+      new Promise((resolve) =>
+        confirm = () => resolve({ ...makeListItem(id, "item-1"), ...patch })
+      ),
+  );
+  const [a, b, c] = stubRefresh(() =>
+    Promise.resolve([makeListItem("sl-1", "item-1", false)])
+  );
+  using _a = a, _b = b, _c = c;
+  const hook = useShoppingList(TEST_LIST_ID, [], [
+    makeListItem("sl-1", "item-1"),
+  ]);
+
+  const checking = hook.checkItem("sl-1");
+  await time.tickAsync(300);
+  await hook.refresh();
+
+  assertEquals(hook.list.value, []);
+  assertEquals(hook.checkedItems.value.map((li) => li.id), ["sl-1"]);
+
+  confirm();
+  await checking;
+});
+
+Deno.test("refresh — takes the server copy for an edit confirmed before the refresh was sent", async () => {
+  using _patch = stub(
+    api.shoppingList,
+    "updateItem",
+    (_listId, id, patch) =>
+      Promise.resolve({ ...makeListItem(id, "item-1"), ...patch }),
+  );
+  const [a, b, c] = stubRefresh(() =>
+    Promise.resolve([{ ...makeListItem("sl-1", "item-1"), quantity: 7 }])
+  );
+  using _a = a, _b = b, _c = c;
+  const hook = useShoppingList(TEST_LIST_ID, [], [
+    makeListItem("sl-1", "item-1"),
+  ]);
+
+  hook.updateListItem("sl-1", { quantity: 3 });
+  await hook.flushListItem("sl-1");
+  await hook.refresh();
+
+  const actual = hook.list.value[0].quantity;
+  const expected = 7;
+  assertEquals(actual, expected);
+});
