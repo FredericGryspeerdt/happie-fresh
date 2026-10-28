@@ -93,8 +93,9 @@ Firestore and FCM/APNs; even if all of it is billed internet egress
 traffic (a few households, ~600 KV entries) adds page loads through Hosting
 (free up to 360 MB/day) and API responses from Cloud Run (EU egress, cents).
 
-Billed amount: _pending — read Billing → Reports for project `happie-spike`,
-19–25 Oct 2026, grouped by SKU._
+Billed amount: **€0.00** for project `happie-spike`, 19–25 Oct 2026 (Billing →
+Reports, read by the owner). Verdict (owner, 2026-10-28): **passes** the "no
+fixed fee, a few cents of usage per month" constraint.
 
 ## Deploy checklist (human)
 
