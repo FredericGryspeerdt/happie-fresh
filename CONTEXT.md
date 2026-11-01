@@ -11,19 +11,34 @@ knowledge workers.
 
 **Household**: The group of people who live together and share everything in
 Happie. Every piece of data in the app belongs to exactly one household.
-_Avoid_: family, account, group, tenant
+_Avoid_: family, group, tenant
+
+**Account**: What a device signs in with: a username and password that belong
+to the household, not to any one person. A manager holds it and uses it to sign
+in each device the household uses — like a streaming account shared by the
+family. An account says _which household_, never _who_. _Avoid_: login, user,
+credentials (as a noun for the whole thing)
 
 **Member**: A person in the household. Members exist so the household knows
 _who_ — who added something, who something is assigned to. A member is a person,
-not a login: signing in and being someone are different things, and most members
-(children) never sign in at all. Every member belongs to exactly one household.
-_Avoid_: profile, user, account
+not an account: signing in and being someone are different things, and most
+members (children) never sign in at all. Every member belongs to exactly one
+household. _Avoid_: profile, user, account
+
+**Acting member**: The member a device is currently being. After a device signs
+in with the household's account, it picks who is using it; everything done on
+that device is done as that member until someone switches. Being the acting
+member is chosen, not proven. _Avoid_: current user, logged-in member, profile
 
 **Manager**: A member the household trusts with the sharp knives: managing
 members (adding, editing, removing, promoting) and destroying household data
 (deleting, clearing). Typically the parents. There is no third tier — a member
 either manages the household or doesn't — and a household always has at least
 one manager. _Avoid_: admin, owner, parent, primary user
+
+**Home**: The household's overview of the day — what is due, what is left to
+buy, what is on the menu — and where the app opens. It shows other modules'
+things; it owns none of its own. _Avoid_: dashboard, overview, start page
 
 ### To-dos
 
