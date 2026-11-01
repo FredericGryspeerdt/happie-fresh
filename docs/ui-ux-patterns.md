@@ -300,9 +300,15 @@ patchScheduler.flush(id);           // on editor close (save now)
 await patchScheduler.flush(id);     // before delete, while new edits are blocked
 ```
 
+**Refresh keeps own edits:** a refresh must not overwrite edits the server copy
+may not include yet. Re-apply each own edit over the fetched copy while it is
+queued, in flight or failed, and once confirmed until a refresh requested after
+that confirmation arrives (issue #155).
+
 **See:** `utils/debounce-update.ts` (the scheduler),
 `hooks/useShoppingList.ts` (`patchScheduler`, `updateListItem`, `flushListItem`,
-and the drain in `removeListItem` before DELETE).
+`ownEdits` re-applied in `refresh`, and the drain in `removeListItem` before
+DELETE).
 
 ---
 

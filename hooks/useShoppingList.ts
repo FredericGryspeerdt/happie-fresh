@@ -63,6 +63,38 @@ export function useShoppingList(
     savingIds.value = next;
   };
 
+  // Own edits, per list item and field, that `refresh()` re-applies over the
+  // server copy (issue #155). A field stays until a refresh sent after its
+  // save was confirmed arrives; unconfirmed (queued, in-flight, failed) fields
+  // stay until they save. `seq` orders confirmations against refresh requests.
+  type OwnEdit = { value: unknown; confirmedSeq?: number };
+  const ownEdits = new Map<string, Map<string, OwnEdit>>();
+  let seq = 0;
+  const recordEdit = (
+    id: string,
+    patch: Partial<ShoppingListItemInterface>,
+    confirmed = false,
+  ) => {
+    const fields = ownEdits.get(id) ?? new Map<string, OwnEdit>();
+    for (const [field, value] of Object.entries(patch)) {
+      fields.set(field, { value, confirmedSeq: confirmed ? ++seq : undefined });
+    }
+    ownEdits.set(id, fields);
+  };
+  const confirmEdit = (
+    id: string,
+    saved: Partial<ShoppingListItemInterface>,
+  ) => {
+    for (const [field, value] of Object.entries(saved)) {
+      const edit = ownEdits.get(id)?.get(field);
+      // A newer edit to the same field is still unconfirmed.
+      if (edit && Object.is(edit.value, value)) edit.confirmedSeq ??= ++seq;
+    }
+  };
+  const dropEdit = (id: string, field: string) => {
+    ownEdits.get(id)?.delete(field);
+  };
+
   const failedPatches = new Map<string, Partial<ShoppingListItemInterface>>();
   const saveError = signal(0);
   const patchScheduler = createDebouncedMergeScheduler<
@@ -78,6 +110,7 @@ export function useShoppingList(
           saveError.value++;
         } else {
           failedPatches.delete(id);
+          confirmEdit(id, combined);
           lastSaved.value++;
         }
       } finally {
@@ -115,6 +148,7 @@ export function useShoppingList(
       li.id === id ? { ...li, ...patch } : li
     );
     markSaving(id);
+    recordEdit(id, patch);
     patchScheduler.schedule(id, patch);
   };
 
@@ -130,6 +164,7 @@ export function useShoppingList(
       markSaving(id);
       const saved = await api.shoppingList.updateItem(listId, id, amount);
       if (!saved) return false;
+      recordEdit(id, { quantity: saved.quantity, unit: saved.unit }, true);
       list.value = list.value.map((li) => li.id === id ? saved : li);
       checkedItems.value = checkedItems.value.map((li) =>
         li.id === id ? saved : li
@@ -204,6 +239,7 @@ export function useShoppingList(
         );
       } else {
         failedPatches.delete(id);
+        ownEdits.delete(id);
       }
       return ok;
     } finally {
@@ -232,6 +268,7 @@ export function useShoppingList(
     startPending();
     try {
       markSaving(id);
+      recordEdit(id, { checked: true });
       patchScheduler.schedule(id, { checked: true });
       await patchScheduler.flush(id);
       if (failedPatches.has(id)) {
@@ -240,6 +277,7 @@ export function useShoppingList(
         // Keep failed quantity/note edits, but not the rolled-back toggle.
         const { checked: _checked, ...rest } = failedPatches.get(id)!;
         failedPatches.set(id, rest);
+        dropEdit(id, "checked");
       }
     } finally {
       endPending();
@@ -256,6 +294,7 @@ export function useShoppingList(
       const active = { ...item, checked: false };
       list.value = [...list.value, active];
       markSaving(id);
+      recordEdit(id, { checked: false });
       patchScheduler.schedule(id, { checked: false });
       await patchScheduler.flush(id);
       if (failedPatches.has(id)) {
@@ -263,6 +302,7 @@ export function useShoppingList(
         checkedItems.value = [...checkedItems.value, item];
         const { checked: _checked, ...rest } = failedPatches.get(id)!;
         failedPatches.set(id, rest);
+        dropEdit(id, "checked");
       }
     } finally {
       endPending();
@@ -290,6 +330,9 @@ export function useShoppingList(
         checkedItems.value = snapshot; // rollback on failure
         return false;
       }
+      for (const li of snapshot) {
+        if (li.id) ownEdits.delete(li.id);
+      }
       return true;
     } finally {
       endPending();
@@ -297,6 +340,7 @@ export function useShoppingList(
   };
 
   const refresh = async () => {
+    const requestSeq = ++seq;
     startPending();
     try {
       const [newList, newItems, newCategories] = await Promise.all([
@@ -304,8 +348,24 @@ export function useShoppingList(
         api.items.getAll(),
         api.categories.getAll(),
       ]);
-      list.value = newList.filter((li) => !li.checked);
-      checkedItems.value = newList.filter((li) => li.checked);
+      const merged = newList.map((li) => {
+        const fields = li.id ? ownEdits.get(li.id) : undefined;
+        if (!fields) return li;
+        const own: Record<string, unknown> = {};
+        for (const [field, edit] of fields) {
+          // The server copy already includes edits confirmed before it was requested.
+          if (
+            edit.confirmedSeq !== undefined && edit.confirmedSeq < requestSeq
+          ) {
+            fields.delete(field);
+          } else {
+            own[field] = edit.value;
+          }
+        }
+        return { ...li, ...own };
+      });
+      list.value = merged.filter((li) => !li.checked);
+      checkedItems.value = merged.filter((li) => li.checked);
       items.value = newItems;
       categories.value = newCategories;
     } finally {
